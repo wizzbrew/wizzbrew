@@ -1,0 +1,163 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`COMMANDS > matches the snapshot 1`] = `
+[
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "Ask Wizzbrew a question about the event",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "ask",
+    "options": [
+      {
+        "description": "What you want to know",
+        "max_length": 500,
+        "name": "question",
+        "required": true,
+        "type": 3,
+      },
+    ],
+    "type": 1,
+  },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "See what is scheduled",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "schedule",
+    "options": [
+      {
+        "description": "Today, tomorrow, a weekday or a date",
+        "name": "day",
+        "required": false,
+        "type": 3,
+      },
+      {
+        "description": "Limit the schedule to one stage",
+        "name": "stage",
+        "required": false,
+        "type": 3,
+      },
+      {
+        "description": "Limit the schedule to one tournament",
+        "name": "tournament",
+        "required": false,
+        "type": 3,
+      },
+    ],
+    "type": 1,
+  },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "See what is on stream right now",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "live",
+    "type": 1,
+  },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "See the standings for a tournament",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "standings",
+    "options": [
+      {
+        "description": "Which tournament",
+        "name": "tournament",
+        "required": true,
+        "type": 3,
+      },
+    ],
+    "type": 1,
+  },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "Look up a player",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "player",
+    "options": [
+      {
+        "description": "The player's name",
+        "name": "name",
+        "required": true,
+        "type": 3,
+      },
+    ],
+    "type": 1,
+  },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "Connect your Wizzrobe account",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "link",
+    "type": 1,
+  },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "Disconnect your Wizzrobe account",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "unlink",
+    "type": 1,
+  },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "See your own matches and crew shifts",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "me",
+    "type": 1,
+  },
+]
+`;

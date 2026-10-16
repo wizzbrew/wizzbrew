@@ -1,10 +1,17 @@
-import { NotImplemented } from "../errors.js";
+import { verifyKey } from "discord-interactions";
 
+// Ed25519 check of a Discord interaction. Returns false for anything empty, malformed or
+// rejected; it never throws and never logs, so a bad request just fails verification.
 export async function verifyDiscordRequest(
-  _rawBody: string,
-  _signature: string,
-  _timestamp: string,
-  _publicKey: string,
+  rawBody: string,
+  signature: string,
+  timestamp: string,
+  publicKey: string,
 ): Promise<boolean> {
-  throw new NotImplemented("verify.verifyDiscordRequest");
+  if (!rawBody || !signature || !timestamp || !publicKey) return false;
+  try {
+    return (await verifyKey(rawBody, signature, timestamp, publicKey)) === true;
+  } catch {
+    return false;
+  }
 }
