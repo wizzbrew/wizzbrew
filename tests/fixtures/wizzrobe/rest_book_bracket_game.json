@@ -1,0 +1,37 @@
+{
+  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
+  "id": 301,
+  "bracket_id": 21,
+  "round": 1,
+  "position": 1,
+  "group_number": null,
+  "entry1_id": 41,
+  "entry2_id": 42,
+  "winner_id": null,
+  "entry1_score": 0,
+  "entry2_score": 0,
+  "forfeit": false,
+  "state": "open",
+  "status": "scheduled",
+  "winner_to_id": 305,
+  "winner_to_slot": 1,
+  "loser_to_id": null,
+  "loser_to_slot": null,
+  "best_of": 3,
+  "created_at": "2026-10-10T12:00:00Z",
+  "updated_at": "2026-10-15T14:00:00Z",
+  "games": [
+    {
+      "id": 901,
+      "bracket_match_id": 301,
+      "game_number": 1,
+      "match_id": 1,
+      "winner_entry_id": null,
+      "forfeit": false,
+      "state": "open",
+      "cancelled_reason": null,
+      "created_at": "2026-10-15T14:00:00Z",
+      "updated_at": "2026-10-15T14:00:00Z"
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "_note": "shape from the Challonge API v2.1 schema, 2026-10-15, values fake; relationships sit inside attributes as in the v2.1 schema",
+  "data": [
+    {
+      "id": "5001",
+      "type": "match",
+      "attributes": {
+        "state": "complete",
+        "round": 1,
+        "identifier": "A",
+        "suggested_play_order": 1,
+        "scores": "1 - 0",
+        "score_in_sets": [[1, 0]],
+        "points_by_participant": [
+          { "participant_id": 1001, "scores": [1] },
+          { "participant_id": 1002, "scores": [0] }
+        ],
+        "winner_id": 1001,
+        "timestamps": {
+          "created_at": "2026-10-01T12:00:00Z",
+          "updated_at": "2026-10-16T18:00:00Z",
+          "started_at": "2026-10-16T17:00:00Z",
+          "completed_at": "2026-10-16T18:00:00Z"
+        },
+        "relationships": {
+          "player1": { "data": { "id": "1001", "type": "participant" } },
+          "player2": { "data": { "id": "1002", "type": "participant" } }
+        }
+      }
+    },
+    {
+      "id": "5002",
+      "type": "match",
+      "attributes": {
+        "state": "complete",
+        "round": 1,
+        "identifier": "B",
+        "suggested_play_order": 2,
+        "scores": "0 - 1",
+        "score_in_sets": [[0, 1]],
+        "points_by_participant": [
+          { "participant_id": 1003, "scores": [1] },
+          { "participant_id": 1004, "scores": [0] }
+        ],
+        "winner_id": 1003,
+        "timestamps": {
+          "created_at": "2026-10-01T12:00:00Z",
+          "updated_at": "2026-10-16T18:30:00Z",
+          "started_at": "2026-10-16T17:30:00Z",
+          "completed_at": "2026-10-16T18:30:00Z"
+        },
+        "relationships": {
+          "player1": { "data": { "id": "1003", "type": "participant" } },
+          "player2": { "data": { "id": "1004", "type": "participant" } }
+        }
+      }
+    },
+    {
+      "id": "5003",
+      "type": "match",
+      "attributes": {
+        "state": "complete",
+        "round": 1,
+        "identifier": "C",
+        "suggested_play_order": 3,
+        "scores": "1 - 0",
+        "score_in_sets": [[1, 0]],
+        "points_by_participant": [
+          { "participant_id": 1005, "scores": [1] },
+          { "participant_id": 1006, "scores": [0] }
+        ],
+        "winner_id": 1005,
+        "timestamps": {
+          "created_at": "2026-10-01T12:00:00Z",
+          "updated_at": "2026-10-16T19:00:00Z",
+          "started_at": "2026-10-16T18:00:00Z",
+          "completed_at": "2026-10-16T19:00:00Z"
+        },
+        "relationships": {
+          "player1": { "data": { "id": "1005", "type": "participant" } },
+          "player2": { "data": { "id": "1006", "type": "participant" } }
+        }
+      }
+    },
+    {
+      "id": "5004",
+      "type": "match",
+      "attributes": {
+        "state": "open",
+        "round": 1,
+        "identifier": "D",
+        "suggested_play_order": 4,
+        "scores": "",
+        "score_in_sets": [[0, 0]],
+        "points_by_participant": [
+          { "participant_id": 1007, "scores": [0] },
+          { "participant_id": 1008, "scores": [0] }
+        ],
+        "winner_id": null,
+        "timestamps": {
+          "created_at": "2026-10-01T12:00:00Z",
+          "updated_at": "2026-10-16T19:30:00Z",
+          "started_at": "2026-10-16T19:30:00Z",
+          "completed_at": null
+        },
+        "relationships": {
+          "player1": { "data": { "id": "1007", "type": "participant" } },
+          "player2": { "data": { "id": "1008", "type": "participant" } }
+        }
+      }
+    },
+    {
+      "id": "5005",
+      "type": "match",
+      "attributes": {
+        "state": "open",
+        "round": 2,
+        "identifier": "E",
+        "suggested_play_order": 5,
+        "scores": "",
+        "score_in_sets": [[0, 0]],
+        "points_by_participant": [
+          { "participant_id": 1001, "scores": [0] },
+          { "participant_id": 1003, "scores": [0] }
+        ],
+        "winner_id": null,
+        "timestamps": {
+          "created_at": "2026-10-01T12:00:00Z",
+          "updated_at": "2026-10-16T18:30:00Z",
+          "started_at": "2026-10-17T16:00:00Z",
+          "completed_at": null
+        },
+        "relationships": {
+          "player1": { "data": { "id": "1001", "type": "participant" } },
+          "player2": { "data": { "id": "1003", "type": "participant" } }
+        }
+      }
+    },
+    {
+      "id": "5006",
+      "type": "match",
+      "attributes": {
+        "state": "pending",
+        "round": 2,
+        "identifier": "F",
+        "suggested_play_order": 6,
+        "scores": "",
+        "score_in_sets": [[0, 0]],
+        "points_by_participant": [
+          { "participant_id": 1005, "scores": [0] }
+        ],
+        "winner_id": null,
+        "timestamps": {
+          "created_at": "2026-10-01T12:00:00Z",
+          "updated_at": "2026-10-16T19:00:00Z",
+          "started_at": null,
+          "completed_at": null
+        },
+        "relationships": {
+          "player1": { "data": { "id": "1005", "type": "participant" } },
+          "player2": { "data": null }
+        }
+      }
+    },
+    {
+      "id": "5007",
+      "type": "match",
+      "attributes": {
+        "state": "pending",
+        "round": 3,
+        "identifier": "G",
+        "suggested_play_order": 7,
+        "scores": "",
+        "score_in_sets": [[0, 0]],
+        "points_by_participant": [],
+        "winner_id": null,
+        "timestamps": {
+          "created_at": "2026-10-01T12:00:00Z",
+          "updated_at": "2026-10-16T19:00:00Z",
+          "started_at": null,
+          "completed_at": null
+        },
+        "relationships": {
+          "player1": { "data": null },
+          "player2": { "data": null }
+        }
+      }
+    }
+  ]
+}
