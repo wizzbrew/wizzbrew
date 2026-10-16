@@ -4,13 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Wave 2: T09 to T14 merged and green. T15, T26, T27 wait for the Wizzrobe MCP tool schemas.
-
-Resume point: no workers running, no worktrees. Next: Vince authenticates the wizzrobe MCP
-(added at local scope; needs a session restart plus `/mcp` Authenticate). Then read the input
-schemas of the write tools, get_tournament, list_matches and get_match; check whether Wizzrobe
-mirrors Challonge pairings (tournament 2, "Challonge Integration Test"); write and dispatch T15,
-T26 (or drop it if Wizzrobe covers brackets) and T27.
+Wave 2: T09 to T14 merged and green; T15, T26, T27 dispatched (schemas read live).
 
 ## Tasks
 
@@ -33,9 +27,9 @@ T26 (or drop it if Wizzrobe covers brackets) and T27.
 | T12 tokens and identity | sonnet | merged (about 40k; tokens and identity import each other, function-level only) | build/t12 | ac43fc1 |
 | T13 mcp | sonnet | merged (about 45k; fetch wrapper captures Retry-After; real SDK path untested until live) | build/t13 | 688bee8 |
 | T14 rest gaps | haiku | merged (about 35k) | build/t14 | fd5d369 |
-| T15 pending and execute | haiku | waiting: write-tool input schemas | | |
-| T26 challonge standings | sonnet | waiting: get_tournament args; snapshot design | | |
-| T27 my matches and client tools | sonnet | waiting: list_matches and get_match args | | |
+| T15 pending and execute | sonnet (moved from haiku after T04 overran) | dispatched | build/t15 | |
+| T26 challonge snapshot | sonnet | dispatched | build/t26 | |
+| T27 my matches and client tools | sonnet | dispatched | build/t27 | |
 
 Waves 3 and 4: queued.
 
@@ -115,9 +109,18 @@ None open (F1 merged).
   Challonge v2.1 has no webhooks (its "broadcasted events" are browser postMessage events from an
   embedded bracket). Later: a Wizzrobe `match.*` webhook (staff configure it, phase 3) could mark
   a tournament's snapshot stale the moment a match finishes.
-- Wizzrobe MCP input schemas for write tools, get_tournament, list_matches and get_match are not
-  in the docs (the MCP needs auth). T15, T26 and T27 wait for Vince to authenticate the
-  Wizzrobe MCP in this project so the builder can read them.
+- Wizzrobe MCP connected 2026-10-15 evening. Live findings: write tools take `tenant` plus
+  `match_id` or `tournament_id` (crew adds `role`); `submit_match_request` takes `player_ids`,
+  `scheduled_date`, `scheduled_time`. Wizzrobe holds only scheduled matches with known players and
+  their results (`finish_rank`); no bracket pairings, so Challonge stays for bracket structure.
+  Synack says the Discord id fix is live on MCP, but `get_match` 4 still returned Synack's id as a
+  JSON number ending ...220; the numeric guard stays. Tell Synack.
+- Contract changes before T27 and T26: `matchesForAsker(asker, window)` replaces
+  `matchesForDiscordUser` (one list_matches per question; linked askers matched by name; roster
+  cache with a 20-call cap for unlinked); BracketSummary gains `upcoming`; Challonge refreshes on
+  a new Wizzrobe result or after 6 h; `WRITE_ARGS` in execute.ts.
+- Challonge v2.1 matches have no prerequisite-match field in the schema, so "you face the winner
+  of X vs Y" can only name the round and the open slot. Check a live response in the live phase.
 
 ## For the deploy checklist (T24)
 

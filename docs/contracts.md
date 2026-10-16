@@ -43,7 +43,7 @@ src/
   wizzrobe/mcp.ts        connector params for responders + direct tools/call client
   wizzrobe/rest.ts       typed REST calls for the MCP gaps
   wizzrobe/resolve.ts    name -> id matching that never guesses (L18)
-  wizzrobe/mine.ts       matchesForDiscordUser: a user's matches by Discord id, no link needed
+  wizzrobe/mine.ts       matchesForAsker: the asker's matches, one list_matches call per question
   challonge/challonge.ts read-only Challonge bracket summary for a Wizzrobe tournament
   responders/clientTools.ts  client tools the responder loop can run in code (challonge_bracket, matches_for_me)
   personality/voice.ts   Wizzbrew's voice: voice(register), registers data | help | chat
@@ -419,10 +419,15 @@ export function resolveByName<T>(input: string, items: T[], nameOf: (t: T) => st
 
 // wizzrobe/mine.ts
 export interface MyMatch { matchId: number; tournament: string; scheduledAt: Date; status: string; stage: string | null; streamUrl: string | null; opponents: string[] }
-export function matchesForDiscordUser(discordUserId: string, window: { start: Date; end: Date }): Promise<MyMatch[] | "id_unreliable">;
-// Bot token. list_matches over the window, get_match per match (cached), keep matches where a
-// player's user.discord_id is a STRING equal to discordUserId. A numeric discord_id anywhere in
-// the batch -> "id_unreliable" (the precision bug, L19); the answer then asks the user to /link.
+export interface MyMatches { matches: MyMatch[]; partial: boolean }   // partial: the lookup cap was hit before the window was covered
+export function matchesForAsker(asker: Asker, window: { start: Date; end: Date }): Promise<MyMatches | "id_unreliable">;
+// Changed before T27 (was matchesForDiscordUser). Bot token, ONE list_matches call over the window.
+// Linked asker: match compact `players` names against the linked username/display name; no
+// get_match calls. Unlinked: discord ids come from a shared per-match roster cache
+// (get_match, cached 6 h per match), at most 20 uncached get_match calls per request (partial
+// when hit). Keep matches where a player's user.discord_id is a STRING equal to the asker's id;
+// a numeric discord_id anywhere -> "id_unreliable" (precision bug, still seen 2026-10-15 evening),
+// and the answer asks the user to /link.
 
 // challonge/challonge.ts
 export interface BracketSummary {
@@ -430,14 +435,16 @@ export interface BracketSummary {
   state: string | null;                                   // Challonge tournament state
   alive: string[]; eliminated: string[];                  // participant display names
   recent: { round: string; players: [string, string]; winner: string | null }[];
+  upcoming: { round: string; players: [string | null, string | null] }[];   // open or pending pairings; null = slot not decided yet
   source: "challonge" | "link_only";                      // link_only when no key and no snapshot
-  fetchedAt: string | null;                               // ISO time the snapshot was taken (added before wave 2)
+  fetchedAt: string | null;                               // ISO time the snapshot was taken
 }
 export function bracketFor(tournamentId: number): Promise<BracketSummary>;
-// get_tournament (bot token) -> bracket_url -> Challonge API (CHALLONGE_API_KEY, read-only).
-// Demand-driven snapshot per tournament: served while under 15 minutes old, refreshed on the
-// next ask after that; a failed refresh serves the stale snapshot with its fetchedAt. No key and
-// no snapshot -> source "link_only", never an invented table.
+// get_tournament (bot token) -> bracket_url -> Challonge API v2.1 (CHALLONGE_API_KEY, read-only).
+// Change-driven snapshot per tournament: refreshed only when Wizzrobe's list_matches for that
+// tournament shows a completed match the snapshot hasn't seen, or the snapshot is over 6 h old.
+// A failed refresh serves the stale snapshot; no key and no snapshot -> "link_only", never an
+// invented table. Monthly Challonge request guard at 450.
 
 // responders/clientTools.ts
 export function clientToolDefs(names: ClientTool[]): BetaTool[];   // strict input schemas
@@ -463,7 +470,13 @@ export function loadThread(id: string, discordUserId: string, now: Date): Promis
 // Threads are not single use: loading one slides its TTL (600 s) and keeps it.
 
 // actions/execute.ts
+export const WRITE_ARGS: Record<WriteTool, z.ZodType>;              // strict arg schema per write tool (no tenant)
 export function executeAction(p: PendingAction): Promise<string>;   // user-facing result line
+// Arg shapes, from the live MCP schemas (2026-10-15): match tools {match_id}; crew tools
+// {match_id, role: "commentator" | "tracker"}; tournament entry {tournament_id};
+// submit_match_request {tournament_id, scheduled_date, scheduled_time, player_ids, comment?};
+// rest_create_reschedule_request {match_id, kind, reason, proposed_at?};
+// rest_book_bracket_game {bracket_match_id, scheduled_date, scheduled_time, comment?}.
 
 // handlers/ask.ts
 export interface PipelineRequest {
