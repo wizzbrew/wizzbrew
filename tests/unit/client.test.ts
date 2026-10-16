@@ -8,6 +8,28 @@ import { communityDate } from "../../src/time/time.js";
 import { block, FakeAnthropic, fakeMessage } from "../fakes/anthropic.js";
 import { FakeKv } from "../fakes/kv.js";
 
+const sdk = vi.hoisted(() => ({ ctor: vi.fn() }));
+
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: function FakeSdk(this: { beta: unknown }, opts: unknown) {
+    sdk.ctor(opts);
+    this.beta = {
+      messages: {
+        create: async () => ({
+          id: "msg_test",
+          type: "message",
+          role: "assistant",
+          model: "claude-haiku-5-5",
+          content: [{ type: "text", text: "ok" }],
+          stop_reason: "end_turn",
+          stop_sequence: null,
+          usage: { input_tokens: 1, output_tokens: 1 },
+        }),
+      },
+    };
+  },
+}));
+
 const NOW = new Date("2026-10-15T16:00:00Z");
 const CTX = { requestId: "req-abc-123", now: NOW };
 const BASE = {
@@ -226,23 +248,10 @@ describe("createMessage logging", () => {
 
 describe("client construction", () => {
   it("passes a 120 s timeout and one retry to the SDK", async () => {
-    vi.resetModules();
-    const ctor = vi.fn();
-    vi.doMock("@anthropic-ai/sdk", () => ({
-      default: class {
-        constructor(opts: unknown) {
-          ctor(opts);
-        }
-        beta = { messages: { create: vi.fn().mockResolvedValue(fakeMessage([block.text("ok")])) } };
-      },
-    }));
-    const mod = await import("../../src/llm/client.js");
-    mod.setAnthropicForTests(null);
-    const kvMod = await import("../../src/store/kv.js");
-    kvMod.setKvForTests(new FakeKv());
-    await mod.createMessage("router", BASE, CTX);
-    expect(ctor).toHaveBeenCalledWith(expect.objectContaining({ timeout: 120000, maxRetries: 1 }));
-    vi.doUnmock("@anthropic-ai/sdk");
-    vi.resetModules();
+    setAnthropicForTests(null);
+    await createMessage("router", BASE, CTX);
+    expect(sdk.ctor).toHaveBeenCalledWith(
+      expect.objectContaining({ timeout: 120000, maxRetries: 1 }),
+    );
   });
 });
