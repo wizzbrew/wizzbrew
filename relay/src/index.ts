@@ -24,9 +24,45 @@ async function fetchRef(m: Message): Promise<Message | null> {
   if (!id) return null;
   try {
     return await m.channel.messages.fetch(id);
-  } catch {
+  } catch (err) {
+    console.warn(
+      `fetchRef failed message=${m.id} error=${err instanceof Error ? err.name : "unknown"}`,
+    );
     return null;
   }
+}
+
+const MEMBER_TTL_MS = 10 * 60 * 1000;
+const memberCache = new Map<string, { value: boolean; expires: number }>();
+let allowedGuildIds: string[] = [];
+
+function resolveAllowedGuilds(): void {
+  const ids = new Set<string>();
+  for (const channelId of config.channelIds) {
+    const ch = client.channels.cache.get(channelId);
+    if (ch && "guildId" in ch && typeof ch.guildId === "string") ids.add(ch.guildId);
+  }
+  allowedGuildIds = [...ids];
+}
+
+async function isMemberOfAllowedGuild(authorId: string): Promise<boolean> {
+  const hit = memberCache.get(authorId);
+  if (hit && hit.expires > Date.now()) return hit.value;
+  let value = false;
+  for (const guildId of allowedGuildIds) {
+    try {
+      const guild = client.guilds.cache.get(guildId);
+      if (guild) {
+        await guild.members.fetch(authorId);
+        value = true;
+        break;
+      }
+    } catch {
+      // Unknown member in this guild; try the next one.
+    }
+  }
+  memberCache.set(authorId, { value, expires: Date.now() + MEMBER_TTL_MS });
+  return value;
 }
 
 async function walkChain(m: Message): Promise<RelayMessage["chain"]> {
@@ -73,6 +109,7 @@ client.on("messageCreate", async (message) => {
     }
     const channel = message.channel;
     const parentId = channel.isThread() ? channel.parentId : null;
+    const memberOk = isDm ? await isMemberOfAllowedGuild(message.author.id) : false;
     const ok = shouldForward(
       {
         authorIsBot: message.author.bot,
@@ -81,6 +118,7 @@ client.on("messageCreate", async (message) => {
         repliesToBot,
         channelId: message.channelId,
         parentId,
+        isMemberOfAllowedGuild: memberOk,
       },
       config.channelIds,
     );
@@ -119,7 +157,10 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-client.once("clientReady", () => console.log("relay ready"));
+client.once("clientReady", () => {
+  resolveAllowedGuilds();
+  console.log("relay ready");
+});
 
 function shutdown(): void {
   client.destroy().finally(() => process.exit(0));

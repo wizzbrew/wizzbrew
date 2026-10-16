@@ -10,6 +10,7 @@ const base = {
   repliesToBot: false,
   channelId: "c1",
   parentId: null as string | null,
+  isMemberOfAllowedGuild: true,
 };
 
 describe("shouldForward", () => {
@@ -18,8 +19,13 @@ describe("shouldForward", () => {
       shouldForward({ ...base, authorIsBot: true, isDm: true, mentionsBot: true }, allow),
     ).toBe(false);
   });
-  it("always forwards DMs", () => {
+  it("forwards a DM from a guild member", () => {
     expect(shouldForward({ ...base, isDm: true, channelId: "x" }, allow)).toBe(true);
+  });
+  it("refuses a DM from a non-member", () => {
+    expect(
+      shouldForward({ ...base, isDm: true, channelId: "x", isMemberOfAllowedGuild: false }, allow),
+    ).toBe(false);
   });
   it("forwards a mention in an allowed channel", () => {
     expect(shouldForward({ ...base, mentionsBot: true }, allow)).toBe(true);

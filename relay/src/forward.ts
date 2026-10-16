@@ -20,11 +20,12 @@ export interface ForwardInputs {
   repliesToBot: boolean;
   channelId: string;
   parentId: string | null;
+  isMemberOfAllowedGuild: boolean;
 }
 
 export function shouldForward(m: ForwardInputs, allow: Set<string>): boolean {
   if (m.authorIsBot) return false;
-  if (m.isDm) return true;
+  if (m.isDm) return m.isMemberOfAllowedGuild;
   if (!(m.mentionsBot || m.repliesToBot)) return false;
   return allow.has(m.channelId) || (m.parentId !== null && allow.has(m.parentId));
 }

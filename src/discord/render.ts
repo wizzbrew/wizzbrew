@@ -3,6 +3,7 @@ import type {
   APIButtonComponent,
   RESTPatchAPIInteractionOriginalResponseJSONBody,
 } from "discord-api-types/v10";
+import { discordTimestamp, parseWizzrobeTime } from "../time/time.js";
 import type { Answer } from "../types.js";
 import { encodeCustomId } from "./components.js";
 import { finalizeText } from "./markup.js";
@@ -112,11 +113,24 @@ function buildComponents(
   return rows;
 }
 
+const STRAY_ISO = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})\b/g;
+
+// A raw UTC time in model text is rewritten to a Discord timestamp; text that does not parse stays.
+function convertStrayTimes(text: string): string {
+  return text.replace(STRAY_ISO, (match) => {
+    try {
+      return discordTimestamp(parseWizzrobeTime(match), "f");
+    } catch {
+      return match;
+    }
+  });
+}
+
 export function renderAnswer(
   a: Answer,
   ids?: { pendingId?: string; threadId?: string },
 ): RESTPatchAPIInteractionOriginalResponseJSONBody[] {
-  const chunks = finalizeText(a.text);
+  const chunks = finalizeText(convertStrayTimes(a.text));
   if (chunks.length === 0) {
     throw new Error("render.renderAnswer: finalizeText returned no chunks");
   }
