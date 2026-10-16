@@ -28,7 +28,11 @@ let client: AnthropicLike | null = null;
 
 function anthropic(): AnthropicLike {
   if (client === null) {
-    client = new Anthropic({ apiKey: config().anthropicApiKey });
+    client = new Anthropic({
+      apiKey: config().anthropicApiKey,
+      timeout: 120000, // Vercel stops the function at 300 s
+      maxRetries: 1,
+    });
   }
   return client;
 }
