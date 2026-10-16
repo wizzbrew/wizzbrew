@@ -5,7 +5,7 @@ import { UserInputError, WizzrobeError } from "../../src/errors.js";
 import { open } from "../../src/store/crypto.js";
 import { keys } from "../../src/store/keys.js";
 import { setKvForTests } from "../../src/store/kv.js";
-import { saveLink } from "../../src/wizzrobe/identity.js";
+import { getLinkOwner, saveLink } from "../../src/wizzrobe/identity.js";
 import { callTool } from "../../src/wizzrobe/mcp.js";
 import {
   discoverMetadata,
@@ -15,6 +15,7 @@ import {
   refresh,
   revoke,
   startLink,
+  verifyDiscord,
 } from "../../src/wizzrobe/oauth.js";
 import { FakeKv } from "../fakes/kv.js";
 
@@ -23,7 +24,7 @@ vi.mock("node:crypto", async (importOriginal) => {
   return { ...actual, randomBytes: vi.fn(actual.randomBytes) };
 });
 vi.mock("../../src/wizzrobe/mcp.js", () => ({ callTool: vi.fn() }));
-vi.mock("../../src/wizzrobe/identity.js", () => ({ saveLink: vi.fn() }));
+vi.mock("../../src/wizzrobe/identity.js", () => ({ saveLink: vi.fn(), getLinkOwner: vi.fn() }));
 
 const IDP = "https://idp.wizzrobe.test";
 const METADATA = {
@@ -43,6 +44,10 @@ const CLIENT_ID = "test-oauth-client-id";
 const CLIENT_SECRET = "test-oauth-client-secret";
 const REDIRECT_URI = "https://bot.test/api/oauth/callback";
 const MCP_URL = "https://wizzrobe.test/mcp";
+const DISCORD_REDIRECT = "https://bot.test/api/oauth/discord";
+const DISCORD_SECRET = "test-discord-client-secret";
+const DISCORD_ACCESS = "discord-access-token";
+const DISCORD_CODE = "discord-code-xyz";
 
 const DISCORD_ID = "123456789012345678";
 const CODE = "auth-code-xyz";
@@ -73,6 +78,7 @@ let clock = 1_000_000;
 let metadataReply: () => Response;
 let tokenReply: () => Response;
 let revokeReply: () => Response;
+let discordUser: string;
 let fetchMock: ReturnType<typeof vi.fn<Handler>>;
 let baseCounter = 0;
 
@@ -113,11 +119,17 @@ beforeEach(() => {
     if (url.endsWith(METADATA_PATH)) return metadataReply();
     if (url === `${IDP}/token`) return tokenReply();
     if (url === `${IDP}/revoke`) return revokeReply();
+    if (url === "https://discord.com/api/v10/oauth2/token") {
+      return json(200, { access_token: DISCORD_ACCESS, token_type: "Bearer" });
+    }
+    if (url === "https://discord.com/api/v10/users/@me") return json(200, { id: discordUser });
     throw new Error(`unexpected fetch ${url}`);
   });
   vi.stubGlobal("fetch", fetchMock);
   vi.mocked(callTool).mockReset().mockResolvedValue(whoami());
   vi.mocked(saveLink).mockReset().mockResolvedValue(undefined);
+  vi.mocked(getLinkOwner).mockReset().mockResolvedValue(null);
+  discordUser = DISCORD_ID;
 });
 
 afterEach(() => {
@@ -153,7 +165,8 @@ describe("discoverMetadata", () => {
   it("is fetched once and cached", async () => {
     await refresh(REFRESH);
     await revoke(REFRESH);
-    await startLink(DISCORD_ID);
+    const { url } = await startLink(DISCORD_ID);
+    await verifyDiscord(DISCORD_CODE, new URL(url).searchParams.get("state") ?? "");
     const base = new URL(fetchMock.mock.calls[0]?.[0] ?? "");
     expect(base.pathname).toBe(METADATA_PATH);
     expect(fetchMock.mock.calls.filter(([u]) => u.endsWith(METADATA_PATH))).toHaveLength(1);
@@ -179,43 +192,30 @@ describe("discoverMetadata", () => {
 });
 
 describe("startLink", () => {
-  it("returns the authorize URL with every parameter", async () => {
+  it("returns the Discord authorize URL", async () => {
     const { url } = await startLink(DISCORD_ID);
     const parsed = new URL(url);
-    expect(parsed.origin + parsed.pathname).toBe(`${IDP}/authorize`);
+    expect(parsed.origin + parsed.pathname).toBe("https://discord.com/oauth2/authorize");
     const p = parsed.searchParams;
     expect(p.get("response_type")).toBe("code");
-    expect(p.get("client_id")).toBe(CLIENT_ID);
-    expect(p.get("redirect_uri")).toBe(REDIRECT_URI);
-    expect(p.get("scope")).toBe("wizzrobe:read wizzrobe:write");
-    expect(p.get("code_challenge_method")).toBe("S256");
-    expect(p.get("resource")).toBe(MCP_URL);
+    expect(p.get("client_id")).toBe("test-application-id");
+    expect(p.get("scope")).toBe("identify");
+    expect(p.get("redirect_uri")).toBe(DISCORD_REDIRECT);
+    expect(p.get("prompt")).toBe("none");
     expect(p.get("state")).toMatch(/^[A-Za-z0-9_-]{22}$/);
-    expect([...p.keys()].sort()).toEqual([
-      "client_id",
-      "code_challenge",
-      "code_challenge_method",
-      "redirect_uri",
-      "resource",
-      "response_type",
-      "scope",
-      "state",
-    ]);
+    expect(url).not.toContain(DISCORD_SECRET);
     expect(url).not.toContain(CLIENT_SECRET);
   });
 
-  it("stores the verifier and user under the state for 600 seconds", async () => {
+  it("stores an unverified record under the state for 600 seconds", async () => {
     const { url } = await startLink(DISCORD_ID);
     const state = new URL(url).searchParams.get("state") ?? "";
-    const stored = await kvStore.get<{ verifier: string; discordUserId: string }>(
+    const stored = await kvStore.get<{ discordUserId: string; discordVerified: boolean }>(
       keys.oauthState(state),
     );
     expect(stored?.discordUserId).toBe(DISCORD_ID);
-    const challenge = createHash("sha256")
-      .update(stored?.verifier ?? "")
-      .digest("base64url");
-    expect(new URL(url).searchParams.get("code_challenge")).toBe(challenge);
-    expect(url).not.toContain(stored?.verifier ?? "unreachable");
+    expect(stored?.discordVerified).toBe(false);
+    expect(url).not.toContain((stored as { verifier?: string }).verifier ?? "unreachable");
 
     clock += 599_000;
     expect(kvStore.has(keys.oauthState(state))).toBe(true);
@@ -224,13 +224,127 @@ describe("startLink", () => {
   });
 });
 
+describe("verifyDiscord", () => {
+  async function begin(): Promise<string> {
+    const { url } = await startLink(DISCORD_ID);
+    return new URL(url).searchParams.get("state") ?? "";
+  }
+
+  it("marks the state verified and returns the Wizzrobe authorize URL", async () => {
+    const state = await begin();
+    const { redirectTo } = await verifyDiscord(DISCORD_CODE, state);
+    const parsed = new URL(redirectTo);
+    expect(parsed.origin + parsed.pathname).toBe(`${IDP}/authorize`);
+    const p = parsed.searchParams;
+    expect(p.get("client_id")).toBe(CLIENT_ID);
+    expect(p.get("redirect_uri")).toBe(REDIRECT_URI);
+    expect(p.get("scope")).toBe("wizzrobe:read wizzrobe:write");
+    expect(p.get("code_challenge_method")).toBe("S256");
+    expect(p.get("resource")).toBe(MCP_URL);
+    expect(p.get("state")).toBe(state);
+    const stored = await kvStore.get<{ verifier: string; discordVerified: boolean }>(
+      keys.oauthState(state),
+    );
+    expect(stored?.discordVerified).toBe(true);
+    expect(p.get("code_challenge")).toBe(
+      createHash("sha256")
+        .update(stored?.verifier ?? "")
+        .digest("base64url"),
+    );
+    const exchange = fetchMock.mock.calls.find(([u]) => u.endsWith("/oauth2/token"));
+    expect(Object.fromEntries(new URLSearchParams(exchange?.[1].body as string))).toEqual({
+      grant_type: "authorization_code",
+      code: DISCORD_CODE,
+      redirect_uri: DISCORD_REDIRECT,
+      client_id: "test-application-id",
+      client_secret: DISCORD_SECRET,
+    });
+  });
+
+  it("keeps the remaining TTL", async () => {
+    const realNow = vi.spyOn(Date, "now").mockImplementation(() => clock);
+    const state = await begin();
+    clock += 300_000;
+    await verifyDiscord(DISCORD_CODE, state);
+    clock += 299_000;
+    expect(kvStore.has(keys.oauthState(state))).toBe(true);
+    clock += 2_000;
+    expect(kvStore.has(keys.oauthState(state))).toBe(false);
+    realNow.mockRestore();
+  });
+
+  it("refuses a different Discord user, burns the state and saves nothing", async () => {
+    const state = await begin();
+    discordUser = "999999999999999999";
+    const failure = await verifyDiscord(DISCORD_CODE, state).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(UserInputError);
+    expect((failure as Error).message).toBe(
+      "This link was made for a different Discord account. Ask me to link you from your own account.",
+    );
+    expect(kvStore.has(keys.oauthState(state))).toBe(false);
+    await expect(finishLink(CODE, state)).rejects.toThrow(UserInputError);
+    expect(saveLink).not.toHaveBeenCalled();
+    expect(callsTo(`${IDP}/token`)).toHaveLength(0);
+  });
+
+  it("rejects an unknown state without calling Discord", async () => {
+    await expect(verifyDiscord(DISCORD_CODE, "never-issued")).rejects.toThrow(
+      "That link request expired. Ask me to link you again.",
+    );
+    expect(fetchMock.mock.calls.filter(([u]) => u.includes("discord.com"))).toHaveLength(0);
+  });
+
+  it("does not echo the code or tokens in a Discord failure", async () => {
+    const state = await begin();
+    fetchMock.mockImplementationOnce(async () => json(400, { error: DISCORD_CODE }));
+    const failure = await verifyDiscord(DISCORD_CODE, state).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(UserInputError);
+    expect((failure as Error).message).not.toContain(DISCORD_CODE);
+    expect((failure as Error).message).not.toContain(DISCORD_ACCESS);
+  });
+});
+
 describe("finishLink", () => {
   async function start(): Promise<{ state: string; verifier: string }> {
     const { url } = await startLink(DISCORD_ID);
     const state = new URL(url).searchParams.get("state") ?? "";
+    await verifyDiscord(DISCORD_CODE, state);
     const stored = await kvStore.get<{ verifier: string }>(keys.oauthState(state));
     return { state, verifier: stored?.verifier ?? "" };
   }
+
+  it("refuses a state whose Discord step was not finished", async () => {
+    const { url } = await startLink(DISCORD_ID);
+    const state = new URL(url).searchParams.get("state") ?? "";
+    await expect(finishLink(CODE, state)).rejects.toThrow(/Finish the Discord step first/);
+    expect(callsTo(`${IDP}/token`)).toHaveLength(0);
+    expect(saveLink).not.toHaveBeenCalled();
+  });
+
+  it("lets only one of two concurrent callbacks win", async () => {
+    const { state } = await start();
+    const results = await Promise.allSettled([finishLink(CODE, state), finishLink(CODE, state)]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
+    expect(saveLink).toHaveBeenCalledTimes(1);
+    expect(callsTo(`${IDP}/token`)).toHaveLength(1);
+  });
+
+  it("refuses a Wizzrobe account linked to another Discord account", async () => {
+    const { state } = await start();
+    vi.mocked(getLinkOwner).mockResolvedValue("555555555555555555");
+    await expect(finishLink(CODE, state)).rejects.toThrow(
+      "That Wizzrobe account is already linked to another Discord account. Unlink it there first.",
+    );
+    expect(getLinkOwner).toHaveBeenCalledWith(206);
+    expect(saveLink).not.toHaveBeenCalled();
+  });
+
+  it("allows relinking by the same Discord account", async () => {
+    const { state } = await start();
+    vi.mocked(getLinkOwner).mockResolvedValue(DISCORD_ID);
+    await expect(finishLink(CODE, state)).resolves.toEqual({ discordUserId: DISCORD_ID });
+  });
 
   it("exchanges the code, asks whoami and saves the link", async () => {
     const { state, verifier } = await start();
@@ -283,7 +397,7 @@ describe("finishLink", () => {
 
   it("rejects an unknown state", async () => {
     await expect(finishLink(CODE, "never-issued")).rejects.toThrow(
-      "That link request expired. Run /link again.",
+      "That link request expired. Ask me to link you again.",
     );
     expect(fetchMock.mock.calls.filter(([u]) => u === `${IDP}/token`)).toHaveLength(0);
   });

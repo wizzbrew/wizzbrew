@@ -5,6 +5,7 @@ describe("keys", () => {
   it("builds each exact key form", () => {
     expect(keys.link("123456789012345678")).toBe("wb:v1:link:123456789012345678");
     expect(keys.oauthState("abc_DEF-12.x")).toBe("wb:v1:oauth:abc_DEF-12.x");
+    expect(keys.linkOwner(206)).toBe("wb:v1:linkowner:206");
     expect(keys.botToken()).toBe("wb:v1:token:bot");
     expect(keys.userToken("123")).toBe("wb:v1:token:user:123");
     expect(keys.pending("p-1")).toBe("wb:v1:pending:p-1");
@@ -36,6 +37,8 @@ describe("keys", () => {
   const bad: [string, () => string][] = [
     ["discord id with letters", () => keys.link("12a")],
     ["empty discord id", () => keys.userToken("")],
+    ["link owner with a fraction", () => keys.linkOwner(1.5)],
+    ["link owner negative", () => keys.linkOwner(-1)],
     ["oauth state with a space", () => keys.oauthState("has space")],
     ["oauth state with a slash", () => keys.oauthState("a/b")],
     ["empty cache scope", () => keys.cache("", "hash")],

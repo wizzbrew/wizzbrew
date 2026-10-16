@@ -8,6 +8,7 @@ import type { LinkRecord, RelayMessage } from "../../src/types.js";
 import {
   deleteLink,
   getLink,
+  getLinkOwner,
   loadAsker,
   loadAskerFromMessage,
   saveLink,
@@ -246,7 +247,7 @@ describe("link storage", () => {
     await saveLink(USER, rec);
 
     expect(await getLink(USER)).toEqual(rec);
-    expect(fakeKv.keys()).toEqual([keys.link(USER)]);
+    expect(fakeKv.keys().sort()).toEqual([keys.link(USER), keys.linkOwner(206)].sort());
     vi.setSystemTime(NOW + 400 * 86_400_000);
     expect(await getLink(USER)).toEqual(rec);
   });
@@ -263,6 +264,26 @@ describe("link storage", () => {
 
     expect(fakeKv.has(keys.link(USER))).toBe(false);
     expect(fakeKv.has(keys.userToken(USER))).toBe(false);
+  });
+
+  it("saveLink records the owner of the Wizzrobe user and deleteLink clears it", async () => {
+    await saveLink(USER, await makeLink({ wizzrobeUserId: 206 }));
+    expect(await getLinkOwner(206)).toBe(USER);
+    expect(await getLinkOwner(207)).toBeNull();
+
+    await deleteLink(USER);
+
+    expect(await getLinkOwner(206)).toBeNull();
+    expect(fakeKv.has(keys.linkOwner(206))).toBe(false);
+  });
+
+  it("deleteLink leaves a reverse key that belongs to someone else", async () => {
+    await saveLink(USER, await makeLink({ wizzrobeUserId: 206 }));
+    await fakeKv.set(keys.linkOwner(206), "999999999999999999");
+
+    await deleteLink(USER);
+
+    expect(await getLinkOwner(206)).toBe("999999999999999999");
   });
 });
 

@@ -8,6 +8,8 @@ const DUMMY_ENV: Record<string, string> = {
   DISCORD_APPLICATION_ID: "test-application-id",
   DISCORD_PUBLIC_KEY: "0".repeat(64),
   DISCORD_BOT_TOKEN: "test-bot-token",
+  DISCORD_CLIENT_SECRET: "test-discord-client-secret",
+  DISCORD_OAUTH_REDIRECT_URI: "https://bot.test/api/oauth/discord",
   DISCORD_DEV_GUILD_ID: "test-dev-guild-id",
   SAFE_DEFAULT_CHANNEL_ID: "test-safe-channel-id",
   WIZZROBE_BASE_URL: "https://wizzrobe.test",
