@@ -397,7 +397,8 @@ export type Purpose = keyof typeof MODELS;
 export interface AnthropicLike {
   beta: { messages: { create(params: BetaMessageCreateParams & { betas?: string[] }): Promise<BetaMessage> } };
 }
-export function createMessage(purpose: Purpose, params: Omit<BetaMessageCreateParams, "model"> & { betas?: string[] }, ctx: { requestId: string; now: Date }): Promise<BetaMessage>;
+export function createMessage(purpose: Purpose, params: Omit<BetaMessageCreateParams, "model"> & { betas?: string[] }, ctx: { requestId: string; now: Date; deadline?: number }): Promise<BetaMessage>;
+// deadline (epoch ms, added in review): the call's request timeout is min(120 s, deadline - now); at or past it -> ModelOutputError("timeout")
 export function textOf(msg: BetaMessage): string;              // L9
 export function setAnthropicForTests(c: AnthropicLike | null): void;
 
