@@ -63,6 +63,20 @@ function choiceRow(
   return buttons.length > 0 ? { type: 1, components: buttons } : null;
 }
 
+function followupRow(threadId: string): APIActionRowComponent<APIButtonComponent> {
+  return {
+    type: 1,
+    components: [
+      {
+        type: 2,
+        style: 2,
+        label: "Ask a follow-up",
+        custom_id: encodeCustomId({ kind: "followup", threadId }),
+      },
+    ],
+  };
+}
+
 function buildComponents(
   a: Answer,
   ids?: { pendingId?: string; threadId?: string },
@@ -70,12 +84,17 @@ function buildComponents(
   const rows: APIActionRowComponent<APIButtonComponent>[] = [];
   if (ids?.pendingId) {
     rows.push(confirmRow(ids.pendingId));
+    return rows;
   }
-  if (ids?.threadId && a.choices) {
-    const row = choiceRow(ids.threadId, a.choices);
-    if (row) {
-      rows.push(row);
+  if (ids?.threadId) {
+    if (a.choices) {
+      const row = choiceRow(ids.threadId, a.choices);
+      if (row) {
+        rows.push(row);
+        return rows;
+      }
     }
+    rows.push(followupRow(ids.threadId));
   }
   return rows;
 }

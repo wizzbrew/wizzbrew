@@ -17,6 +17,7 @@ const thread = {
   id: "ignored",
   discordUserId: ME,
   question: "who is on stage one",
+  turns: [] as { role: "user" | "assistant"; text: string }[],
   decision: { route: "schedule" as never, confidence: 0.9, params: {}, reason: "test" },
   ephemeral: false,
 };
@@ -57,10 +58,22 @@ describe("threads", () => {
     const t = await saveThread(thread, at(0));
     expect(t.id).toMatch(/^[A-Za-z0-9]{12}$/);
     const first = await loadThread(t.id, ME, at(500));
-    expect(first).toMatchObject({ expiresAt: T0 + 1100000 });
+    expect(first).toMatchObject({ expiresAt: T0 + 2300000 });
     const second = await loadThread(t.id, ME, at(1000));
-    expect(second).toMatchObject({ id: t.id, expiresAt: T0 + 1600000 });
-    expect(await loadThread(t.id, ME, at(1700))).toBe("expired");
+    expect(second).toMatchObject({ id: t.id, expiresAt: T0 + 2800000 });
+    expect(await loadThread(t.id, ME, at(2801))).toBe("expired");
+  });
+
+  it("keeps the last 6 turns, each cut to 1500 characters", async () => {
+    const turns = Array.from({ length: 8 }, (_, i) => ({
+      role: i % 2 === 0 ? ("user" as const) : ("assistant" as const),
+      text: `${i}${"x".repeat(2000)}`,
+    }));
+    const t = await saveThread({ ...thread, turns }, at(0));
+    expect(t.expiresAt).toBe(T0 + 1800000);
+    expect(t.turns).toHaveLength(6);
+    expect(t.turns[0]?.text.startsWith("2x")).toBe(true);
+    for (const turn of t.turns) expect(turn.text).toHaveLength(1500);
   });
 
   it("refuses another user", async () => {

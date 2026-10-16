@@ -16,6 +16,7 @@ const ctx: AskContext = {
   question: "q",
   now: new Date("2026-10-15T12:00:00Z"),
   ephemeral: true,
+  history: [],
 };
 
 beforeEach(() => {

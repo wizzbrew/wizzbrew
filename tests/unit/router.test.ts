@@ -28,6 +28,7 @@ function ctx(overrides: Partial<AskContext> = {}, linked = false): AskContext {
     question: "what is on today",
     now: NOW,
     ephemeral: false,
+    history: [],
     ...overrides,
   };
 }
@@ -315,5 +316,38 @@ describe("ROUTER_PROMPT", () => {
     ]) {
       expect(ROUTER_PROMPT, route).toContain(`${route}:`);
     }
+  });
+});
+
+describe("routeQuestion history", () => {
+  it("puts earlier turns in the user message and not in the system block", async () => {
+    reply(decide());
+    await routeQuestion(
+      ctx({
+        question: "and tomorrow",
+        history: [
+          { role: "user", text: "what is on today" },
+          { role: "assistant", text: "Two matches on stage one." },
+        ],
+      }),
+    );
+    const body = JSON.stringify(request()[1]);
+    const params = request()[1] as unknown as {
+      system: { text: string }[];
+      messages: { content: string }[];
+    };
+    const user = params.messages[0]?.content ?? "";
+    expect(body).toContain("Earlier in this conversation:");
+    expect(user).toContain("User: what is on today\nWizzbrew: Two matches on stage one.");
+    expect(user.indexOf("Asker linked")).toBeLessThan(user.indexOf("Earlier in this"));
+    expect(user.indexOf("Earlier in this")).toBeLessThan(user.indexOf("and tomorrow"));
+    expect(params.system[0]?.text).toBe(ROUTER_PROMPT);
+    expect(params.system[0]?.text).not.toContain("Earlier in this conversation");
+  });
+
+  it("adds no block when history is empty", async () => {
+    reply(decide());
+    await routeQuestion(ctx());
+    expect(JSON.stringify(request()[1])).not.toContain("Earlier in this conversation");
   });
 });

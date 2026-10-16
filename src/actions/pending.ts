@@ -4,6 +4,10 @@ import type { PendingAction, ProposedAction, ThreadRecord } from "../types.js";
 
 const TTL_SEC = 600;
 const TTL_MS = TTL_SEC * 1000;
+const THREAD_TTL_SEC = 1800;
+const THREAD_TTL_MS = THREAD_TTL_SEC * 1000;
+const MAX_TURNS = 6;
+const MAX_TURN_CHARS = 1500;
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const ID_LENGTH = 12;
 
@@ -55,11 +59,12 @@ export async function saveThread(
 ): Promise<ThreadRecord> {
   const record: ThreadRecord = {
     ...t,
+    turns: t.turns.slice(-MAX_TURNS).map((x) => ({ ...x, text: x.text.slice(0, MAX_TURN_CHARS) })),
     id: newId(),
     createdAt: now.getTime(),
-    expiresAt: now.getTime() + TTL_MS,
+    expiresAt: now.getTime() + THREAD_TTL_MS,
   };
-  await kv().set(keys.thread(record.id), record, TTL_SEC);
+  await kv().set(keys.thread(record.id), record, THREAD_TTL_SEC);
   return record;
 }
 
@@ -71,7 +76,7 @@ export async function loadThread(
   const record = await kv().get<ThreadRecord>(keys.thread(id));
   if (record === null || record.expiresAt <= now.getTime()) return "expired";
   if (record.discordUserId !== discordUserId) return "not_yours";
-  const slid: ThreadRecord = { ...record, expiresAt: now.getTime() + TTL_MS };
-  await kv().set(keys.thread(id), slid, TTL_SEC);
+  const slid: ThreadRecord = { ...record, expiresAt: now.getTime() + THREAD_TTL_MS };
+  await kv().set(keys.thread(id), slid, THREAD_TTL_SEC);
   return slid;
 }
