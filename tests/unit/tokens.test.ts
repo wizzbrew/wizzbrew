@@ -212,6 +212,68 @@ describe("userAccessToken", () => {
     },
   );
 
+  it("refreshes once for two concurrent calls", async () => {
+    await putLink(await makeLink("user-r0"));
+    refreshMock.mockResolvedValueOnce({
+      accessToken: "user-a1",
+      refreshToken: "user-r1",
+      expiresIn: 3600,
+    });
+
+    const both = Promise.all([userAccessToken(USER), userAccessToken(USER)]);
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    await expect(both).resolves.toEqual(["user-a1", "user-a1"]);
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(fakeKv.has(keys.cache("refresh", USER))).toBe(false);
+  });
+
+  it("retries with the rotated token when another refresh won the race", async () => {
+    await putLink(await makeLink("user-r0"));
+    refreshMock.mockImplementationOnce(async () => {
+      // Another caller rotated the token while this refresh was in flight.
+      await putLink(await makeLink("user-r1"));
+      throw new WizzrobeError(401, "invalid_grant");
+    });
+    refreshMock.mockResolvedValueOnce({
+      accessToken: "user-a2",
+      refreshToken: "user-r2",
+      expiresIn: 3600,
+    });
+
+    await expect(userAccessToken(USER)).resolves.toBe("user-a2");
+
+    expect(refreshMock).toHaveBeenNthCalledWith(1, "user-r0");
+    expect(refreshMock).toHaveBeenNthCalledWith(2, "user-r1");
+    const link = await getLink(USER);
+    expect(await open(link?.sealedRefreshToken ?? "")).toBe("user-r2");
+  });
+
+  it("still unlinks when a genuine 401 repeats with the same token", async () => {
+    await putLink(await makeLink("user-r0"));
+    refreshMock.mockRejectedValueOnce(new WizzrobeError(401, "invalid_grant"));
+
+    await expect(userAccessToken(USER)).rejects.toBeInstanceOf(NotLinkedError);
+
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(await getLink(USER)).toBeNull();
+  });
+
+  it("refreshes anyway when the lock holder never fills the cache", async () => {
+    await putLink(await makeLink("user-r0"));
+    await fakeKv.set(keys.cache("refresh", USER), 1, 15);
+    refreshMock.mockResolvedValueOnce({
+      accessToken: "user-a1",
+      refreshToken: "user-r0",
+      expiresIn: 3600,
+    });
+
+    const p = userAccessToken(USER);
+    await vi.advanceTimersByTimeAsync(3_500);
+
+    await expect(p).resolves.toBe("user-a1");
+  });
+
   it("propagates a 500 and keeps the link", async () => {
     const rec = await makeLink("user-r0");
     await putLink(rec);
