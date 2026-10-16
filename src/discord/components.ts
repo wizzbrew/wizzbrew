@@ -2,7 +2,9 @@ export type ComponentAction =
   | { kind: "confirm"; pendingId: string }
   | { kind: "cancel"; pendingId: string }
   | { kind: "choose"; threadId: string; value: string }
-  | { kind: "followup"; threadId: string };
+  | { kind: "followup"; threadId: string }
+  | { kind: "change"; pendingId: string; threadId: string }
+  | { kind: "private"; threadId: string };
 
 // Discord caps custom_id at 100 characters. Ids are short ASCII tokens with no
 // ":", so the "wb:<kind>:" prefix splits unambiguously. A choose value is
@@ -11,6 +13,8 @@ const MAX_CUSTOM_ID_LENGTH = 100;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
 const PENDING_PATTERN = /^wb:(confirm|cancel):([A-Za-z0-9_-]{1,40})$/;
 const FOLLOWUP_PATTERN = /^wb:followup:([A-Za-z0-9_-]{1,40})$/;
+const CHANGE_PATTERN = /^wb:change:([A-Za-z0-9_-]{1,40}):([A-Za-z0-9_-]{1,40})$/;
+const PRIVATE_PATTERN = /^wb:private:([A-Za-z0-9_-]{1,40})$/;
 const CHOOSE_PATTERN = /^wb:choose:([A-Za-z0-9_-]{1,40}):([\s\S]+)$/;
 
 function assertId(id: string, label: string): void {
@@ -27,9 +31,13 @@ export function encodeCustomId(a: ComponentAction): string {
       throw new Error("components: choose value is empty");
     }
     id = `wb:choose:${a.threadId}:${a.value}`;
-  } else if (a.kind === "followup") {
+  } else if (a.kind === "followup" || a.kind === "private") {
     assertId(a.threadId, "threadId");
-    id = `wb:followup:${a.threadId}`;
+    id = `wb:${a.kind}:${a.threadId}`;
+  } else if (a.kind === "change") {
+    assertId(a.pendingId, "pendingId");
+    assertId(a.threadId, "threadId");
+    id = `wb:change:${a.pendingId}:${a.threadId}`;
   } else {
     assertId(a.pendingId, "pendingId");
     id = `wb:${a.kind}:${a.pendingId}`;
@@ -64,6 +72,14 @@ export function decodeCustomId(id: string): ComponentAction | null {
   const followup = FOLLOWUP_PATTERN.exec(id);
   if (followup) {
     return { kind: "followup", threadId: followup[1] ?? "" };
+  }
+  const change = CHANGE_PATTERN.exec(id);
+  if (change) {
+    return { kind: "change", pendingId: change[1] ?? "", threadId: change[2] ?? "" };
+  }
+  const priv = PRIVATE_PATTERN.exec(id);
+  if (priv) {
+    return { kind: "private", threadId: priv[1] ?? "" };
   }
   return null;
 }

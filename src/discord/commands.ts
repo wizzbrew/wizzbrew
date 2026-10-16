@@ -12,7 +12,7 @@ export type CommandName =
 
 // Slash command definitions. Numeric literals stand in for the discord-api-types enums so this
 // module has no runtime import from that package: type 1 is a chat input command, option type 3
-// is a string, integration types 0 and 1 are guild and user installs, contexts 0, 1 and 2 are
+// is a string, 6 a user, integration types 0 and 1 are guild and user installs, contexts 0, 1 and 2 are
 // guild, bot DM and private channel.
 const base: Pick<
   RESTPostAPIChatInputApplicationCommandsJSONBody,
@@ -73,7 +73,10 @@ export const COMMANDS: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
     ...base,
     name: "player",
     description: "Look up a player",
-    options: [{ type: 3, name: "name", description: "The player's name", required: true }],
+    options: [
+      { type: 3, name: "name", description: "The player's name", required: false },
+      { type: 6, name: "user", description: "A Discord user", required: false },
+    ],
   },
   {
     ...base,
