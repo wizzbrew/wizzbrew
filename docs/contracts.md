@@ -276,6 +276,7 @@ export function discordTimestamp(d: Date, style?: "f" | "F" | "t" | "R"): string
 export function communityDate(d: Date): string;          // YYYY-MM-DD in community tz
 export function parseUserDateTime(text: string, now: Date): { date: string; time: string; instant: Date };
                                                          // community clock; throws UserInputError (L3)
+export function parseUserDate(text: string, now: Date): string;   // date words only -> YYYY-MM-DD; UserInputError (added before wave 1)
 export function dayWindowUtc(date: string): { start: Date; end: Date };   // community day -> UTC bounds
 
 // discord/verify.ts
@@ -291,6 +292,10 @@ export function renderAnswer(a: Answer, ids?: { pendingId?: string; threadId?: s
 // pendingId -> Confirm/Cancel buttons; threadId -> one "choose" button per choice
 export function renderError(message: string, ephemeral: boolean): RESTPatchAPIInteractionOriginalResponseJSONBody;
 // every payload carries allowed_mentions: { parse: [] } (L20)
+
+// discord/commands.ts (added before wave 1)
+export type CommandName = "ask" | "schedule" | "live" | "standings" | "player" | "link" | "unlink" | "me";
+export const COMMANDS: RESTPostAPIChatInputApplicationCommandsJSONBody[];   // what register-commands PUTs
 
 // discord/components.ts
 export type ComponentAction =
@@ -367,6 +372,9 @@ export interface RouteSpec {
   description: string; ephemeral: boolean;
 }
 export const ROUTES: Record<Route, RouteSpec>;
+
+// router/prompt.ts
+export const ROUTER_PROMPT: string;   // stable system text, cached; only router.ts imports this file (T10 may add exports here)
 
 // router/router.ts
 export function routeQuestion(ctx: AskContext): Promise<RoutingDecision>;   // failures -> chat, confidence 0 (L10)
