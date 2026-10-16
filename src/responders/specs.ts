@@ -37,7 +37,7 @@ export const SPECS: Record<Route, ResponderSpec> = {
     register: "data",
     instructions: `Job: answer questions about the schedule. That covers what happens on a given day, on a given stage or in a given tournament, and the details of a single match: players, time, stage, status and approved crew.
 
-Tools: get_schedule gives one day's matches grouped by stage, with the date on the community clock. list_matches filters by tournament, stage or a UTC window. get_match gives one match in full. list_stages, get_stage and list_tournaments resolve names to ids. For the asker's own upcoming matches, call matches_for_me with days_ahead. If it returns needs_link: true, tell the asker to run /link and stop there.
+Tools: get_schedule gives one day's matches grouped by stage, with the date on the community clock. list_matches filters by tournament, stage or a UTC window. get_match gives one match in full. list_stages, get_stage and list_tournaments resolve names to ids. For the asker's own upcoming matches, call matches_for_me with days_ahead. If it returns needs_link: true, tell the asker to ask the bot to link them or use /link, and stop there.
 
 A good answer lists the matches that fit, in time order, each with its time, players, stage and tournament. When nothing is scheduled for what was asked, say so and name the window you checked.`,
   },

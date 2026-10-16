@@ -86,6 +86,36 @@ describe("textOf", () => {
 });
 
 describe("createMessage request", () => {
+  it("throws a timeout before any call when the deadline has passed", async () => {
+    fake.queue(fakeMessage([block.text("a")]));
+    const err = await createMessage("responder", BASE, { ...CTX, deadline: Date.now() - 1 }).catch(
+      (e: unknown) => e,
+    );
+    expect(err).toBeInstanceOf(ModelOutputError);
+    expect(fake.requests).toHaveLength(0);
+  });
+
+  it("passes the smaller of 120 s and the remaining time as the request timeout", async () => {
+    const seen: Array<number | undefined> = [];
+    const inner = fake.beta.messages.create;
+    setAnthropicForTests({
+      beta: {
+        messages: {
+          create: (params, options) => {
+            seen.push(options?.timeout);
+            return inner(params, options);
+          },
+        },
+      },
+    });
+    fake.queue(fakeMessage([block.text("a")]), fakeMessage([block.text("b")]));
+    await createMessage("responder", BASE, { ...CTX, deadline: Date.now() + 500_000 });
+    await createMessage("responder", BASE, { ...CTX, deadline: Date.now() + 30_000 });
+    expect(seen[0]).toBe(120000);
+    expect(seen[1]).toBeGreaterThan(0);
+    expect(seen[1]).toBeLessThanOrEqual(30_000);
+  });
+
   it("raises max_tokens below 4000 to 4000 and leaves larger values alone", async () => {
     fake.queue(fakeMessage([block.text("a")]), fakeMessage([block.text("b")]));
     await createMessage("responder", { ...BASE, max_tokens: 1000 }, CTX);

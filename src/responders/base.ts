@@ -192,6 +192,7 @@ export async function runResponder(
     return { text: "Staff tools aren't in Wizzbrew yet. Use Wizzrobe directly.", ephemeral: true };
   }
   const started = Date.now();
+  const deadline = started + 240_000;
   const spec = SPECS[route];
   const r = ROUTES[route];
   const ephemeral = r.ephemeral || ctx.ephemeral;
@@ -215,7 +216,7 @@ export async function runResponder(
     const msg = await createMessage(
       "chat",
       { max_tokens: 4000, system, messages, output_config: { effort: "low" } },
-      ctx,
+      { ...ctx, deadline },
     );
     const text = textOf(msg);
     if (text === "") throw new ModelOutputError("empty", "the answer came back empty");
@@ -260,7 +261,7 @@ export async function runResponder(
         messages,
         output_config: { effort: "medium" },
       } as Parameters<typeof createMessage>[1],
-      ctx,
+      { ...ctx, deadline },
     );
     messages.push({ role: "assistant", content: msg.content as BetaContentBlock[] });
     for (const b of msg.content) {
