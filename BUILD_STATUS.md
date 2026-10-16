@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Wave 3a merged and green (525 tests). S1 stubs merged. Wave 3b dispatched: T16, T17, T18, T31, T19, T20, T21, T29, T30. Wave 3c next: T32, T28.
+Wave 3b merged and green (654 tests, 1 Biome warning in dispatch.ts). Wave 3c dispatched: T32, T28.
 
 ## Tasks
 
@@ -44,6 +44,8 @@ Waves 3 and 4: queued.
 | Wave 2 partial (T09, T10, T12, T13, T14) | green: typecheck, lint, 378 tests, rules ok (91 files) |
 | Wave 2 partial plus T11 | green: typecheck, lint, 405 tests, rules ok (92 files) |
 | Wave 2 complete (after F2) | green: typecheck, lint, 484 tests, rules ok (97 files) |
+| Wave 3a (C2 to C5, F4) | green: 525 tests, rules ok |
+| Wave 3b (S1, T16 to T21, T29 to T31) | green: 654 tests, rules ok (114 files); 1 Biome warning (useOptionalChain, dispatch.ts) |
 
 ## Open fix cards
 
@@ -160,3 +162,4 @@ None open (F1 merged).
 - Wording: user-facing lines that say "run /link" could say "ask me to link you or use /link".
 - Chat event block reads the first array field of list_tournaments and list_stages results;
   confirm against the real `{"result": [...]}` shape in the e2e suite.
+- Lint: dispatch.ts handleModal `!a || a.kind !== "followup"` -> `a?.kind !== "followup"` (Biome warning).
