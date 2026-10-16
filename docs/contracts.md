@@ -54,7 +54,7 @@ src/
   handlers/dispatch.ts   interaction type -> handler
   handlers/ask.ts        the /ask pipeline
   handlers/shortcuts.ts  /schedule /live /standings /player -> ask pipeline with a fixed route
-  handlers/link.ts       /link /unlink /me
+  handlers/account.ts    link and unlink (one handler for slash and plain words)
   handlers/component.ts  button presses (confirm, cancel, disambiguation)
 scripts/
   register-commands.ts   PUT commands (guild if DISCORD_DEV_GUILD_ID set)
@@ -674,3 +674,38 @@ Fixture files carry a `_note` key; the fakes strip it before answering.
    No LLM call at confirm time.
 5. The read connector gets the bot token on public routes and the user's token on linked and
    staff routes. Writes always use the user's token (`callTool` / REST).
+
+## Review fixes (2026-10-15, after the three reviewers)
+
+```ts
+// config.ts additions
+discordClientSecret: string;          // DISCORD_CLIENT_SECRET (Discord app OAuth2), required
+discordOauthRedirectUri: string;      // DISCORD_OAUTH_REDIRECT_URI, https://<domain>/api/oauth/discord
+
+// wizzrobe/oauth.ts: linking proves the browser is the Discord user the link was made for
+export function startLink(discordUserId: string): Promise<{ url: string }>;   // now a Discord authorize URL (scope identify)
+export function verifyDiscord(code: string, state: string): Promise<{ redirectTo: string }>;   // Discord user must equal the state's; then the Wizzrobe authorize URL
+export function finishLink(code: string, state: string): Promise<{ discordUserId: string }>;   // only for a verified state; refuses a Wizzrobe user linked to another Discord id
+// api/oauth/discord.ts GET: the Discord redirect target (calls verifyDiscord, 302 to Wizzrobe)
+// State records are taken atomically (kv.take). identity.ts keeps a reverse key per Wizzrobe user id.
+
+// errors.ts
+export function userMessageFor(err: unknown, opts?: { public?: boolean }): string;
+// public: never include Wizzrobe or Discord detail text. Anthropic SDK 429/529/5xx -> "The model is busy right now. Try again in a minute."
+
+// ops/rate.ts
+export function allowRequest(discordUserId: string, now: Date): Promise<boolean>;   // 8 per minute and 60 per hour per user
+
+// actions/execute.ts
+export function describeAction(tool: WriteTool, args: Record<string, unknown>): string;   // the Confirm line, from validated args only
+
+// challonge/challonge.ts
+// BracketSummary gains `degraded: boolean`: true when a refresh just failed (the answer says the lookup failed for now)
+
+// llm/budget.ts
+export function recordSpend(model: string, usage: BetaUsage, now: Date, fallbackModel?: string): Promise<number>;   // unknown model -> price as fallbackModel and warn
+```
+- Lock TTL 300 s. Thread turns never carry the OAuth URL (a placeholder turn instead).
+- Signed interactions older than 300 s are rejected. Confirm presses honor the kill switch.
+- Bot-token Wizzrobe calls are capped at 100 a minute per token in mcp.ts (over -> WizzrobeError 429).
+- Relay DMs are forwarded only from members of a guild that owns an allowlisted channel.
