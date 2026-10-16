@@ -149,4 +149,22 @@ export const ROUTES: Record<Route, RouteSpec> = {
     description: "Anything off topic, unclear or just conversation.",
     ephemeral: false,
   },
+  live: {
+    route: "live",
+    auth: "public",
+    readTools: [],
+    clientTools: [],
+    writeTools: [],
+    description: "what is on each stage right now and next",
+    ephemeral: false,
+  },
+  account: {
+    route: "account",
+    auth: "public",
+    readTools: [],
+    clientTools: [],
+    writeTools: [],
+    description: "connect or disconnect the asker's Wizzrobe account",
+    ephemeral: true,
+  },
 };

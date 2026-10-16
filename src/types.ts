@@ -11,7 +11,9 @@ export type Route =
   | "player_actions"
   | "help"
   | "staff"
-  | "chat";
+  | "chat"
+  | "live"
+  | "account";
 
 export type AuthLevel = "public" | "linked" | "staff";
 
@@ -24,6 +26,7 @@ export interface RoutingDecision {
     player?: string;
     stage?: string;
     matchId?: number;
+    accountAction?: "link" | "unlink"; // route "account" only
   };
   reason: string; // one short line, logged (L24)
 }
@@ -55,6 +58,22 @@ export interface AskContext {
   now: Date;
   ephemeral: boolean;
   history: ConversationTurn[]; // earlier turns of this thread, oldest first (empty for a new question)
+}
+
+export type ReplyTarget =
+  // where an answer goes
+  | { kind: "interaction"; token: string; ephemeral: boolean } // the deferred reply; ephemeral = the deferral's visibility
+  | { kind: "message"; channelId: string; messageId: string }; // reply under a relayed message; never ephemeral
+
+export interface RelayMessage {
+  // what the relay POSTs to /api/message
+  messageId: string;
+  channelId: string;
+  guildId: string | null;
+  isDm: boolean;
+  author: { id: string; username: string; globalName: string | null; nick: string | null };
+  content: string; // bot mention removed, other mentions expanded to names by the relay
+  chain: { authorId: string; authorName: string; isBot: boolean; content: string }[]; // reply chain, oldest first, at most 10
 }
 
 export interface Answer {
@@ -117,6 +136,7 @@ export interface ThreadRecord {
   question: string; // the normalized question that produced the choices
   decision: RoutingDecision;
   ephemeral: boolean;
+  held?: { answer: Answer; pendingId?: string }; // a private answer waiting behind "Show me privately"
   turns: ConversationTurn[]; // last 6 turns, oldest first, each text capped at 1500 chars
   createdAt: number;
   expiresAt: number;

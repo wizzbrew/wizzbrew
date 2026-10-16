@@ -30,6 +30,8 @@ const ALL_ROUTES: Record<Route, true> = {
   help: true,
   staff: true,
   chat: true,
+  live: true,
+  account: true,
 };
 
 type Row = {
@@ -132,6 +134,8 @@ const TABLE: Record<Route, Row> = {
   help: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: false },
   staff: { auth: "staff", readTools: [], clientTools: [], writeTools: [], ephemeral: true },
   chat: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: false },
+  live: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: false },
+  account: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: true },
 };
 
 const specs = Object.values(ROUTES) as RouteSpec[];

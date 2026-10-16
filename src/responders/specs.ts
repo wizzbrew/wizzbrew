@@ -26,6 +26,8 @@ export const SPECS: Record<Route, ResponderSpec> = {
   help: placeholder("help"),
   staff: placeholder("staff"),
   chat: placeholder("chat"),
+  live: placeholder("live"),
+  account: placeholder("account"),
 };
 
 export const SHARED_RULES: string = "";

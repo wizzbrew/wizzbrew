@@ -11,7 +11,14 @@ vi.mock("../../src/llm/client.js");
 // Thu 2026-10-15 12:00 in New York (EDT, UTC-4).
 const NOW = new Date("2026-10-15T16:00:00Z");
 
-const NO_PARAMS = { day: null, tournament: null, player: null, stage: null, matchId: null };
+const NO_PARAMS = {
+  day: null,
+  tournament: null,
+  player: null,
+  stage: null,
+  matchId: null,
+  accountAction: null,
+};
 
 function ctx(overrides: Partial<AskContext> = {}, linked = false): AskContext {
   return {
@@ -94,6 +101,20 @@ describe("routeQuestion decisions", () => {
       },
       reason: "asks about matches",
     });
+  });
+
+  it("passes accountAction through", async () => {
+    reply(decide({ route: "account" }, { accountAction: "unlink" }));
+    const decision = await routeQuestion(ctx());
+    expect(decision.route).toBe("account");
+    expect(decision.params.accountAction).toBe("unlink");
+  });
+
+  it("sends account without an action to chat", async () => {
+    reply(decide({ route: "account" }));
+    const decision = await routeQuestion(ctx());
+    expect(decision.route).toBe("chat");
+    expect(decision.reason).toBe("account action missing");
   });
 
   it("leaves null params absent", async () => {
@@ -253,9 +274,11 @@ describe("routeQuestion request", () => {
     expect(schema.required).toEqual(["route", "confidence", "params", "reason"]);
     expect([...schema.properties.route.enum].sort()).toEqual(
       [
+        "account",
         "chat",
         "crew",
         "help",
+        "live",
         "my_stuff",
         "player_actions",
         "players",
@@ -268,7 +291,14 @@ describe("routeQuestion request", () => {
     );
     const params = schema.properties.params;
     expect(params.additionalProperties).toBe(false);
-    expect(params.required).toEqual(["day", "tournament", "player", "stage", "matchId"]);
+    expect(params.required).toEqual([
+      "day",
+      "tournament",
+      "player",
+      "stage",
+      "matchId",
+      "accountAction",
+    ]);
     expect(params.properties.matchId?.type).toEqual(["integer", "null"]);
     expect(params.properties.day?.type).toEqual(["string", "null"]);
   });
@@ -313,6 +343,8 @@ describe("ROUTER_PROMPT", () => {
       "help",
       "staff",
       "chat",
+      "live",
+      "account",
     ]) {
       expect(ROUTER_PROMPT, route).toContain(`${route}:`);
     }
