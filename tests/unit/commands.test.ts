@@ -25,6 +25,14 @@ describe("COMMANDS", () => {
     expect(COMMANDS.map((c) => c.name).sort()).toEqual(Object.keys(EXPECTED_NAMES).sort());
   });
 
+  it("gives /player an optional name and an optional user option", () => {
+    const player = COMMANDS.find((c) => c.name === "player");
+    expect(player?.options).toEqual([
+      { type: 3, name: "name", description: "The player's name", required: false },
+      { type: 6, name: "user", description: "A Discord user", required: false },
+    ]);
+  });
+
   it("registers every command as a chat input command for guilds and DMs", () => {
     for (const command of COMMANDS) {
       expect(command.type).toBe(1);

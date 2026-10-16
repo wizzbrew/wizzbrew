@@ -18,7 +18,10 @@ const FLAG_EPHEMERAL = 64;
 
 type Choices = NonNullable<Answer["choices"]>;
 
-function confirmRow(pendingId: string): APIActionRowComponent<APIButtonComponent> {
+function confirmRow(
+  pendingId: string,
+  threadId?: string,
+): APIActionRowComponent<APIButtonComponent> {
   return {
     type: 1,
     components: [
@@ -34,6 +37,16 @@ function confirmRow(pendingId: string): APIActionRowComponent<APIButtonComponent
         label: "Cancel",
         custom_id: encodeCustomId({ kind: "cancel", pendingId }),
       },
+      ...(threadId
+        ? [
+            {
+              type: 2 as const,
+              style: 2 as const,
+              label: "Change something",
+              custom_id: encodeCustomId({ kind: "change", pendingId, threadId }),
+            },
+          ]
+        : []),
     ],
   };
 }
@@ -83,7 +96,7 @@ function buildComponents(
 ): APIActionRowComponent<APIButtonComponent>[] {
   const rows: APIActionRowComponent<APIButtonComponent>[] = [];
   if (ids?.pendingId) {
-    rows.push(confirmRow(ids.pendingId));
+    rows.push(confirmRow(ids.pendingId, ids.threadId));
     return rows;
   }
   if (ids?.threadId) {
@@ -123,6 +136,28 @@ export function renderAnswer(
       ? { content, allowed_mentions: { parse: [] }, flags: FLAG_EPHEMERAL }
       : { content, allowed_mentions: { parse: [] } };
   });
+}
+
+export function renderPrivateStub(
+  threadId: string,
+): RESTPatchAPIInteractionOriginalResponseJSONBody {
+  return {
+    content: "This one is just for you.",
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 2,
+            label: "Show me privately",
+            custom_id: encodeCustomId({ kind: "private", threadId }),
+          },
+        ],
+      },
+    ],
+    allowed_mentions: { parse: [] },
+  };
 }
 
 export function renderError(

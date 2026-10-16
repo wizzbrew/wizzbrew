@@ -5,12 +5,14 @@ export interface DiscordApi {
   editOriginal(token: string, body: unknown): Promise<void>;
   followup(token: string, body: unknown): Promise<void>;
   registerCommands(commands: unknown[], guildId?: string): Promise<void>;
+  postMessage(channelId: string, body: unknown, replyToMessageId?: string): Promise<void>;
 }
 
 const BASE_URL = "https://discord.com/api/v10";
 const MAX_RETRY_WAIT_SEC = 5;
 
 const FORBIDDEN_COMMANDS = "the app needs the applications.commands scope in this server";
+const FORBIDDEN_CHANNEL = "the bot needs View Channel and Send Messages there";
 const FORBIDDEN_WEBHOOK = "the bot can't post here (check View Channel and Send Messages)";
 
 interface Credentials {
@@ -119,6 +121,21 @@ function realApi(): DiscordApi {
           ? `/applications/${applicationId}/commands`
           : `/applications/${applicationId}/guilds/${guildId}/commands`;
       await send("PUT", path, commands, `Bot ${botToken}`, FORBIDDEN_COMMANDS);
+    },
+    async postMessage(channelId, body, replyToMessageId) {
+      const { botToken } = credentials();
+      const base = typeof body === "object" && body !== null ? body : {};
+      const payload: Record<string, unknown> = { ...base, allowed_mentions: { parse: [] } };
+      if (replyToMessageId !== undefined) {
+        payload.message_reference = { message_id: replyToMessageId, fail_if_not_exists: false };
+      }
+      await send(
+        "POST",
+        `/channels/${channelId}/messages`,
+        payload,
+        `Bot ${botToken}`,
+        FORBIDDEN_CHANNEL,
+      );
     },
   };
 }

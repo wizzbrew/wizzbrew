@@ -1,6 +1,6 @@
 import type { DiscordApi } from "../../src/discord/api.js";
 
-type Method = "editOriginal" | "followup" | "registerCommands";
+type Method = "editOriginal" | "followup" | "registerCommands" | "postMessage";
 
 export class FakeDiscordApi implements DiscordApi {
   readonly calls: {
@@ -32,6 +32,10 @@ export class FakeDiscordApi implements DiscordApi {
 
   async followup(token: string, body: unknown): Promise<void> {
     this.record("followup", token, body);
+  }
+
+  async postMessage(channelId: string, body: unknown, replyToMessageId?: string): Promise<void> {
+    this.record("postMessage", null, { channelId, replyToMessageId, body });
   }
 
   async registerCommands(commands: unknown[], _guildId?: string): Promise<void> {

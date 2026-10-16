@@ -86,6 +86,41 @@ describe("discord api client", () => {
     expect(JSON.parse(c.init.body as string)).toEqual({ content: "more", flags: 64 });
   });
 
+  it("postMessage replies under a message with the Bot header and no mentions", async () => {
+    fetchMock.mockResolvedValueOnce(json(200, {}));
+    await discordApi().postMessage(
+      "555",
+      { content: "hi", allowed_mentions: { parse: ["everyone"] } },
+      "777",
+    );
+
+    const c = call(0);
+    expect(c.url).toBe(`${BASE}/channels/555/messages`);
+    expect(c.init.method).toBe("POST");
+    expect(headersOf(c).Authorization).toBe(`Bot ${BOT_TOKEN}`);
+    expect(JSON.parse(c.init.body as string)).toEqual({
+      content: "hi",
+      allowed_mentions: { parse: [] },
+      message_reference: { message_id: "777", fail_if_not_exists: false },
+    });
+  });
+
+  it("postMessage without a reply id sends no message_reference", async () => {
+    fetchMock.mockResolvedValueOnce(json(200, {}));
+    await discordApi().postMessage("555", { content: "hi" });
+    expect(JSON.parse(call(0).init.body as string)).toEqual({
+      content: "hi",
+      allowed_mentions: { parse: [] },
+    });
+  });
+
+  it("postMessage names the missing permissions on a 403", async () => {
+    fetchMock.mockResolvedValueOnce(json(403, { message: "Missing Access", code: 50001 }));
+    const err = await messageOf(discordApi().postMessage("555", { content: "hi" }));
+    expect(err.status).toBe(403);
+    expect(err.message).toContain("the bot needs View Channel and Send Messages there");
+  });
+
   it("registerCommands PUTs global commands with the Bot header", async () => {
     fetchMock.mockResolvedValueOnce(json(200, []));
     await discordApi().registerCommands([{ name: "ask" }]);
@@ -217,6 +252,7 @@ describe("discord api client", () => {
       editOriginal: vi.fn(() => Promise.resolve()),
       followup: vi.fn(() => Promise.resolve()),
       registerCommands: vi.fn(() => Promise.resolve()),
+      postMessage: vi.fn(() => Promise.resolve()),
     };
     setDiscordApiForTests(fake);
     expect(discordApi()).toBe(fake);

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { decodeCustomId } from "../../src/discord/components.js";
-import { renderAnswer, renderError } from "../../src/discord/render.js";
+import { renderAnswer, renderError, renderPrivateStub } from "../../src/discord/render.js";
 import type { Answer } from "../../src/types.js";
 
 // T03 builds the real finalizeText in parallel; this naive split keeps the
@@ -189,6 +189,19 @@ describe("renderAnswer", () => {
     expect(withPending.flatMap((r) => r.components.map((b) => b.label))).toEqual([
       "Confirm",
       "Cancel",
+      "Change something",
+    ]);
+    expect(withPending[0]?.components[2]).toMatchObject({ style: 2, custom_id: "wb:change:p1:t1" });
+  });
+
+  it("renders the private stub with one secondary button and no mentions", () => {
+    const stub = renderPrivateStub("t1");
+    expect(stub.content).toBe("This one is just for you.");
+    expect(stub.allowed_mentions).toEqual(NO_MENTIONS);
+    const rows = rowsOf(stub);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.components).toEqual([
+      { type: 2, style: 2, label: "Show me privately", custom_id: "wb:private:t1" },
     ]);
   });
 
