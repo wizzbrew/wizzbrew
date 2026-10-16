@@ -221,6 +221,16 @@ describe("renderAnswer", () => {
   });
 });
 
+describe("renderAnswer stray times", () => {
+  it("converts an ISO time and leaves other text", () => {
+    const [p] = renderAnswer({
+      text: "Starts 2026-01-01T00:00:00Z, see 2026-13-45 and 12:30.",
+      ephemeral: false,
+    });
+    expect(p?.content).toBe("Starts <t:1767225600:f>, see 2026-13-45 and 12:30.");
+  });
+});
+
 describe("renderError", () => {
   it("returns the error shape with no embeds or components", () => {
     expect(renderError("Something went wrong.", true)).toEqual({
