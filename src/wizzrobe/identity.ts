@@ -5,7 +5,7 @@ import { NotLinkedError } from "../errors.js";
 import { log } from "../log.js";
 import { keys } from "../store/keys.js";
 import { kv } from "../store/kv.js";
-import type { Asker, LinkedAccount, LinkRecord } from "../types.js";
+import type { Asker, LinkedAccount, LinkRecord, RelayMessage } from "../types.js";
 import { callTool } from "./mcp.js";
 import { userAccessToken } from "./tokens.js";
 
@@ -57,18 +57,8 @@ function toLinked(rec: LinkRecord): LinkedAccount {
   };
 }
 
-export async function loadAsker(i: APIInteraction): Promise<Asker> {
-  const user = i.member?.user ?? i.user;
-  if (!user) throw new Error("interaction has no user");
-  const discordUserId = user.id;
-  const asker: Asker = {
-    discordUserId,
-    discordName: i.member?.nick ?? user.global_name ?? user.username,
-    guildId: i.guild_id ?? null,
-    channelId: i.channel?.id ?? i.channel_id ?? "",
-    linked: null,
-  };
-
+async function attachLink(asker: Asker): Promise<Asker> {
+  const discordUserId = asker.discordUserId;
   let rec = await getLink(discordUserId);
   if (!rec) return asker;
 
@@ -84,4 +74,26 @@ export async function loadAsker(i: APIInteraction): Promise<Asker> {
   }
   asker.linked = toLinked(rec);
   return asker;
+}
+
+export async function loadAsker(i: APIInteraction): Promise<Asker> {
+  const user = i.member?.user ?? i.user;
+  if (!user) throw new Error("interaction has no user");
+  return attachLink({
+    discordUserId: user.id,
+    discordName: i.member?.nick ?? user.global_name ?? user.username,
+    guildId: i.guild_id ?? null,
+    channelId: i.channel?.id ?? i.channel_id ?? "",
+    linked: null,
+  });
+}
+
+export async function loadAskerFromMessage(m: RelayMessage): Promise<Asker> {
+  return attachLink({
+    discordUserId: m.author.id,
+    discordName: m.author.nick ?? m.author.globalName ?? m.author.username,
+    guildId: m.guildId,
+    channelId: m.channelId,
+    linked: null,
+  });
 }

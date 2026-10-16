@@ -4,8 +4,14 @@ import { NotLinkedError, WizzrobeError } from "../../src/errors.js";
 import { seal } from "../../src/store/crypto.js";
 import { keys } from "../../src/store/keys.js";
 import { setKvForTests } from "../../src/store/kv.js";
-import type { LinkRecord } from "../../src/types.js";
-import { deleteLink, getLink, loadAsker, saveLink } from "../../src/wizzrobe/identity.js";
+import type { LinkRecord, RelayMessage } from "../../src/types.js";
+import {
+  deleteLink,
+  getLink,
+  loadAsker,
+  loadAskerFromMessage,
+  saveLink,
+} from "../../src/wizzrobe/identity.js";
 import { callTool } from "../../src/wizzrobe/mcp.js";
 import { refresh } from "../../src/wizzrobe/oauth.js";
 import { FakeKv } from "../fakes/kv.js";
@@ -257,5 +263,53 @@ describe("link storage", () => {
 
     expect(fakeKv.has(keys.link(USER))).toBe(false);
     expect(fakeKv.has(keys.userToken(USER))).toBe(false);
+  });
+});
+
+function relayMessage(author: Partial<RelayMessage["author"]> = {}): RelayMessage {
+  return {
+    messageId: "555555555555555555",
+    channelId: "333333333333333333",
+    guildId: "222222222222222222",
+    isDm: false,
+    author: {
+      id: USER,
+      username: "homemadebeer",
+      globalName: "Global Name",
+      nick: "Guild Nick",
+      ...author,
+    },
+    content: "hi",
+    chain: [],
+  };
+}
+
+describe("loadAskerFromMessage", () => {
+  it("builds an unlinked asker, the nick wins over global name and username", async () => {
+    expect(await loadAskerFromMessage(relayMessage())).toEqual({
+      discordUserId: USER,
+      discordName: "Guild Nick",
+      guildId: "222222222222222222",
+      channelId: "333333333333333333",
+      linked: null,
+    });
+    expect((await loadAskerFromMessage(relayMessage({ nick: null }))).discordName).toBe(
+      "Global Name",
+    );
+    expect(
+      (await loadAskerFromMessage(relayMessage({ nick: null, globalName: null }))).discordName,
+    ).toBe("homemadebeer");
+  });
+
+  it("attaches the linked account from the link record", async () => {
+    await saveLink(USER, await makeLink());
+    const asker = await loadAskerFromMessage({ ...relayMessage(), guildId: null, isDm: true });
+    expect(asker.guildId).toBeNull();
+    expect(asker.linked).toEqual({
+      wizzrobeUserId: 206,
+      wizzrobeUsername: "homemadebeer",
+      roles: ["crew"],
+      canWrite: false,
+    });
   });
 });
