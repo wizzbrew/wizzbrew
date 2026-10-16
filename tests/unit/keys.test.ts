@@ -11,6 +11,9 @@ describe("keys", () => {
     expect(keys.thread("t.1")).toBe("wb:v1:thread:t.1");
     expect(keys.spend("2026-10-15")).toBe("wb:v1:spend:2026-10-15");
     expect(keys.cache("standings", "9f8e7d")).toBe("wb:v1:cache:standings:9f8e7d");
+    expect(keys.lock("123")).toBe("wb:v1:lock:123");
+    expect(keys.kill()).toBe("wb:v1:kill");
+    expect(keys.alert("budget.hit_1")).toBe("wb:v1:alert:budget.hit_1");
   });
 
   it("gives the same key for the same input", () => {
@@ -38,6 +41,10 @@ describe("keys", () => {
     ["empty cache scope", () => keys.cache("", "hash")],
     ["cache hash with a colon", () => keys.cache("scope", "a:b")],
     ["pending id 129 characters", () => keys.pending("x".repeat(129))],
+    ["lock id with letters", () => keys.lock("12a")],
+    ["alert event with uppercase", () => keys.alert("Budget")],
+    ["alert event 65 characters", () => keys.alert("x".repeat(65))],
+    ["empty alert event", () => keys.alert("")],
     ["day with a one digit month", () => keys.spend("2026-1-05")],
     ["day with a trailing newline", () => keys.spend("2026-10-15\n")],
   ];

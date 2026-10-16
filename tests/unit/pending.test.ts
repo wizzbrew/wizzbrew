@@ -40,6 +40,19 @@ describe("pending", () => {
     expect(await takePending(p.id, ME, at(6))).toEqual(p);
   });
 
+  it("lets exactly one of two concurrent takes win", async () => {
+    const p = await createPending(action, ME, at(0));
+    const results = await Promise.all([takePending(p.id, ME, at(5)), takePending(p.id, ME, at(5))]);
+    expect(results).toContainEqual(p);
+    expect(results).toContain("expired");
+  });
+
+  it("puts the record back with its remaining TTL for another user", async () => {
+    const p = await createPending(action, ME, at(0));
+    expect(await takePending(p.id, OTHER, at(595))).toBe("not_yours");
+    expect(await takePending(p.id, ME, at(596))).toEqual(p);
+  });
+
   it("expires after 601 seconds", async () => {
     const p = await createPending(action, ME, at(0));
     expect(await takePending(p.id, ME, at(601))).toBe("expired");
@@ -76,9 +89,14 @@ describe("threads", () => {
     for (const turn of t.turns) expect(turn.text).toHaveLength(1500);
   });
 
-  it("refuses another user", async () => {
-    const t = await saveThread(thread, at(0));
+  it("refuses another user on a private thread", async () => {
+    const t = await saveThread({ ...thread, ephemeral: true }, at(0));
     expect(await loadThread(t.id, OTHER, at(5))).toBe("not_yours");
     expect(await loadThread(t.id, ME, at(6))).toMatchObject({ id: t.id });
+  });
+
+  it("lets another user load a public thread", async () => {
+    const t = await saveThread({ ...thread, ephemeral: false }, at(0));
+    expect(await loadThread(t.id, OTHER, at(5))).toMatchObject({ id: t.id, discordUserId: ME });
   });
 });

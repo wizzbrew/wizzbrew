@@ -35,6 +35,9 @@ const fake = vi.hoisted(() => {
     expire(...args: unknown[]) {
       return record("expire", args);
     }
+    getdel(...args: unknown[]) {
+      return record("getdel", args);
+    }
   }
   return { state, FakeRedis };
 });
@@ -140,6 +143,23 @@ describe("kv", () => {
     expect(fake.state.calls).toStrictEqual([{ method: "expire", args: ["k", 90] }]);
   });
 
+  it("take calls getdel and returns the value", async () => {
+    fake.state.result = { a: 1 };
+    expect(await kv().take("k")).toStrictEqual({ a: 1 });
+    expect(fake.state.calls).toStrictEqual([{ method: "getdel", args: ["k"] }]);
+  });
+
+  it("setIfAbsent sets NX with EX and reports whether it set", async () => {
+    fake.state.result = "OK";
+    expect(await kv().setIfAbsent("k", "v", 120)).toBe(true);
+    fake.state.result = null;
+    expect(await kv().setIfAbsent("k", "v", 120)).toBe(false);
+    expect(fake.state.calls[0]).toStrictEqual({
+      method: "set",
+      args: ["k", "v", { nx: true, ex: 120 }],
+    });
+  });
+
   it("propagates an Upstash rejection unchanged", async () => {
     const failure = new Error("upstash unavailable");
     fake.state.failWith = failure;
@@ -154,6 +174,8 @@ describe("kv", () => {
       del: async () => undefined,
       incrByFloat: async () => 0,
       expire: async () => undefined,
+      take: async () => null,
+      setIfAbsent: async () => true,
     };
     setKvForTests(custom);
     expect(kv()).toBe(custom);

@@ -58,6 +58,25 @@ describe("FakeKv", () => {
     expect(kv.has("k")).toBe(false);
   });
 
+  it("take returns and removes a value once", async () => {
+    const kv = new FakeKv();
+    await kv.set("k", { a: 1 });
+    expect(await kv.take("k")).toEqual({ a: 1 });
+    expect(await kv.take("k")).toBeNull();
+    expect(kv.has("k")).toBe(false);
+  });
+
+  it("setIfAbsent sets once, honors the clock, and sets again after expiry", async () => {
+    let now = 0;
+    const kv = new FakeKv(() => now);
+    expect(await kv.setIfAbsent("l", 1, 10)).toBe(true);
+    expect(await kv.setIfAbsent("l", 2, 10)).toBe(false);
+    expect(await kv.get("l")).toBe(1);
+    now += 10_000;
+    expect(await kv.setIfAbsent("l", 3, 10)).toBe(true);
+    expect(await kv.get("l")).toBe(3);
+  });
+
   it("del removes a key; has and keys list live keys", async () => {
     const kv = new FakeKv();
     await kv.set("a", 1);

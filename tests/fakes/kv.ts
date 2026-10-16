@@ -62,6 +62,19 @@ export class FakeKv implements Kv {
     entry.expiresAt = this.expiryFor(ttlSec);
   }
 
+  async take<T>(key: string): Promise<T | null> {
+    const entry = this.live(key);
+    if (!entry) return null;
+    this.store.delete(key);
+    return structuredClone(entry.value) as T;
+  }
+
+  async setIfAbsent<T>(key: string, value: T, ttlSec: number): Promise<boolean> {
+    if (this.live(key)) return false;
+    this.store.set(key, { value: structuredClone(value), expiresAt: this.expiryFor(ttlSec) });
+    return true;
+  }
+
   // present and not expired
   has(key: string): boolean {
     return this.live(key) !== undefined;
