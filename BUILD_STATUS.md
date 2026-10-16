@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Wave 2: T09 to T14 merged and green; T15, T26, T27 dispatched (schemas read live).
+Wave 2: complete and green after F2. Wave 3: cards in progress.
 
 ## Tasks
 
@@ -30,6 +30,7 @@ Wave 2: T09 to T14 merged and green; T15, T26, T27 dispatched (schemas read live
 | T15 pending and execute | sonnet (moved from haiku after T04 overran) | merged (about 40k; saveThread mints its own id: T18 uses the returned id) | build/t15 | 836d79f |
 | T26 challonge snapshot | sonnet | merged (about 45k; rules gate caught Date.parse, fix F2 dispatched) | build/t26 | d9d5768 |
 | T27 my matches and client tools | sonnet | merged (about 40k; tool JSON uses snake_case keys) | build/t27 | e6b6d63 |
+| F2 rule gate fix | sonnet | merged (about 15k) | build/f2 | 1063745 |
 
 Waves 3 and 4: queued.
 
@@ -42,6 +43,7 @@ Waves 3 and 4: queued.
 | Wave 1 after F1 | green: typecheck, lint, 271 tests, rules ok (84 files), no dash characters |
 | Wave 2 partial (T09, T10, T12, T13, T14) | green: typecheck, lint, 378 tests, rules ok (91 files) |
 | Wave 2 partial plus T11 | green: typecheck, lint, 405 tests, rules ok (92 files) |
+| Wave 2 complete (after F2) | green: typecheck, lint, 484 tests, rules ok (97 files) |
 
 ## Open fix cards
 
