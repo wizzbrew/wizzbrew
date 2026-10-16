@@ -22,6 +22,8 @@ const DUMMY_ENV: Record<string, string> = {
   KV_REST_API_TOKEN: "test-kv-token",
   COMMUNITY_TIMEZONE: "America/New_York",
   CHALLONGE_API_KEY: "test-challonge-key",
+  RELAY_SECRET: "test-relay-value-not-real-".padEnd(40, "x"),
+  STAFF_ALERT_CHANNEL_ID: "test-staff-alert-channel-id",
 };
 
 for (const [name, value] of Object.entries(DUMMY_ENV)) {

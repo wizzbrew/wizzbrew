@@ -54,6 +54,13 @@ describe("voice", () => {
     }
   });
 
+  it("keeps chat warm: no help-list exit, one turn of phrase", () => {
+    const text = CHAT_BLOCK.toLowerCase();
+    expect(text).not.toContain("the schedule, streams");
+    expect(text).toContain("never answer casual talk with a list");
+    expect(text).toContain("at most one");
+  });
+
   it("forbids flavor in the data register in plain words", () => {
     expect(DATA_BLOCK).toContain("No flavor");
   });

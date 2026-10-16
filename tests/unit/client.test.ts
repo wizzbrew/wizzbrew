@@ -223,3 +223,26 @@ describe("createMessage logging", () => {
     expect(raw).not.toContain("private answer");
   });
 });
+
+describe("client construction", () => {
+  it("passes a 120 s timeout and one retry to the SDK", async () => {
+    vi.resetModules();
+    const ctor = vi.fn();
+    vi.doMock("@anthropic-ai/sdk", () => ({
+      default: class {
+        constructor(opts: unknown) {
+          ctor(opts);
+        }
+        beta = { messages: { create: vi.fn().mockResolvedValue(fakeMessage([block.text("ok")])) } };
+      },
+    }));
+    const mod = await import("../../src/llm/client.js");
+    mod.setAnthropicForTests(null);
+    const kvMod = await import("../../src/store/kv.js");
+    kvMod.setKvForTests(new FakeKv());
+    await mod.createMessage("router", BASE, CTX);
+    expect(ctor).toHaveBeenCalledWith(expect.objectContaining({ timeout: 120000, maxRetries: 1 }));
+    vi.doUnmock("@anthropic-ai/sdk");
+    vi.resetModules();
+  });
+});

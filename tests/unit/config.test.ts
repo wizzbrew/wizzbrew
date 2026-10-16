@@ -147,3 +147,28 @@ describe("checkConfig()", () => {
     ]);
   });
 });
+
+describe("relay config", () => {
+  it("reads the relay secret and staff alert channel", () => {
+    const c = config();
+    expect(c.relaySecret.length).toBeGreaterThanOrEqual(32);
+    expect(c.staffAlertChannelId).toBe("test-staff-alert-channel-id");
+  });
+
+  it("requires RELAY_SECRET", () => {
+    vi.stubEnv("RELAY_SECRET", undefined);
+    expect(thrownText(() => config())).toBe("Config error: RELAY_SECRET is missing");
+  });
+
+  it("rejects a short RELAY_SECRET without echoing it", () => {
+    vi.stubEnv("RELAY_SECRET", "short-value");
+    const msg = thrownText(() => config());
+    expect(msg).toBe("Config error: RELAY_SECRET must be at least 32 characters");
+    expect(msg).not.toContain("short-value");
+  });
+
+  it("treats an empty STAFF_ALERT_CHANNEL_ID as absent", () => {
+    vi.stubEnv("STAFF_ALERT_CHANNEL_ID", "");
+    expect(config().staffAlertChannelId).toBeNull();
+  });
+});

@@ -23,6 +23,8 @@ export interface Config {
   kvRestApiToken: string; // KV_REST_API_TOKEN (same)
   communityTimezone: string; // COMMUNITY_TIMEZONE, IANA zone, e.g. America/New_York
   challongeApiKey: string | null; // CHALLONGE_API_KEY, optional
+  relaySecret: string; // RELAY_SECRET, at least 32 chars, shared with the relay
+  staffAlertChannelId: string | null; // STAFF_ALERT_CHANNEL_ID, optional
 }
 
 interface VarSpec<T> {
@@ -106,6 +108,8 @@ const SPECS: Specs = {
   kvRestApiToken: required("KV_REST_API_TOKEN", "a non-empty string", nonEmpty),
   communityTimezone: required("COMMUNITY_TIMEZONE", "an IANA time zone name", ianaZone),
   challongeApiKey: optionalVar("CHALLONGE_API_KEY", "a non-empty string", nonEmpty),
+  relaySecret: required("RELAY_SECRET", "at least 32 characters", z.string().min(32)),
+  staffAlertChannelId: optionalVar("STAFF_ALERT_CHANNEL_ID", "a non-empty string", nonEmpty),
 };
 
 const ALL_KEYS = Object.keys(SPECS) as (keyof Config)[];
