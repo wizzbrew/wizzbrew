@@ -25,6 +25,11 @@ export async function POST(request: Request): Promise<Response> {
     return new Response("invalid request signature", { status: 401 });
   }
 
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) {
+    return new Response("invalid request signature", { status: 401 });
+  }
+
   let interaction: APIInteraction;
   try {
     interaction = JSON.parse(raw) as APIInteraction;

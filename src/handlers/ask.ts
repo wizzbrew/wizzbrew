@@ -156,7 +156,10 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
         log("error", "ask.alert_failed", { requestId, error: alertErr });
       }
     }
-    await deliverError(reply, userMessageFor(err, { public: reply.kind === "message" }));
+    await deliverError(
+      reply,
+      userMessageFor(err, { public: reply.kind === "message" || !reply.ephemeral }),
+    );
   } finally {
     if (locked) {
       try {

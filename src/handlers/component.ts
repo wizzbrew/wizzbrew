@@ -3,6 +3,7 @@ import { executeAction } from "../actions/execute.js";
 import { loadThread, takePending } from "../actions/pending.js";
 import { discordApi } from "../discord/api.js";
 import { decodeCustomId } from "../discord/components.js";
+import { finalizeText } from "../discord/markup.js";
 import { renderAnswer } from "../discord/render.js";
 import { userMessageFor } from "../errors.js";
 import { log } from "../log.js";
@@ -15,7 +16,7 @@ const EXPIRED = "That request expired. Ask again.";
 
 function edit(token: string, content: string): Promise<void> {
   return discordApi().editOriginal(token, {
-    content,
+    content: finalizeText(content)[0] ?? "",
     components: [],
     allowed_mentions: NO_MENTIONS,
   });
@@ -23,7 +24,7 @@ function edit(token: string, content: string): Promise<void> {
 
 function privateFollowup(token: string, content: string): Promise<void> {
   return discordApi().followup(token, {
-    content,
+    content: finalizeText(content)[0] ?? "",
     flags: FLAG_EPHEMERAL,
     allowed_mentions: NO_MENTIONS,
   });
@@ -69,14 +70,17 @@ async function handle(
       return;
     }
     if (thread === "expired") {
-      await edit(token, EXPIRED);
+      await privateFollowup(token, EXPIRED);
       return;
     }
+    // A non-owner's pick on a public thread must not overwrite the shared message; the
+    // dispatcher defers it as its own ephemeral reply.
+    const foreign = thread.discordUserId !== presser;
     await runAskPipeline({
       requestId,
       asker: await loadAsker(i),
       question: `${thread.question}\n(Picked: ${action.value})`,
-      reply: { kind: "interaction", token, ephemeral: thread.ephemeral },
+      reply: { kind: "interaction", token, ephemeral: thread.ephemeral || foreign },
       history: thread.turns,
       threadId: thread.id,
       forced: thread.decision,
