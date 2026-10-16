@@ -544,8 +544,10 @@ export function deliver(target: ReplyTarget, answer: Answer, ids: { pendingId?: 
 export function deliverError(target: ReplyTarget, message: string): Promise<void>;   // never throws
 
 // handlers/account.ts (replaces handlers/link.ts)
-export function runAccountAction(action: "link" | "unlink", asker: Asker, target: ReplyTarget, threadId: string | null, now: Date): Promise<void>;   // never throws
-// link: the link button is always private (interaction deferral is ephemeral; message path holds it behind "Show me privately")
+export function accountAnswer(action: "link" | "unlink", asker: Asker, now: Date): Promise<Answer>;
+// Always ephemeral. link: the one-time Wizzrobe link as a markdown link in the text (deliver keeps
+// it private on every path); unlink: revoke + deleteLink. /link, /unlink and "connect me" all reach
+// it through runAskPipeline with route "account".
 
 // handlers/message.ts
 export function runMessagePipeline(m: RelayMessage, requestId: string, now: Date): Promise<void>;   // never throws
