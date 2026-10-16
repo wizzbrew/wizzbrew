@@ -30,10 +30,14 @@ responder.
 
 ## Building
 
-- The builder session does wave 0 itself, then dispatches each wave's task cards in parallel to
-  subagents. Each card uses the model named in `docs/tasks.md` and `isolation: "worktree"`. The
-  builder merges, gates, fixes through fresh fixer agents, reviews and ships. Details are in
-  `docs/build.md`.
+- **The builder (the main Opus session) writes no code, tests, configs or prompts.** It writes
+  task cards and `BUILD_STATUS.md`, runs git and gates, reads reports, and decides. Every code
+  file comes from a subagent running one card.
+- The builder dispatches W0, then each wave's cards in parallel. Each card uses the model named
+  in `docs/tasks.md` and `isolation: "worktree"`. It merges, gates, fixes through fresh fixer
+  agents, reviews and ships. Details are in `docs/build.md`.
+- Plan limits (Claude Max 5x) and what they mean for card sizing, concurrency and resuming are in
+  `docs/build.md`, "Plan constraints". Every card states the worker's budget.
 - A worker touches only the files its card owns. It never changes a contract, `package.json`,
   `src/types.ts` or `src/errors.ts`, and it reports BLOCKED instead of improvising.
 - One commit per task: `type(area): what`, with the Co-Authored-By trailer.

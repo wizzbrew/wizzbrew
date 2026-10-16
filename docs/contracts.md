@@ -43,6 +43,7 @@ src/
   wizzrobe/mcp.ts        connector params for responders + direct tools/call client
   wizzrobe/rest.ts       typed REST calls for the MCP gaps
   wizzrobe/resolve.ts    name -> id matching that never guesses (L18)
+  personality/voice.ts   Wizzbrew's voice: voice(register), registers data | help | chat
   responders/base.ts     runResponder: one tool loop, shared by all routes
   responders/specs.ts    per-route prompt + allowlist + output rules
   actions/pending.ts     pending write actions in Redis (L15)
@@ -282,6 +283,15 @@ export function myOpenBracketMatches(token: string): Promise<unknown[]>;
 
 // wizzrobe/resolve.ts
 export function resolveByName<T>(input: string, items: T[], nameOf: (t: T) => string): ResolveResult<T>;   // L18
+
+// personality/voice.ts
+export type Register = "data" | "help" | "chat";
+export function voice(register: Register): string;     // stable, cached, prepended to every responder system prompt
+
+// responders/specs.ts
+export interface ResponderSpec { route: Route; register: Register; instructions: string }
+export const SPECS: Record<Route, ResponderSpec>;
+export const SHARED_RULES: string;
 
 // responders/base.ts
 export function runResponder(route: Route, decision: RoutingDecision, ctx: AskContext): Promise<Answer>;

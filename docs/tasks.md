@@ -8,35 +8,59 @@ The builder expands each task into a full card (`docs/build.md`, "Task card temp
 
 Waves run in order; tasks inside a wave run in parallel.
 
-## Wave 0: builder, no subagents
+## Wave 0: one sonnet worker, alone
 
-**W0. Scaffold and freeze contracts.**
-- `git checkout -b build/integration`.
-- `package.json`, pinned exact. Check each version with `npm view <pkg> time` and use one at least
-  14 days old.
-  - Runtime: `@anthropic-ai/sdk`, `@modelcontextprotocol/sdk`, `@upstash/redis`,
-    `@vercel/functions`, `discord-interactions`, `zod`.
-  - Dev: `typescript`, `vitest`, `@biomejs/biome`, `tsx`, `discord-api-types`, `@types/node`.
-  - Install and commit the lockfile.
-- Config files:
-  - `tsconfig.json`: strict, `noUncheckedIndexedAccess`, ESM, Node 20+.
-  - `biome.json`: with the empty-block rule on (L16).
-  - `vitest.config.ts` with `tests/setup.ts` (dummy env).
-  - `vercel.json`: Node runtime for `api/*`, and `maxDuration` per the plan's limit.
-- `npm` scripts: `typecheck`, `lint`, `test`, `test:e2e`, `check`, `register`, `eval`.
-- Types and errors: `src/types.ts` and `src/errors.ts` exactly as in `docs/contracts.md`.
-  `userMessageFor` gets its real body now: it is small and central.
-- Every other module in the layout as a **stub**: exported signatures, bodies
-  `throw new NotImplemented()`. Each `api/*.ts` exports a handler that returns 501.
-- `tests/fakes/*.ts`: interfaces only. T08 implements them.
-- Fixtures. Download `https://wizzrobe.synack.live/api/openapi.json` to a scratch path, outside
-  the repo. Derive small fixture JSON from it into `tests/fixtures/wizzrobe/`: match, match list,
-  schedule day, stage, tournament, bracket standings, entrants, error bodies. Note at the top of
-  each fixture that it is schema-derived, not recorded.
-- `npm run check` green (typecheck plus lint; zero tests is fine). Commit `chore: scaffold and
-  frozen contracts`.
+The builder first runs `git checkout -b build/integration` (a git operation, not code), writes the
+W0 card, and dispatches it. When it comes back, the builder reads the type and signature diff
+against `docs/contracts.md` line by line, runs `npm run check`, merges, and from then on treats
+the contracts as frozen.
 
-## Wave 1: leaves (8 tasks)
+**W0. Scaffold and frozen contracts** (sonnet)
+- Owns: `package.json`, the lockfile, `tsconfig.json`, `biome.json`, `vitest.config.ts`,
+  `vercel.json`, `.claude/settings.json`, `src/types.ts`, `src/errors.ts`, `src/config.ts`,
+  `src/log.ts`, every other `src/**` and `api/**` file as a stub, `tests/setup.ts`,
+  `tests/fakes/*.ts` (interfaces only), `tests/fixtures/wizzrobe/*.json`.
+- Dependencies, pinned exact. These were checked on 2026-10-15 as the newest stable release at
+  least 14 days old. The worker confirms each with `npm view <pkg> time` and keeps it unless it
+  no longer exists.
+  - Runtime: `@anthropic-ai/sdk` 0.131.0, `@modelcontextprotocol/sdk` 1.31.0,
+    `@upstash/redis` 1.39.0, `@vercel/functions` 3.9.9, `discord-interactions` 4.4.0,
+    `zod` 4.6.5.
+  - Dev: `typescript` 7.0.2, `vitest` 5.0.3, `@biomejs/biome` 2.5.15, `tsx` 4.23.15,
+    `discord-api-types` 0.38.56, `@types/node` 26.6.3.
+- Config:
+  - `tsconfig.json`: strict, `noUncheckedIndexedAccess`, ESM, `moduleResolution` Bundler.
+  - `biome.json`: recommended rules plus `suspicious.noEmptyBlockStatements` and
+    `noExplicitAny` as errors (L16).
+  - `vitest.config.ts`: `tests/setup.ts` as the setup file. Setup sets a dummy value for every
+    env var.
+  - `vercel.json`: `maxDuration` for `api/**/*.ts` set to the plan's limit (check the current
+    Vercel docs for the account's plan).
+  - `.claude/settings.json`: `{"worktree": {"baseRef": "head"}}`.
+- `npm` scripts: `typecheck`, `lint`, `test`, `test:e2e`, `rules`, `check`, `register`, `eval`.
+- Real bodies now, because they are small and everything depends on them:
+  - `src/types.ts` and `src/errors.ts` exactly as in `docs/contracts.md`, including
+    `userMessageFor`;
+  - `src/config.ts`: a zod schema of every `.env.example` var, validated on first use, error
+    naming variables, never values;
+  - `src/log.ts`: one-line JSON with request id, user text clipped to 200 characters (L24).
+- Everything else in the layout is a **stub**: exact exported signatures from
+  `docs/contracts.md`, bodies `throw new NotImplemented()`. `api/*.ts` handlers return 501.
+- Fixtures: download `https://wizzrobe.synack.live/api/openapi.json` to a scratch path outside
+  the repo, and derive small JSON fixtures into `tests/fixtures/wizzrobe/`:
+  - match, match list, schedule day, stage, tournament, bracket standings, entrants, error bodies;
+  - each with a `_note` field saying it's schema-derived, not recorded.
+- Facts to paste into the card (checked against the installed packages on 2026-10-15):
+  - `discord-interactions`: `verifyKey(rawBody, signature, timestamp, publicKey): Promise<boolean>`
+    (async).
+  - `@anthropic-ai/sdk` 0.131 exports `BetaMessage`, `BetaMCPToolset`,
+    `BetaRequestMCPServerURLDefinition` and `BetaJSONOutputFormat` from
+    `@anthropic-ai/sdk/resources/beta/messages/messages`.
+  - `@vercel/functions` exports `waitUntil(promise)`.
+- Done when `npm run check` is green (typecheck and lint; zero tests is fine). One commit:
+  `chore: scaffold and frozen contracts`.
+
+## Wave 1: leaves (9 tasks, T25 included)
 
 **T01. Time** (sonnet)
 - Owns: `src/time/time.ts`, `tests/unit/time.test.ts`
@@ -166,6 +190,17 @@ Waves run in order; tasks inside a wave run in parallel.
     - configurable 401/403/404/429/500 with `detail` and `Retry-After`,
     - a call log.
 - Tests: each fake's own behavior.
+
+**T25. Personality** (sonnet; part of wave 1, the wave's 9th task)
+- Owns: `src/personality/voice.ts`, `tests/unit/voice.test.ts`
+- Reads: `plan.md#personality`, `docs/lessons.md` (L11, L13, L14)
+- Exports: `type Register = "data" | "help" | "chat"`, `voice(register): string`. Stable text
+  only, no clock (L1).
+- The worker writes the voice from the spec in plan.md, "Personality".
+- **The builder reads the full text before merge**, and checks it against L11 (no sample
+  phrasings, no example idioms) and L14.
+- Tests: each register returns CORE plus its own block; no em or en dashes; no "e.g." or "for
+  example" inside the flavor rules; `data` forbids flavor.
 
 ## Wave 2: integrations (7 tasks)
 

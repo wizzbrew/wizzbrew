@@ -2,8 +2,15 @@
 
 How Wizzbrew gets built: one **builder** session (Opus) that plans, dispatches, integrates,
 tests and ships, and many short-lived **worker** subagents that write the code. Workers are
-mostly Sonnet, with Haiku for pure modules. The goal is to spend Opus tokens on decisions and
-verification, not on typing code, and to have every worker finish in one pass.
+mostly Sonnet, with Haiku for pure modules.
+
+**The builder writes no code. None, including the scaffold.** Every line of code and test comes
+from a worker running one task card. The builder writes cards, reads reports and diffs, runs
+gates, merges, and decides. That keeps Opus tokens on decisions and verification, and it keeps
+every module written from its card alone, so no planning conversation leaks into the code.
+
+Start the builder as a **fresh session in `~/gitrepos/wizzbrew`**, never as a continuation of the
+planning conversation. The docs in this repo are the whole brief.
 
 Read with: `docs/contracts.md` (what the code looks like), `docs/tasks.md` (the task DAG),
 `docs/lessons.md` (the failure modes every task must respect).
@@ -12,7 +19,7 @@ Read with: `docs/contracts.md` (what the code looks like), `docs/tasks.md` (the 
 
 | Role | Model | Does | Never does |
 |---|---|---|---|
-| Builder | Opus 5.5 (the session) | Wave 0 scaffold and contracts, writes task cards, dispatches, merges, runs gates, triages, writes fix cards, reads every prompt, ships | Writes module bodies that a worker could write; reads worker transcripts |
+| Builder | Opus 5.5 (the session) | Writes task cards, dispatches, merges, runs gates, triages, writes fix cards, reads every prompt, keeps `BUILD_STATUS.md`, ships | Writes or edits any code, test, config or prompt file; reads worker transcripts |
 | Worker | `sonnet` or `haiku` per task (Agent tool `model`), isolated worktree | Implements one card: owned files plus their tests, one commit | Touches files it does not own, changes a contract, edits `package.json`, explores the repo |
 | Fixer | `sonnet` | Fixes one failing gate from a fix card | Changes contracts, or weakens a test to pass |
 | Reviewer | `sonnet` | Reads the integrated code against one checklist, returns findings | Edits code |
@@ -34,9 +41,39 @@ Each card is sized so the worker's whole job fits in about **50k tokens**:
 - files it must read: at most 15k tokens,
 - what it writes: at most about 600 lines of code plus tests.
 
-That fits either model with room to spare, so no worker should hit compaction or a retry. If a
-card won't fit, split it before dispatch. (Context window size isn't the constraint here; a small,
-complete card is what makes a worker finish in one shot.)
+If a card won't fit, split it before dispatch. The window isn't what limits this (see "Plan
+constraints"). A small, complete card is what makes a worker finish in one pass, with no
+auto-compaction and no retry.
+
+## Plan constraints (Claude Max 5x)
+
+Vince runs this on **Claude Max 5x** with extra usage enabled. Checked 2026-10-15 against
+code.claude.com/docs/en/model-config, /context-window, /sub-agents, /costs, and
+support.claude.com/en/articles/11145838.
+
+| Fact | Design consequence |
+|---|---|
+| Opus 5.5, Sonnet 5.5 and Haiku 5.5 all run with a 1M window in Claude Code by default. A subagent's window is sized by its own model. | Windows are not the limit. Cards stay at about 50k for one-pass quality. |
+| Auto-compaction applies to subagents too. | A worker that compacts has lost part of its card. Treat a compacted worker as a split-the-card signal, not a success. |
+| The 5-hour and weekly limits are shared between claude.ai and Claude Code, across models. Opus and Sonnet have separate per-family limits. Haiku's bucket is not documented. | The builder is the only Opus consumer. The bulk of the tokens (workers, fixers, reviewers) draw on the Sonnet pool or Haiku, so a build doesn't drain the Opus allowance. |
+| By default at most 20 subagents run at once (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`), nested at most 3 deep. | At most 9 workers per wave: well under the cap, and a burst that fits one 5-hour window. Workers never spawn agents. |
+| Extra usage bills past the limits at API rates. | The build must not depend on it. Before starting, Vince sets a monthly cap with `/usage-credits`. If a limit is hit mid-wave, stop and resume later (below) rather than buying through it. |
+| `isolation: "worktree"` branches from the default branch unless `worktree.baseRef` is `"head"`. | The repo's `.claude/settings.json` sets `"worktree": {"baseRef": "head"}`, and the builder stays on `build/integration`, so every worker starts from the integrated state. The builder creates this settings file by dispatching it as part of W0, not by writing it. |
+
+### Resuming after a limit or a crash
+
+The builder keeps `BUILD_STATUS.md` (tracked, at the repo root), updated after every dispatch and
+merge:
+
+- the current wave,
+- each task's state (`queued`, `dispatched`, `merged`, `failed: <gate>`),
+- each task's branch and commit,
+- open fix cards,
+- gate results.
+
+A fresh builder session reads it, checks which `build/<id>` branches already have their commit,
+merges those, and re-dispatches only what is missing. Task branches survive a session ending.
+`BUILD_STATUS.md` is a status record, not code, so the builder may write it.
 
 ## Why parallel work doesn't collide
 
@@ -44,9 +81,9 @@ complete card is what makes a worker finish in one shot.)
    `docs/contracts.md`). Workers fill in bodies against fixed signatures, so module A can be
    written while B, which it calls, is still a stub.
 2. **File ownership.** Every file belongs to exactly one task. No two tasks in a wave own the same
-   file. Shared files (`src/types.ts`, `src/errors.ts`, `package.json`, configs) belong to the
-   builder and are frozen after wave 0. A worker that needs a dependency or a type change stops
-   and reports instead of adding it.
+   file. Shared files (`src/types.ts`, `src/errors.ts`, `package.json`, configs) are written by
+   W0 and frozen after it. A worker that needs a dependency or a type change stops and reports.
+   The builder then issues a small contract-change card to a worker, merges it, and re-dispatches.
 3. **No barrels.** There are no `index.ts` re-export files to fight over; import from the module
    path.
 4. **Test isolation.**
@@ -73,7 +110,9 @@ complete card is what makes a worker finish in one shot.)
 ## The loop
 
 ```
-wave 0  builder: scaffold, pin deps, contracts as stubs, fakes interfaces, `npm run check` green
+wave 0  builder: write the W0 card; one sonnet worker builds the scaffold, pins deps, writes the
+        contracts as stubs and the fake interfaces; builder reads the type and signature diff
+        against docs/contracts.md line by line, runs `npm run check`, merges, freezes
 for each wave 1..4:
   builder: expand each task in docs/tasks.md into a full card (template below)
   builder: dispatch every card of the wave in ONE message (parallel Agent calls),
@@ -83,7 +122,7 @@ for each wave 1..4:
   builder: run the wave gate (`npm run check`)
     green -> next wave
     red   -> fix card -> new sonnet fixer (worktree) -> merge -> re-run gate
-             (at most 2 fixers per failure; then the builder fixes it or asks Vince)
+             (at most 2 fixers per failure; then a sharper card or an opus fixer, or ask Vince)
 review:  3 sonnet reviewers in parallel (lessons, security, contracts+tests) -> findings
          builder triages -> fix cards -> fixers -> gate
 ship:    final gate, fast-forward or PR into main, tag v0.1.0
@@ -91,7 +130,7 @@ live:    with Vince: keys, Discord app, Wizzrobe client, preview deploy, smoke, 
 ```
 
 The builder may run waves with the Workflow tool if Vince asks for one ("use a workflow").
-Otherwise, use parallel Agent calls in one message. No wave has more than 8 tasks.
+Otherwise, use parallel Agent calls in one message. No wave has more than 9 tasks.
 
 ## Task card template
 
@@ -100,6 +139,17 @@ not need to look anything up.
 
 ```
 TASK <id>: <title>                         model: <sonnet|haiku>   wave: <n>
+
+BUDGET (your limits; plan around them)
+- You run on Claude <Sonnet|Haiku> 5.5 with a 1M-token window, on a Claude Max 5x plan whose
+  usage is shared with other workers running right now.
+- This task is sized for about 50k tokens total: this card (~<n>k), the READ list (~<n>k), and
+  about <n> lines of output. Finish in one pass.
+- Read only what READ lists, once. Don't explore the repo, re-read files, or run the full suite;
+  run only the commands in DONE WHEN.
+- If you see the job needs more than about 80k tokens, or files outside OWN, stop and report
+  STATUS: SPLIT with what the extra piece is. A split is cheaper than a half-finished task.
+- Don't spawn subagents.
 
 GOAL
 One sentence.
@@ -142,7 +192,8 @@ IF BLOCKED
 Stop. Do not improvise around a contract. Report BLOCKED with the reason.
 
 REPORT (your final message, at most 150 words, exactly this shape)
-STATUS: DONE | BLOCKED
+STATUS: DONE | BLOCKED | SPLIT
+EFFORT: about <n>k tokens used; compacted: yes | no
 BRANCH: build/<id>   COMMIT: <sha>
 FILES: <list>
 TESTS: <n passed>
@@ -186,7 +237,9 @@ itself is wrong, report BLOCKED with why. Never weaken a test to make it pass.
 ```
 
 A fixer is a fresh agent every time, never the worker that failed: a clean context is cheaper and
-less anchored. After two failed fixers on the same failure, the builder fixes it or asks Vince.
+less anchored. After two failed fixers on the same failure, the builder writes a sharper card
+(split, more context pasted, an `opus` fixer for that one card) or asks Vince. The builder never
+patches the code itself.
 
 ## Reviewers
 
@@ -209,6 +262,17 @@ findings as `file:line, lesson or rule, what's wrong, suggested fix`, at most 40
 
 ## Builder token discipline
 
+The builder knows its own limits too:
+
+- It is the only Opus consumer, drawing on the Opus pool of a Max 5x plan.
+- Its window is 1M, but aim to finish the build under about 400k tokens of its own context.
+- If `/usage` shows the 5-hour or weekly limit close, finish merging what has landed, update
+  `BUILD_STATUS.md`, and stop cleanly instead of dispatching a wave it can't gate.
+- Use each report's `EFFORT` line to calibrate the next cards. A worker that used under 25k could
+  have taken more scope; one that compacted or sent SPLIT needs a smaller card next time.
+
+Habits:
+
 - Don't read worker transcripts. Read the 150-word report. Use `git diff --stat`, and open a file
   only when a gate fails, a reviewer flags it, or it's a prompt.
 - **Read every prompt in full** (router and responder specs). Prompts are where cheap models
@@ -224,11 +288,18 @@ findings as `file:line, lesson or rule, what's wrong, suggested fix`, at most 40
 - **Live keys.** Vince creates the Anthropic key, the Discord app and the Wizzrobe OAuth client in
   the live phase (`plan.md`, "Deploying").
 
-## Kickoff (paste into the new session)
+## Kickoff
+
+Before starting: set an extra-usage cap with `/usage-credits`. Then open a new Claude Code session
+in `~/gitrepos/wizzbrew`, on Opus, and paste:
 
 ```
 Build Wizzbrew. Read CLAUDE.md, plan.md, docs/build.md, docs/contracts.md, docs/tasks.md and
-docs/lessons.md first. You are the builder: do wave 0 yourself, then run waves 1-4 by
-dispatching task cards to subagents in parallel (model per docs/tasks.md, isolation worktree),
-merge, gate, fix, review, and ship to main. Ask me before pushing to GitHub or deploying.
+docs/lessons.md first. You are the builder and you write no code: every file of code, tests and
+config comes from a subagent running a task card. Start with W0 (one sonnet worker), then waves
+1-4 with workers in parallel (model per docs/tasks.md, isolation worktree), merge, gate, fix
+with fresh fixers, review, and ship to main. Keep BUILD_STATUS.md current. Ask me before
+pushing to GitHub or deploying.
 ```
+
+To resume after a usage limit: the same prompt plus "Resume from BUILD_STATUS.md."

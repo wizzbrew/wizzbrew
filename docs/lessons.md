@@ -106,7 +106,14 @@ Each lesson has a **rule** and a **test** that proves the rule holds. Task cards
 **L14. The voice is plain and helpful, never condescending or bitter.**
 - What happened: the tavern voice read as condescending, then as bitter (`fix(personality)`
   twice).
-- Rule: no persona voice in v1. Short, factual and friendly. The no-pandering rules apply.
+- Rule: character comes from warmth, never from attitude. Flavor is a dial set by register:
+  - `data` answers (schedule, streams, standings, players, account) get none;
+  - `help` gets at most one light closing line;
+  - `chat` gets at most one homebrew turn of phrase, never repeated, never at anyone's expense.
+
+  No sarcasm about players, losses or skill. No flattery, no filler. The spec is in plan.md,
+  "Personality".
+- Test: the voice tests in T25, plus reviewer 1 reading sample answers from `npm run eval`.
 
 ## State and errors
 
