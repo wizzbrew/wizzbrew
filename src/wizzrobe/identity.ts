@@ -24,9 +24,19 @@ export async function getLink(discordUserId: string): Promise<LinkRecord | null>
 
 export async function saveLink(discordUserId: string, rec: LinkRecord): Promise<void> {
   await kv().set(keys.link(discordUserId), rec);
+  await kv().set(keys.linkOwner(rec.wizzrobeUserId), discordUserId);
+}
+
+export async function getLinkOwner(wizzrobeUserId: number): Promise<string | null> {
+  return kv().get<string>(keys.linkOwner(wizzrobeUserId));
 }
 
 export async function deleteLink(discordUserId: string): Promise<void> {
+  const rec = await getLink(discordUserId);
+  if (rec) {
+    const owner = await getLinkOwner(rec.wizzrobeUserId);
+    if (owner === discordUserId) await kv().del(keys.linkOwner(rec.wizzrobeUserId));
+  }
   await kv().del(keys.link(discordUserId));
   await kv().del(keys.userToken(discordUserId));
 }

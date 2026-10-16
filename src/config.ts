@@ -9,6 +9,8 @@ export interface Config {
   discordApplicationId: string; // DISCORD_APPLICATION_ID
   discordPublicKey: string; // DISCORD_PUBLIC_KEY, 64 hex chars
   discordBotToken: string; // DISCORD_BOT_TOKEN
+  discordClientSecret: string; // DISCORD_CLIENT_SECRET (Discord app OAuth2)
+  discordOauthRedirectUri: string; // DISCORD_OAUTH_REDIRECT_URI, https://<domain>/api/oauth/discord
   discordDevGuildId: string | null; // DISCORD_DEV_GUILD_ID, optional
   safeDefaultChannelId: string | null; // SAFE_DEFAULT_CHANNEL_ID, optional (L20)
   wizzrobeBaseUrl: string; // WIZZROBE_BASE_URL, e.g. https://wizzrobe.synack.live
@@ -86,6 +88,8 @@ const SPECS: Specs = {
   discordApplicationId: required("DISCORD_APPLICATION_ID", "a non-empty string", nonEmpty),
   discordPublicKey: required("DISCORD_PUBLIC_KEY", "64 hex characters", publicKey),
   discordBotToken: required("DISCORD_BOT_TOKEN", "a non-empty string", nonEmpty),
+  discordClientSecret: required("DISCORD_CLIENT_SECRET", "a non-empty string", nonEmpty),
+  discordOauthRedirectUri: required("DISCORD_OAUTH_REDIRECT_URI", "a valid https URL", httpsUrl),
   discordDevGuildId: optionalVar("DISCORD_DEV_GUILD_ID", "a non-empty string", nonEmpty),
   safeDefaultChannelId: optionalVar("SAFE_DEFAULT_CHANNEL_ID", "a non-empty string", nonEmpty),
   wizzrobeBaseUrl: required("WIZZROBE_BASE_URL", "a valid https URL", httpsUrl),

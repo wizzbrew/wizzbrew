@@ -12,6 +12,7 @@ function part(value: string, pattern: RegExp, what: string): string {
 
 export const keys: {
   link(discordUserId: string): string; // LinkRecord JSON (its refresh token is sealed)
+  linkOwner(wizzrobeUserId: number): string; // discord id that owns a Wizzrobe user link
   oauthState(state: string): string; // PKCE verifier + discord user, 10 min
   botToken(): string; // cached bot access token
   userToken(discordUserId: string): string; // cached user access token
@@ -25,6 +26,12 @@ export const keys: {
 } = {
   link(discordUserId: string): string {
     return `${PREFIX}:link:${part(discordUserId, DISCORD_ID, "discord id")}`;
+  },
+  linkOwner(wizzrobeUserId: number): string {
+    if (!Number.isSafeInteger(wizzrobeUserId) || wizzrobeUserId < 0) {
+      throw new Error("invalid wizzrobe user id");
+    }
+    return `${PREFIX}:linkowner:${wizzrobeUserId}`;
   },
   oauthState(state: string): string {
     return `${PREFIX}:oauth:${part(state, TOKEN_PART, "oauth state")}`;

@@ -148,6 +148,26 @@ describe("checkConfig()", () => {
   });
 });
 
+describe("discord oauth config", () => {
+  it("reads the client secret and redirect", () => {
+    const c = config();
+    expect(c.discordClientSecret).toBe("test-discord-client-secret");
+    expect(c.discordOauthRedirectUri).toBe("https://bot.test/api/oauth/discord");
+  });
+
+  it("requires DISCORD_CLIENT_SECRET", () => {
+    vi.stubEnv("DISCORD_CLIENT_SECRET", undefined);
+    expect(thrownText(() => config())).toBe("Config error: DISCORD_CLIENT_SECRET is missing");
+  });
+
+  it("rejects a non-https DISCORD_OAUTH_REDIRECT_URI", () => {
+    vi.stubEnv("DISCORD_OAUTH_REDIRECT_URI", "http://bot.test/api/oauth/discord");
+    expect(thrownText(() => config())).toBe(
+      "Config error: DISCORD_OAUTH_REDIRECT_URI must be a valid https URL",
+    );
+  });
+});
+
 describe("relay config", () => {
   it("reads the relay secret and staff alert channel", () => {
     const c = config();

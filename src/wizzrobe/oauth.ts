@@ -5,7 +5,7 @@ import { UserInputError, WizzrobeError } from "../errors.js";
 import { seal } from "../store/crypto.js";
 import { keys } from "../store/keys.js";
 import { kv } from "../store/kv.js";
-import { saveLink } from "./identity.js";
+import { getLinkOwner, saveLink } from "./identity.js";
 import { callTool } from "./mcp.js";
 
 const STATE_TTL_SEC = 600;
@@ -37,7 +37,14 @@ const WhoamiSchema = z.object({
 const StateRecordSchema = z.object({
   verifier: z.string().min(1),
   discordUserId: z.string().min(1),
+  discordVerified: z.boolean(),
+  expiresAt: z.number(),
 });
+
+const DiscordTokenSchema = z.object({ access_token: z.string().min(1) });
+const DiscordUserSchema = z.object({ id: z.string().min(1) });
+
+const DISCORD_API = "https://discord.com/api/v10";
 
 export interface TokenGrant {
   accessToken: string;
@@ -155,28 +162,56 @@ export async function exchangeCode(
 }
 
 export async function startLink(discordUserId: string): Promise<{ url: string }> {
+  const { discordApplicationId, discordOauthRedirectUri } = configFor(
+    "discordApplicationId",
+    "discordOauthRedirectUri",
+  );
+  const { verifier } = pkcePair();
+  const state = base64url(randomBytes(16));
+  const record = {
+    verifier,
+    discordUserId,
+    discordVerified: false,
+    expiresAt: Date.now() + STATE_TTL_SEC * 1000,
+  };
+  await kv().set(keys.oauthState(state), record, STATE_TTL_SEC);
+  const url = new URL("https://discord.com/oauth2/authorize");
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", discordApplicationId);
+  url.searchParams.set("scope", "identify");
+  url.searchParams.set("redirect_uri", discordOauthRedirectUri);
+  url.searchParams.set("state", state);
+  url.searchParams.set("prompt", "none");
+  return { url: url.toString() };
+}
+
+// The Wizzrobe authorize URL for a stored state; the challenge is derived from the verifier.
+async function wizzrobeAuthorizeUrl(state: string, verifier: string): Promise<string> {
   const { wizzrobeOauthClientId, wizzrobeOauthRedirectUri, wizzrobeMcpUrl } = configFor(
     "wizzrobeOauthClientId",
     "wizzrobeOauthRedirectUri",
     "wizzrobeMcpUrl",
   );
   const meta = await discoverMetadata();
-  const { verifier, challenge } = pkcePair();
-  const state = base64url(randomBytes(16));
-  await kv().set(keys.oauthState(state), { verifier, discordUserId }, STATE_TTL_SEC);
   const url = new URL(meta.authorization_endpoint);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", wizzrobeOauthClientId);
   url.searchParams.set("redirect_uri", wizzrobeOauthRedirectUri);
   url.searchParams.set("scope", SCOPE);
   url.searchParams.set("state", state);
-  url.searchParams.set("code_challenge", challenge);
+  url.searchParams.set("code_challenge", base64url(createHash("sha256").update(verifier).digest()));
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("resource", wizzrobeMcpUrl);
-  return { url: url.toString() };
+  return url.toString();
 }
 
-const EXPIRED = "That link request expired. Run /link again.";
+const EXPIRED = "That link request expired. Ask me to link you again.";
+const WRONG_DISCORD =
+  "This link was made for a different Discord account. Ask me to link you from your own account.";
+const DISCORD_FIRST = "Finish the Discord step first. Ask me to link you again.";
+const DISCORD_FAILED = "Discord did not accept the sign-in. Ask me to link you again.";
+const OWNED_ELSEWHERE =
+  "That Wizzrobe account is already linked to another Discord account. Unlink it there first.";
 const NOT_IN_COMMUNITY =
   "Your Wizzrobe account isn't in this event's community yet. Join it on Wizzrobe, then run /link again.";
 
@@ -189,16 +224,71 @@ function stateKey(state: string): string {
   }
 }
 
+async function discordSend(url: string, init: RequestInit): Promise<unknown> {
+  let res: Response;
+  try {
+    res = await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+  } catch {
+    throw new UserInputError(DISCORD_FAILED);
+  }
+  if (!res.ok) throw new UserInputError(DISCORD_FAILED);
+  return res.json().catch(() => null);
+}
+
+// Proves the browser belongs to the Discord user the link was made for, then hands off to Wizzrobe.
+export async function verifyDiscord(code: string, state: string): Promise<{ redirectTo: string }> {
+  const { discordApplicationId, discordClientSecret, discordOauthRedirectUri } = configFor(
+    "discordApplicationId",
+    "discordClientSecret",
+    "discordOauthRedirectUri",
+  );
+  const key = stateKey(state);
+  const stored = StateRecordSchema.safeParse(await kv().get<unknown>(key));
+  if (!stored.success) throw new UserInputError(EXPIRED);
+  const record = stored.data;
+  const remainingSec = Math.ceil((record.expiresAt - Date.now()) / 1000);
+  if (remainingSec <= 0) throw new UserInputError(EXPIRED);
+
+  const token = DiscordTokenSchema.safeParse(
+    await discordSend(`${DISCORD_API}/oauth2/token`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: discordOauthRedirectUri,
+        client_id: discordApplicationId,
+        client_secret: discordClientSecret,
+      }).toString(),
+    }),
+  );
+  if (!token.success) throw new UserInputError(DISCORD_FAILED);
+  const me = DiscordUserSchema.safeParse(
+    await discordSend(`${DISCORD_API}/users/@me`, {
+      method: "GET",
+      headers: { authorization: `Bearer ${token.data.access_token}`, accept: "application/json" },
+    }),
+  );
+  if (!me.success) throw new UserInputError(DISCORD_FAILED);
+
+  if (me.data.id !== record.discordUserId) {
+    await kv().del(key);
+    throw new UserInputError(WRONG_DISCORD);
+  }
+  await kv().set(key, { ...record, discordVerified: true }, remainingSec);
+  return { redirectTo: await wizzrobeAuthorizeUrl(state, record.verifier) };
+}
+
 export async function finishLink(code: string, state: string): Promise<{ discordUserId: string }> {
   const { wizzrobeOauthRedirectUri, wizzrobeTenant } = configFor(
     "wizzrobeOauthRedirectUri",
     "wizzrobeTenant",
   );
   const key = stateKey(state);
-  const stored = StateRecordSchema.safeParse(await kv().get<unknown>(key));
+  // Atomic and single use: of two callbacks with one state, only one gets the record.
+  const stored = StateRecordSchema.safeParse(await kv().take<unknown>(key));
   if (!stored.success) throw new UserInputError(EXPIRED);
-  // Single use: gone before the exchange, so a replayed callback finds nothing.
-  await kv().del(key);
+  if (!stored.data.discordVerified) throw new UserInputError(DISCORD_FIRST);
   const { verifier, discordUserId } = stored.data;
 
   const grant = await exchangeCode(code, verifier, wizzrobeOauthRedirectUri);
@@ -210,6 +300,9 @@ export async function finishLink(code: string, state: string): Promise<{ discord
   if (!who.success) throw new WizzrobeError(502, "Wizzrobe sent an unreadable whoami response");
   const tenant = who.data.tenants.find((t) => t.slug === wizzrobeTenant);
   if (tenant === undefined) throw new UserInputError(NOT_IN_COMMUNITY);
+
+  const owner = await getLinkOwner(who.data.user_id);
+  if (owner !== null && owner !== discordUserId) throw new UserInputError(OWNED_ELSEWHERE);
 
   const now = Date.now();
   await saveLink(discordUserId, {
