@@ -68,6 +68,10 @@ tests/
 evals/
   questions.jsonl        fixed question set with expected route (+ expected facts later)
   run.ts                 runs router (and later responders) against them, prints a table
+relay/                   the Railway gateway relay (its own package; see "Relay")
+api/message.ts           POST: signed relay messages (HMAC)
+api/oauth/discord.ts     GET: Discord identity check during linking
+src/handlers/{ask,deliver,account,message}.ts, src/responders/direct.ts, src/ops/{alerts,rate}.ts
 .env.example             every env var name, empty values
 .gitignore               node_modules, .env*, .vercel, .idea, *.iml, .claude/worktrees
 vercel.json              maxDuration 300 for api/**/*.ts (the Hobby maximum; Pro allows 800)
@@ -239,10 +243,10 @@ export function userMessageFor(err: unknown): string;   // the one place errors 
 | Error | Reply |
 |---|---|
 | `UserInputError` | its own message |
-| `NotLinkedError` | its message if non-empty, else "Run /link first to connect your Wizzrobe account." |
+| `NotLinkedError` | its message if non-empty, else "Ask me to link your Wizzrobe account first (or use /link)." |
 | `BudgetExceededError` | "I've hit today's usage limit. Try again tomorrow." |
 | `WizzrobeError` 429 | "Wizzrobe is busy, try again in a minute." |
-| `WizzrobeError` 401 | "Your Wizzrobe link expired. Run /link to connect again." |
+| `WizzrobeError` 401 | "Your Wizzrobe link expired. Ask me to link you again (or use /link)." |
 | `WizzrobeError` 403 | "Your Wizzrobe account can't do that (`<detail>`)." |
 | `WizzrobeError` 404, detail contains "not enabled" | "That feature is not turned on for this event." |
 | `WizzrobeError` 404, otherwise | "Wizzrobe couldn't find that." |
@@ -395,7 +399,7 @@ export function recordSpend(model: string, usage: BetaUsage, now: Date): Promise
 // BetaMessageCreateParams; W0 aliases whatever the installed SDK names it).
 export type Purpose = keyof typeof MODELS;
 export interface AnthropicLike {
-  beta: { messages: { create(params: BetaMessageCreateParams & { betas?: string[] }): Promise<BetaMessage> } };
+  beta: { messages: { create(params: BetaMessageCreateParams & { betas?: string[] }, options?: { timeout?: number }): Promise<BetaMessage> } };
 }
 export function createMessage(purpose: Purpose, params: Omit<BetaMessageCreateParams, "model"> & { betas?: string[] }, ctx: { requestId: string; now: Date; deadline?: number }): Promise<BetaMessage>;
 // deadline (epoch ms, added in review): the call's request timeout is min(120 s, deadline - now); at or past it -> ModelOutputError("timeout")
@@ -616,7 +620,7 @@ export const block: {
 
 // discord.ts
 export class FakeDiscordApi implements DiscordApi {
-  readonly calls: { method: "editOriginal" | "followup" | "registerCommands"; token: string | null; body: unknown }[];
+  readonly calls: { method: "editOriginal" | "followup" | "registerCommands" | "postMessage"; token: string | null; body: unknown }[];
   failNext(err: Error): void;                        // the next call throws err
 }
 
@@ -709,3 +713,8 @@ export function recordSpend(model: string, usage: BetaUsage, now: Date, fallback
 - Signed interactions older than 300 s are rejected. Confirm presses honor the kill switch.
 - Bot-token Wizzrobe calls are capped at 100 a minute per token in mcp.ts (over -> WizzrobeError 429).
 - Relay DMs are forwarded only from members of a guild that owns an allowlisted channel.
+
+Helper exports beyond the contract, accepted at merge: oauth.ts `pkcePair`, `discoverMetadata`,
+`exchangeCode`; challonge.ts `parseBracketUrl`; tests/fakes/fetch.ts `requestUrl`. `renderError`
+accepts `ephemeral` for symmetry and ignores it (visibility is set at deferral). `RelayMessage.isDm`
+is validated but only the relay uses it.

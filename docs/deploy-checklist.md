@@ -15,6 +15,10 @@ only in Vercel or Railway env vars. Use a test server first; the live server com
 - In the Developer Portal, create an app named Wizzbrew.
 - Note the Application ID (`DISCORD_APPLICATION_ID`) and the Public Key (`DISCORD_PUBLIC_KEY`, 64
   hex characters). Reset the bot token once and copy it (`DISCORD_BOT_TOKEN`).
+- OAuth2 page: copy the Client Secret (`DISCORD_CLIENT_SECRET`) and add the redirect
+  `https://<vercel-domain>/api/oauth/discord` (`DISCORD_OAUTH_REDIRECT_URI`). Linking a
+  Wizzrobe account first proves the browser is the same Discord user, so a shared link can't
+  attach someone else's account.
 - Bot page: turn the **Message Content** privileged intent ON. The relay needs it.
 - Install scopes: `applications.commands bot`. Permissions: View Channel, Send Messages, Read
   Message History.
@@ -49,6 +53,8 @@ only in Vercel or Railway env vars. Use a test server first; the live server com
 | `ANTHROPIC_API_KEY` | Step 1 |
 | `ANTHROPIC_DAILY_BUDGET_USD` | `5` |
 | `DISCORD_APPLICATION_ID` | Step 2 |
+| `DISCORD_CLIENT_SECRET` | Step 2, OAuth2 page |
+| `DISCORD_OAUTH_REDIRECT_URI` | `https://<vercel-domain>/api/oauth/discord` |
 | `DISCORD_PUBLIC_KEY` | Step 2 |
 | `DISCORD_BOT_TOKEN` | Step 2 |
 | `DISCORD_DEV_GUILD_ID` | Step 2, test server id |
@@ -97,7 +103,10 @@ only in Vercel or Railway env vars. Use a test server first; the live server com
 - `/ask` with a schedule question answers.
 - An @mention in an allowed channel answers.
 - A reply to the bot's answer gets a follow-up answer.
-- "connect me to sgl" starts the link flow; finishing it makes `/me` work, privately.
+- "connect me to sgl" starts the link flow privately: Discord asks you to authorize Wizzbrew
+  (identify), then Wizzrobe asks you to log in; finishing it makes `/me` work, privately.
+- Hand the link to a second account and open it there: it must refuse ("made for a different
+  Discord account") and link nothing.
 - A follow-up question in a reply chain sees the earlier turns.
 - Verify with `vercel logs`: the route and the spend line appear for each request.
 
