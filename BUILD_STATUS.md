@@ -163,3 +163,4 @@ None open (F1 merged).
 - Chat event block reads the first array field of list_tournaments and list_stages results;
   confirm against the real `{"result": [...]}` shape in the e2e suite.
 - Lint: dispatch.ts handleModal `!a || a.kind !== "followup"` -> `a?.kind !== "followup"` (Biome warning).
+- tokens.ts lines 65 and 74 still throw "Run /link" wording; update with tokens.test.ts (R1 left them, outside its files).
