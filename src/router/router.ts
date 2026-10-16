@@ -29,13 +29,14 @@ const ROUTER_SCHEMA = {
     params: {
       type: "object",
       additionalProperties: false,
-      required: ["day", "tournament", "player", "stage", "matchId"],
+      required: ["day", "tournament", "player", "stage", "matchId", "accountAction"],
       properties: {
         day: nullableString,
         tournament: nullableString,
         player: nullableString,
         stage: nullableString,
         matchId: { type: ["integer", "null"] },
+        accountAction: { type: ["string", "null"], enum: ["link", "unlink", null] },
       },
     },
   },
@@ -51,6 +52,7 @@ const RouterOutput = z.object({
     player: z.string().nullish(),
     stage: z.string().nullish(),
     matchId: z.number().int().nullish(),
+    accountAction: z.enum(["link", "unlink"]).nullish(),
   }),
 });
 
@@ -144,6 +146,25 @@ export async function routeQuestion(ctx: AskContext): Promise<RoutingDecision> {
   if (stage !== undefined) params.stage = stage;
   if (out.params.matchId !== null && out.params.matchId !== undefined) {
     params.matchId = out.params.matchId;
+  }
+
+  if (out.params.accountAction) params.accountAction = out.params.accountAction;
+
+  if (confidence >= MIN_CONFIDENCE && out.route === "account" && !params.accountAction) {
+    const missing: RoutingDecision = {
+      route: "chat",
+      confidence,
+      params: {},
+      reason: "account action missing",
+    };
+    log("info", "router.decision", {
+      requestId: ctx.requestId,
+      route: missing.route,
+      confidence: missing.confidence,
+      params: missing.params,
+      reason: missing.reason,
+    });
+    return missing;
   }
 
   const decision: RoutingDecision =

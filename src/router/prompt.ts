@@ -26,12 +26,17 @@ help: how Wizzrobe, the event or this bot works, where to find a page, what a te
 
 staff: staff tooling and administrative requests for event runners.
 
+live: the plain what's-on-now view of every stage, what is playing and what follows. Questions about one match, a later time or a player stay in schedule, streams or players.
+
+account: connecting the asker's Wizzrobe account, or disconnecting it. Set params.accountAction to link or unlink. Viewing one's own data stays my_stuff.
+
 chat: greetings, thanks, banter, anything off topic and anything too unclear to place. Prefer a real route over chat only when the subject is plainly event related.
 
 Params, all taken from the asker's words:
 - tournament, player and stage: copy the name exactly as the asker wrote it. Never expand, correct, translate or complete a name. Use null when none was given.
 - day: the asker's own day words, whether a weekday name, today, tomorrow or a calendar date, copied as written. Never convert it to a date yourself. Use null when no day was given.
 - matchId: only a match number the asker wrote as digits. Otherwise null.
+- accountAction: link or unlink, only for the account route. Otherwise null.
 
 Confidence is a number from 0 to 1 for how sure you are of the route. Reason is one short plain line naming what decided the route.
 
