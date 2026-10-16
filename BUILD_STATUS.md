@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Waves 3b and 3c merged and green after R1 and F5 (669 tests, no warnings). Wave 4 dispatched: T22a, T23, T24 (T22b after T22a).
+Build complete on fakes. Waves 0 to 4, review (3 reviewers) and fixes R1 to R4c, F1 to F6 merged. Final gate: typecheck, lint, 761 tests (3 consecutive green runs), rules ok (131 files), relay 11 tests. Next: fast-forward main and tag v0.1.0 (with Vince), then the live phase in docs/deploy-checklist.md.
 
 ## Tasks
 
@@ -46,6 +46,8 @@ Waves 3 and 4: queued.
 | Wave 2 complete (after F2) | green: typecheck, lint, 484 tests, rules ok (97 files) |
 | Wave 3a (C2 to C5, F4) | green: 525 tests, rules ok |
 | Wave 3b (S1, T16 to T21, T29 to T31) | green: 654 tests, rules ok (114 files); 1 Biome warning (useOptionalChain, dispatch.ts) |
+| Wave 3c and wave 4 (T32, T28, T22a, T22b, T23, T24) | green: 698 tests |
+| Review fixes (R2a to R4c, F6) | green: 761 tests x3, rules ok, relay 11 tests |
 
 ## Open fix cards
 
@@ -167,3 +169,15 @@ None open (F1 merged).
 - e2e to reconcile: relay.test.ts scenario 7 (paused now posts a reply, R3c).
 - e2e to reconcile: slash.test.ts cases 3, 4, 5, 6 and Cancel, relay.test.ts case 5 (Confirm line now from describeAction, R4b).
 - e2e to reconcile: slash.test.ts #8 and relay.test.ts #3 (startLink now returns a Discord authorize URL, R2a).
+
+## Live phase (from docs/deploy-checklist.md, with Vince)
+
+1. Keys and apps: Anthropic workspace key, Discord app (Message Content intent, client secret,
+   both redirects), Wizzrobe OAuth client (both redirects) and bot login, Upstash, Vercel env.
+2. Preview deploy; Discord PING accepted; `npm run register` in the test guild.
+3. Railway relay with the shared RELAY_SECRET and the channel allowlist.
+4. Smoke tests (checklist step 9), including the link-hijack refusal.
+5. Settle open questions: Discord ids as strings on MCP (still numeric on 2026-10-15), REST with
+   OAuth tokens, Challonge key and whether v2.1 matches carry prerequisite ids.
+6. Re-record fixtures from real responses (add my_reschedule_requests, my_equipment_checkouts,
+   get_player_availability, get_stage) and re-run the suite; `npm run eval` (90% bar).
