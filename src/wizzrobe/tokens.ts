@@ -62,7 +62,7 @@ export async function userAccessToken(discordUserId: string): Promise<string> {
   if (cached && isFresh(cached)) return cached.accessToken;
 
   const rec = await getLink(discordUserId);
-  if (!rec) throw new NotLinkedError("Run /link first to connect your Wizzrobe account.");
+  if (!rec) throw new NotLinkedError("Ask me to link your Wizzrobe account first (or use /link).");
 
   const currentRefreshToken = await open(rec.sealedRefreshToken);
   let fresh: Awaited<ReturnType<typeof refresh>>;
@@ -71,7 +71,9 @@ export async function userAccessToken(discordUserId: string): Promise<string> {
   } catch (err) {
     if (err instanceof WizzrobeError && (err.status === 400 || err.status === 401)) {
       await deleteLink(discordUserId);
-      throw new NotLinkedError("Your Wizzrobe link expired. Run /link to connect again.");
+      throw new NotLinkedError(
+        "Your Wizzrobe link expired. Ask me to link you again (or use /link).",
+      );
     }
     throw err;
   }
