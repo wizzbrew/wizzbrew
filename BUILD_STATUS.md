@@ -4,7 +4,13 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Wave 2: T09 to T14 dispatched; T15, T26, T27 wait for the Wizzrobe MCP tool schemas.
+Wave 2: T09 to T14 merged and green. T15, T26, T27 wait for the Wizzrobe MCP tool schemas.
+
+Resume point: no workers running, no worktrees. Next: Vince authenticates the wizzrobe MCP
+(added at local scope; needs a session restart plus `/mcp` Authenticate). Then read the input
+schemas of the write tools, get_tournament, list_matches and get_match; check whether Wizzrobe
+mirrors Challonge pairings (tournament 2, "Challonge Integration Test"); write and dispatch T15,
+T26 (or drop it if Wizzrobe covers brackets) and T27.
 
 ## Tasks
 
@@ -23,7 +29,7 @@ Wave 2: T09 to T14 dispatched; T15, T26, T27 wait for the Wizzrobe MCP tool sche
 | F1 rule gate fix | sonnet | merged (about 25k; comments become a marker so a comment-only catch stays non-empty) | build/f1 | db01094 |
 | T09 anthropic client | sonnet | merged (about 35k; token-count log keys renamed to dodge log redaction) | build/t09 | 502ca29 |
 | T10 router | sonnet | merged (about 45k; prompt read in full) | build/t10 | cab24b9 |
-| T11 wizzrobe oauth | sonnet | dispatched (no report yet) | build/t11 | |
+| T11 wizzrobe oauth | sonnet | merged (about 50k) | build/t11 | cffb3e9 |
 | T12 tokens and identity | sonnet | merged (about 40k; tokens and identity import each other, function-level only) | build/t12 | ac43fc1 |
 | T13 mcp | sonnet | merged (about 45k; fetch wrapper captures Retry-After; real SDK path untested until live) | build/t13 | 688bee8 |
 | T14 rest gaps | haiku | merged (about 35k) | build/t14 | fd5d369 |
@@ -41,6 +47,7 @@ Waves 3 and 4: queued.
 | Wave 1 (`npm run check`) | typecheck, lint, 271 tests green; rules red (4 findings) -> F1 |
 | Wave 1 after F1 | green: typecheck, lint, 271 tests, rules ok (84 files), no dash characters |
 | Wave 2 partial (T09, T10, T12, T13, T14) | green: typecheck, lint, 378 tests, rules ok (91 files) |
+| Wave 2 partial plus T11 | green: typecheck, lint, 405 tests, rules ok (92 files) |
 
 ## Open fix cards
 
@@ -111,3 +118,10 @@ None open (F1 merged).
 - Wizzrobe MCP input schemas for write tools, get_tournament, list_matches and get_match are not
   in the docs (the MCP needs auth). T15, T26 and T27 wait for Vince to authenticate the
   Wizzrobe MCP in this project so the builder can read them.
+
+## For the deploy checklist (T24)
+
+- Register `http://127.0.0.1:8976/callback` on the Wizzrobe OAuth client (next to the Vercel
+  callback) before running `scripts/wizzrobe-login.ts`.
+- `finishLink` reads then deletes the OAuth state; two simultaneous callbacks could both pass.
+  Wizzrobe's one-time authorization code limits the damage. Revisit if Kv gains get-and-delete.
