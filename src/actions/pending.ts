@@ -1,33 +1,77 @@
-import { NotImplemented } from "../errors.js";
+import { keys } from "../store/keys.js";
+import { kv } from "../store/kv.js";
 import type { PendingAction, ProposedAction, ThreadRecord } from "../types.js";
 
+const TTL_SEC = 600;
+const TTL_MS = TTL_SEC * 1000;
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const ID_LENGTH = 12;
+
+// 12 characters from [A-Za-z0-9]. Bytes at or above 248 are skipped so the pick is unbiased.
+function newId(): string {
+  let out = "";
+  while (out.length < ID_LENGTH) {
+    const bytes = crypto.getRandomValues(new Uint8Array(ID_LENGTH * 2));
+    for (const b of bytes) {
+      if (b < 248 && out.length < ID_LENGTH) out += ALPHABET[b % ALPHABET.length];
+    }
+  }
+  return out;
+}
+
 export async function createPending(
-  _a: ProposedAction,
-  _discordUserId: string,
-  _now: Date,
+  a: ProposedAction,
+  discordUserId: string,
+  now: Date,
 ): Promise<PendingAction> {
-  throw new NotImplemented("pending.createPending");
+  const record: PendingAction = {
+    tool: a.tool,
+    args: a.args,
+    summary: a.summary,
+    id: newId(),
+    discordUserId,
+    createdAt: now.getTime(),
+    expiresAt: now.getTime() + TTL_MS,
+  };
+  await kv().set(keys.pending(record.id), record, TTL_SEC);
+  return record;
 }
 
 export async function takePending(
-  _id: string,
-  _discordUserId: string,
-  _now: Date,
+  id: string,
+  discordUserId: string,
+  now: Date,
 ): Promise<PendingAction | "expired" | "not_yours"> {
-  throw new NotImplemented("pending.takePending");
+  const record = await kv().get<PendingAction>(keys.pending(id));
+  if (record === null || record.expiresAt <= now.getTime()) return "expired";
+  if (record.discordUserId !== discordUserId) return "not_yours";
+  await kv().del(keys.pending(id));
+  return record;
 }
 
 export async function saveThread(
-  _t: Omit<ThreadRecord, "createdAt" | "expiresAt">,
-  _now: Date,
+  t: Omit<ThreadRecord, "createdAt" | "expiresAt">,
+  now: Date,
 ): Promise<ThreadRecord> {
-  throw new NotImplemented("pending.saveThread");
+  const record: ThreadRecord = {
+    ...t,
+    id: newId(),
+    createdAt: now.getTime(),
+    expiresAt: now.getTime() + TTL_MS,
+  };
+  await kv().set(keys.thread(record.id), record, TTL_SEC);
+  return record;
 }
 
 export async function loadThread(
-  _id: string,
-  _discordUserId: string,
-  _now: Date,
+  id: string,
+  discordUserId: string,
+  now: Date,
 ): Promise<ThreadRecord | "expired" | "not_yours"> {
-  throw new NotImplemented("pending.loadThread");
+  const record = await kv().get<ThreadRecord>(keys.thread(id));
+  if (record === null || record.expiresAt <= now.getTime()) return "expired";
+  if (record.discordUserId !== discordUserId) return "not_yours";
+  const slid: ThreadRecord = { ...record, expiresAt: now.getTime() + TTL_MS };
+  await kv().set(keys.thread(id), slid, TTL_SEC);
+  return slid;
 }
