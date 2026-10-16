@@ -2,9 +2,12 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { waitUntil } from "@vercel/functions";
 import { z } from "zod";
 import { config } from "../src/config.js";
+import { deliverError } from "../src/handlers/deliver.js";
 import { runMessagePipeline } from "../src/handlers/message.js";
 import { log } from "../src/log.js";
 import { isPaused } from "../src/ops/alerts.js";
+import { keys } from "../src/store/keys.js";
+import { kv } from "../src/store/kv.js";
 
 const MAX_SKEW_SEC = 300;
 
@@ -74,10 +77,30 @@ export async function POST(request: Request): Promise<Response> {
   if (!parsed.success) return new Response("bad request", { status: 400 });
   const m = parsed.data;
 
-  if (await isPaused()) return Response.json({ paused: true }, { status: 200 });
+  const first = await kv().setIfAbsent(keys.cache("msg", m.messageId), 1, 600);
+  if (!first) return Response.json({ duplicate: true }, { status: 200 });
+
+  if (await isPaused()) {
+    waitUntil(
+      deliverError(
+        { kind: "message", channelId: m.channelId, messageId: m.messageId },
+        "Wizzbrew is paused right now.",
+      ).catch((err: unknown) => {
+        log("error", "message.paused_reply_failed", {
+          error: err instanceof Error ? err.message : "unknown",
+        });
+      }),
+    );
+    return Response.json({ paused: true }, { status: 200 });
+  }
 
   const requestId = crypto.randomUUID();
-  log("info", "message.accepted", { requestId, messageId: m.messageId, content: m.content });
+  log("info", "message.accepted", {
+    requestId,
+    messageId: m.messageId,
+    channelId: m.channelId,
+    length: m.content.length,
+  });
   waitUntil(runMessagePipeline(m, requestId, new Date()));
   return new Response(null, { status: 202 });
 }
