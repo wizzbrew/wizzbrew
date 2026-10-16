@@ -33,6 +33,16 @@ function makeKv(): Kv {
     async set<T>(key: string, value: T): Promise<void> {
       store.set(key, String(value));
     },
+    async take<T>(key: string): Promise<T | null> {
+      const value = (store.get(key) ?? null) as T | null;
+      store.delete(key);
+      return value;
+    },
+    async setIfAbsent<T>(key: string, value: T): Promise<boolean> {
+      if (store.has(key)) return false;
+      store.set(key, String(value));
+      return true;
+    },
     async del(key: string): Promise<void> {
       store.delete(key);
     },
