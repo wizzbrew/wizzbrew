@@ -3,6 +3,7 @@ import { config } from "../config.js";
 import { log } from "../log.js";
 import { keys } from "../store/keys.js";
 import { kv } from "../store/kv.js";
+import { parseWizzrobeTime } from "../time/time.js";
 import { callTool } from "../wizzrobe/mcp.js";
 import { botAccessToken } from "../wizzrobe/tokens.js";
 
@@ -269,6 +270,17 @@ async function readSnapshot(key: string): Promise<Snapshot | null> {
   return parsed.success ? parsed.data : null;
 }
 
+// A missing or unreadable fetchedAt counts as stale, so the snapshot is refreshed.
+function snapshotTime(iso: string | null): number | null {
+  if (!iso) return null;
+  try {
+    return parseWizzrobeTime(iso).getTime();
+  } catch (err) {
+    log("warn", "challonge.bad_fetched_at", { error: String(err) });
+    return null;
+  }
+}
+
 export async function bracketFor(tournamentId: number): Promise<BracketSummary> {
   const bot = await botAccessToken();
   const t = tournamentSchema.parse(
@@ -289,10 +301,8 @@ export async function bracketFor(tournamentId: number): Promise<BracketSummary> 
 
   if (snapshot) {
     const seen = new Set(snapshot.completedIds);
-    const fetchedAt = snapshot.summary.fetchedAt
-      ? Date.parse(snapshot.summary.fetchedAt)
-      : Number.NaN;
-    const fresh = Number.isFinite(fetchedAt) && Date.now() - fetchedAt < MAX_AGE_MS;
+    const fetchedAt = snapshotTime(snapshot.summary.fetchedAt);
+    const fresh = fetchedAt !== null && Date.now() - fetchedAt < MAX_AGE_MS;
     if (fresh && completed.every((id) => seen.has(id))) return snapshot.summary;
   }
 

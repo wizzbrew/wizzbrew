@@ -202,6 +202,18 @@ describe("bracketFor", () => {
     expect(calls).toHaveLength(2);
   });
 
+  it("refreshes a snapshot whose fetchedAt is unreadable", async () => {
+    await bracketFor(42);
+    const snap = await kvStore.get<{ summary: { fetchedAt: string | null } }>(SNAP_KEY);
+    if (!snap) throw new Error("snapshot missing");
+    snap.summary.fetchedAt = "not a time";
+    await kvStore.set(SNAP_KEY, snap);
+    calls.length = 0;
+    const s = await bracketFor(42);
+    expect(calls).toHaveLength(2);
+    expect(s.fetchedAt).toBe(NOW.toISOString());
+  });
+
   it("without an API key serves link_only, or the snapshot if there is one", async () => {
     vi.stubEnv("CHALLONGE_API_KEY", "");
     resetConfigForTests();
