@@ -221,7 +221,20 @@ describe("userAccessToken", () => {
     });
 
     const both = Promise.all([userAccessToken(USER), userAccessToken(USER)]);
-    await vi.advanceTimersByTimeAsync(1_000);
+    // The waiter schedules its poll only after async store calls, so advance one poll at a time
+    // until both calls are done instead of trusting a single jump.
+    let finished = false;
+    void both.then(
+      () => {
+        finished = true;
+      },
+      () => {
+        finished = true;
+      },
+    );
+    for (let i = 0; i < 20 && !finished; i++) {
+      await vi.advanceTimersByTimeAsync(300);
+    }
 
     await expect(both).resolves.toEqual(["user-a1", "user-a1"]);
     expect(refreshMock).toHaveBeenCalledTimes(1);

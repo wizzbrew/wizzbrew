@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { GET as wizzrobeCallback } from "../../api/oauth/callback.js";
+import { GET as discordCallback } from "../../api/oauth/discord.js";
 import { resetConfigForTests } from "../../src/config.js";
 import { MODELS } from "../../src/llm/models.js";
 import { keys } from "../../src/store/keys.js";
@@ -72,7 +74,9 @@ async function proposeSignup(token = "tok-ask"): Promise<{ confirm: string; canc
   expect(followups).toHaveLength(1);
   const card = followups[0] as Payload;
   expect(card.flags).toBe(64);
-  expect(card.content).toBe("Sign up as commentator for match 1");
+  expect(card.content).toBe(
+    "Sign you up as commentator for match 1.\nNote: Sign up as commentator for match 1",
+  );
   expect(buttons(card).map((b) => b.label)).toEqual(["Confirm", "Cancel", "Change something"]);
   return { confirm: buttonId(card, "Confirm"), cancel: buttonId(card, "Cancel") };
 }
@@ -205,7 +209,8 @@ describe("slash commands end to end", () => {
   });
 
   it("8. /link and a natural-language link both hand out the authorize link privately", async () => {
-    const linkRe = /\[Link Wizzrobe\]\(<https:\/\/wizzrobe\.test\/oauth\/authorize\?[^>]+>\)/;
+    const linkRe =
+      /\[Link Wizzrobe\]\(<https:\/\/discord\.com\/oauth2\/authorize\?[^>]*scope=identify[^>]*state=[A-Za-z0-9_-]+[^>]*>\)/;
 
     const slashed = await post(slash(USER_B, "tok8a", "link"));
     expect(slashed.body).toEqual({ type: 5, data: { flags: 64 } });
@@ -228,6 +233,65 @@ describe("slash commands end to end", () => {
     expect(followups[0]?.flags).toBe(64);
     expect(followups[0]?.content).toMatch(linkRe);
     expect(world.anthropic.requests).toHaveLength(1); // the router only
+  });
+
+  it("8b. the link hijack is refused, then the honest flow links the right account", async () => {
+    const started = await post(slash(USER_A, "tok8h", "link"));
+    await started.done;
+    const text = sent(world, "editOriginal", "tok8h")[0]?.content ?? "";
+    const authorize = /<(https:\/\/discord\.com\/oauth2\/authorize\?[^>]+)>/.exec(text)?.[1];
+    expect(authorize).toBeDefined();
+    const state = new URL(authorize as string).searchParams.get("state") as string;
+    expect(state.length).toBeGreaterThan(0);
+    const stateKey = keys.oauthState(state);
+    expect(await world.kv.get(stateKey)).not.toBeNull();
+
+    // The attacker's browser finishes Discord as user B, using the link made for A.
+    world.oauth.discordUserId = USER_B;
+    const hijack = await discordCallback(
+      new Request(`https://bot.test/api/oauth/discord?code=attacker-code&state=${state}`),
+    );
+    expect(hijack.status).toBe(400);
+    expect(hijack.headers.get("location")).toBeNull();
+    expect(await hijack.text()).toContain("different Discord account");
+    expect(await world.kv.get(keys.link(USER_A))).toBeNull();
+    expect(await world.kv.get(keys.link(USER_B))).toBeNull();
+    expect(await world.kv.get(stateKey)).toBeNull();
+    expect(world.oauth.wizzrobeTokenCalls).toBe(0);
+
+    // The refused state cannot be replayed, even by the honest user.
+    world.oauth.discordUserId = USER_A;
+    const replay = await discordCallback(
+      new Request(`https://bot.test/api/oauth/discord?code=late-code&state=${state}`),
+    );
+    expect(replay.status).toBe(400);
+    expect(await world.kv.get(keys.link(USER_A))).toBeNull();
+
+    // The honest flow: a fresh link, Discord says A, Wizzrobe completes, the link is saved for A.
+    const again = await post(slash(USER_A, "tok8i", "link"));
+    await again.done;
+    const text2 = sent(world, "editOriginal", "tok8i")[0]?.content ?? "";
+    const authorize2 = /<(https:\/\/discord\.com\/oauth2\/authorize\?[^>]+)>/.exec(text2)?.[1];
+    const state2 = new URL(authorize2 as string).searchParams.get("state") as string;
+    expect(state2).not.toBe(state);
+
+    const verified = await discordCallback(
+      new Request(`https://bot.test/api/oauth/discord?code=honest-code&state=${state2}`),
+    );
+    expect(verified.status).toBe(302);
+    const next = new URL(verified.headers.get("location") as string);
+    expect(next.origin + next.pathname).toBe("https://wizzrobe.test/oauth/authorize");
+    expect(next.searchParams.get("state")).toBe(state2);
+    expect(await world.kv.get(keys.link(USER_A))).toBeNull();
+
+    const done = await wizzrobeCallback(
+      new Request(`https://bot.test/api/oauth/callback?code=wizz-code&state=${state2}`),
+    );
+    expect(done.status).toBe(200);
+    expect(world.oauth.wizzrobeTokenCalls).toBe(1);
+    expect(await world.kv.get(keys.link(USER_A))).toMatchObject({ wizzrobeUserId: 206 });
+    expect(await world.kv.get(keys.link(USER_B))).toBeNull();
+    expect(await world.kv.get(keys.oauthState(state2))).toBeNull();
   });
 
   it("9. a follow-up carries the earlier turns to the router and the responder", async () => {
