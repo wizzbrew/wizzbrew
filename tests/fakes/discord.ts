@@ -1,27 +1,40 @@
 import type { DiscordApi } from "../../src/discord/api.js";
-import { NotImplemented } from "../../src/errors.js";
+
+type Method = "editOriginal" | "followup" | "registerCommands";
 
 export class FakeDiscordApi implements DiscordApi {
   readonly calls: {
-    method: "editOriginal" | "followup" | "registerCommands";
+    method: Method;
     token: string | null;
     body: unknown;
   }[] = [];
 
+  private pendingFailure: Error | null = null;
+
   // the next call throws err
-  failNext(_err: Error): void {
-    throw new NotImplemented("FakeDiscordApi.failNext");
+  failNext(err: Error): void {
+    this.pendingFailure = err;
   }
 
-  async editOriginal(_token: string, _body: unknown): Promise<void> {
-    throw new NotImplemented("FakeDiscordApi.editOriginal");
+  // Records the call, then rejects once if failNext was armed.
+  private record(method: Method, token: string | null, body: unknown): void {
+    this.calls.push({ method, token, body });
+    const failure = this.pendingFailure;
+    if (failure) {
+      this.pendingFailure = null;
+      throw failure;
+    }
   }
 
-  async followup(_token: string, _body: unknown): Promise<void> {
-    throw new NotImplemented("FakeDiscordApi.followup");
+  async editOriginal(token: string, body: unknown): Promise<void> {
+    this.record("editOriginal", token, body);
   }
 
-  async registerCommands(_commands: unknown[], _guildId?: string): Promise<void> {
-    throw new NotImplemented("FakeDiscordApi.registerCommands");
+  async followup(token: string, body: unknown): Promise<void> {
+    this.record("followup", token, body);
+  }
+
+  async registerCommands(commands: unknown[], _guildId?: string): Promise<void> {
+    this.record("registerCommands", null, commands);
   }
 }
