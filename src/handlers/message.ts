@@ -11,16 +11,14 @@ const TURN_MAX_CHARS = 600;
 const EMPTY_MENTION = "(the asker mentioned you without saying anything else)";
 
 function historyFrom(m: RelayMessage): ConversationTurn[] {
-  return m.chain
-    .slice(-HISTORY_MAX)
-    .map((c) =>
-      c.isBot
-        ? { role: "assistant", text: sanitizeForPrompt(c.content, TURN_MAX_CHARS) }
-        : {
-            role: "user",
-            text: sanitizeForPrompt(`${c.authorName}: ${c.content}`, TURN_MAX_CHARS),
-          },
-    );
+  return m.chain.slice(-HISTORY_MAX).map((c) =>
+    c.isBot
+      ? { role: "assistant", text: sanitizeForPrompt(c.content, TURN_MAX_CHARS) }
+      : {
+          role: "user",
+          text: sanitizeForPrompt(`${c.authorName}: ${c.content}`, TURN_MAX_CHARS),
+        },
+  );
 }
 
 export async function runMessagePipeline(

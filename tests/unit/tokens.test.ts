@@ -188,7 +188,9 @@ describe("userAccessToken", () => {
   it("throws NotLinkedError when there is no link", async () => {
     const err = await userAccessToken(USER).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(NotLinkedError);
-    expect((err as Error).message).toBe("Run /link first to connect your Wizzrobe account.");
+    expect((err as Error).message).toBe(
+      "Ask me to link your Wizzrobe account first (or use /link).",
+    );
     expect(refreshMock).not.toHaveBeenCalled();
   });
 
@@ -203,7 +205,7 @@ describe("userAccessToken", () => {
 
       expect(err).toBeInstanceOf(NotLinkedError);
       expect((err as Error).message).toBe(
-        "Your Wizzrobe link expired. Run /link to connect again.",
+        "Your Wizzrobe link expired. Ask me to link you again (or use /link).",
       );
       expect(await getLink(USER)).toBeNull();
       expect(fakeKv.has(keys.userToken(USER))).toBe(false);
