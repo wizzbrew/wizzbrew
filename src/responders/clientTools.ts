@@ -2,6 +2,7 @@ import type { BetaTool } from "@anthropic-ai/sdk/resources/beta/messages/message
 import { z } from "zod";
 import { bracketFor } from "../challonge/challonge.js";
 import type { ClientTool } from "../router/routes.js";
+import { parseWizzrobeTime } from "../time/time.js";
 import type { AskContext } from "../types.js";
 import { matchesForAsker } from "../wizzrobe/mine.js";
 
@@ -40,6 +41,10 @@ export function clientToolDefs(names: ClientTool[]): BetaTool[] {
   return names.map((n) => DEFS[n]);
 }
 
+function epochOf(iso: string): number {
+  return Math.floor(parseWizzrobeTime(iso).getTime() / 1000);
+}
+
 const INVALID = JSON.stringify({ error: "invalid input" });
 
 export async function runClientTool(
@@ -59,6 +64,7 @@ export async function runClientTool(
         match_id: m.matchId,
         tournament: m.tournament,
         scheduled_at: m.scheduledAt.toISOString(),
+        scheduled_at_epoch: Math.floor(m.scheduledAt.getTime() / 1000),
         status: m.status,
         stage: m.stage,
         stream_url: m.streamUrl,
@@ -69,5 +75,9 @@ export async function runClientTool(
   }
   const parsed = bracketInput.safeParse(input);
   if (!parsed.success) return INVALID;
-  return JSON.stringify(await bracketFor(parsed.data.tournament_id));
+  const summary = await bracketFor(parsed.data.tournament_id);
+  return JSON.stringify({
+    ...summary,
+    ...(summary.fetchedAt === null ? {} : { fetchedAt_epoch: epochOf(summary.fetchedAt) }),
+  });
 }

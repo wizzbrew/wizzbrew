@@ -70,6 +70,7 @@ describe("runClientTool", () => {
       end: new Date("2026-10-17T12:00:00Z"),
     });
     expect(out.matches[0].scheduled_at).toBe("2026-10-16T17:00:00.000Z");
+    expect(out.matches[0].scheduled_at_epoch).toBe(Date.parse("2026-10-16T17:00:00Z") / 1000);
     expect(out.partial).toBe(false);
   });
 
@@ -81,13 +82,24 @@ describe("runClientTool", () => {
   });
 
   it("challonge_bracket validates and delegates", async () => {
-    bracketMock.mockResolvedValue({ tournament: "T" } as never);
+    bracketMock.mockResolvedValue({ tournament: "T", fetchedAt: null } as never);
     expect(await runClientTool("challonge_bracket", { tournament_id: "x" }, ctx)).toBe(
       '{"error":"invalid input"}',
     );
     expect(await runClientTool("challonge_bracket", { tournament_id: 9 }, ctx)).toBe(
-      '{"tournament":"T"}',
+      '{"tournament":"T","fetchedAt":null}',
     );
     expect(bracketMock).toHaveBeenCalledWith(9);
+  });
+
+  it("adds an epoch sibling to the bracket snapshot time", async () => {
+    bracketMock.mockResolvedValue({
+      tournament: "T",
+      fetchedAt: "2026-10-15T12:00:00.000Z",
+      degraded: true,
+    } as never);
+    const out = JSON.parse(await runClientTool("challonge_bracket", { tournament_id: 9 }, ctx));
+    expect(out.fetchedAt_epoch).toBe(Date.parse("2026-10-15T12:00:00Z") / 1000);
+    expect(out.degraded).toBe(true);
   });
 });

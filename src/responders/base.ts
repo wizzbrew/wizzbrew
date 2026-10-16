@@ -5,7 +5,7 @@ import type {
   BetaToolResultBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { z } from "zod";
-import { WRITE_ARGS } from "../actions/execute.js";
+import { describeAction, WRITE_ARGS } from "../actions/execute.js";
 import { config } from "../config.js";
 import { sanitizeForPrompt } from "../discord/markup.js";
 import { ModelOutputError } from "../errors.js";
@@ -66,7 +66,10 @@ function namesOf(result: unknown): string[] {
     const rec = (e ?? {}) as { name?: unknown; stream_url?: unknown; streamUrl?: unknown };
     if (typeof rec.name !== "string") return [];
     const url = rec.stream_url ?? rec.streamUrl;
-    return [typeof url === "string" && url !== "" ? `${rec.name} (${url})` : rec.name];
+    const oneLine = (t: string, max: number): string =>
+      sanitizeForPrompt(t, max).replace(/\s+/g, " ");
+    const name = oneLine(rec.name, 100);
+    return [typeof url === "string" && url !== "" ? `${name} (${oneLine(url, 200)})` : name];
   });
 }
 
@@ -100,6 +103,7 @@ async function eventBlock(): Promise<string[]> {
   } catch {
     log("warn", "responder.event_block", { part: "token" });
   }
+  if (out.length < 2) out.push("Event list unavailable right now.");
   return out;
 }
 
@@ -305,13 +309,12 @@ export async function runResponder(
             results.push(toolError(u.id, `invalid input: ${issuePaths(args.error)}`));
             continue;
           }
-          const proposedAction: ProposedAction = {
-            tool,
-            args: args.data as Record<string, unknown>,
-            summary: p.data.summary,
-          };
+          const argsOut = args.data as Record<string, unknown>;
+          const modelNote = sanitizeForPrompt(p.data.summary, 200);
+          const summary = `${describeAction(tool, argsOut)}\nNote: ${modelNote}`;
+          const proposedAction: ProposedAction = { tool, args: argsOut, summary };
           done(calls);
-          return { text: p.data.summary, proposedAction, ephemeral };
+          return { text: summary, proposedAction, ephemeral };
         } else {
           results.push(toolError(u.id, "unknown tool"));
         }
