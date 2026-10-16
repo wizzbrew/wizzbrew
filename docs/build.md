@@ -290,7 +290,15 @@ Habits:
 
 ## Kickoff
 
-Before starting: set an extra-usage cap with `/usage-credits`. Then open a new Claude Code session
+Before starting:
+
+1. Set an extra-usage cap with `/usage-credits`.
+2. In `~/gitrepos/wizzbrew`, add the Wizzrobe MCP for this project and log in, so the builder can
+   check live shapes and run the live phase:
+   `claude mcp add --transport http --scope local wizzrobe https://wizzrobe.synack.live/mcp`,
+   then `/mcp`, then Authenticate. The community is `sgl26`.
+
+Then open a new Claude Code session
 in `~/gitrepos/wizzbrew`, on Opus, and paste:
 
 ```

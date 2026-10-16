@@ -64,10 +64,15 @@ The system prompt is split into a stable part (cached) and a volatile part (the 
 Two identities:
 
 1. **The bot's own account.** A dedicated Wizzrobe user (for example `wizzbrew`), joined to the
-   SGL 2026 community, connected **read-only**. It answers everything marked *public* in
-   `docs/wizzrobe-surface.md`: schedule, matches, stages, tournaments, brackets, standings,
-   entrants, qualifier leaderboards once public, race rooms and randomizers. Its refresh token is
-   an env var; the access token is refreshed and cached in Redis.
+   SGL 2026 community (tenant `sgl26`), connected **read-only**. It answers everything marked
+   *public* in `docs/wizzrobe-surface.md`: schedule, matches, stages with their stream links,
+   tournaments (format, rules, Challonge bracket link, signup deadline) and randomizers. Its
+   refresh token is an env var; the access token is refreshed and cached in Redis.
+
+   It can also answer "when is my next match" **without** a link: `get_match` lists each
+   player's Discord id. This depends on Synack's fix for the Discord-id precision bug (reported
+   2026-10-15, assumed fixed soon; see the surface doc). Until it lands, the code treats a
+   numeric `discord_id` as untrustworthy and asks the user to `/link`.
 2. **Each user's own account, once linked.** `/link` sends the user through Wizzrobe's OAuth:
    - the server supports dynamic client registration, authorization code with PKCE S256, and
      refresh tokens;
@@ -110,7 +115,7 @@ Slash commands, registered by `scripts/register-commands.ts`:
 | `/ask question:` | Anything. Goes through the router. The main entry point. |
 | `/schedule [day] [stage] [tournament]` | Direct shortcut to the schedule responder. |
 | `/live` | What's on each stage right now and next, with stream links. |
-| `/standings tournament:` | Bracket or qualifier standings. |
+| `/standings tournament:` | Standings from Challonge, with the bracket and rules links. |
 | `/player name:` | A player's tournaments, next match, bracket position. |
 | `/link`, `/unlink`, `/me` | Account linking; `/me` shows your matches, crew slots, shifts. |
 
@@ -131,20 +136,36 @@ runs on the bot's read-only account.
 
 | Route | Answers | Tools (allowlist) |
 |---|---|---|
-| `schedule` | "what's on Saturday", "when does X play", "what's on stage 2 next", match details | `get_schedule`, `list_matches`, `get_match`, `list_stages`, `get_stage`, `list_tournaments`, `get_race_room` |
+| `schedule` | "what's on Saturday", "when does X play", "what's on stage 2 next", match details, "when is my next match" (no link needed) | `get_schedule`, `list_matches`, `get_match`, `list_stages`, `get_stage`, `list_tournaments`, plus the client tool `matches_for_me` |
 | `streams` | "what's live", "where do I watch the ALTTPR final", stream links per stage | `list_stages`, `get_stage`, `get_schedule`, `list_matches`, `get_match` |
-| `standings` | brackets, standings, who's left, qualifier leaderboards | `list_tournaments`, `get_tournament`, `list_brackets`, `get_bracket`, `get_bracket_standings`, `list_bracket_matches`, `list_bracket_entrants`, `list_async_qualifiers`, `get_async_qualifier`, `get_async_qualifier_leaderboard` |
-| `players` | "who is X playing", "is X still in", X's next match | `list_bracket_entrants`, `list_bracket_matches`, `get_bracket_standings`, `list_matches`, `get_match`, `list_tournaments` |
+| `standings` | brackets, standings, who's left, results | `list_tournaments`, `get_tournament`, `list_matches`, `get_match`, plus the Challonge tool `challonge_bracket` (below) |
+| `players` | "who is X playing", "is X still in", X's next match | `list_matches`, `get_match`, `get_schedule`, `list_tournaments`, plus `challonge_bracket` |
 | `tournaments` | formats, randomizers, signup windows | `list_tournaments`, `get_tournament`, `list_randomizers`, **`list_tournament_signups`** |
 | `my_stuff` | my matches, crew slots, shifts, reschedule requests, gear | **`get_user`**, **`list_tournament_signups`**, **`my_volunteer_shifts`**, **`my_reschedule_requests`**, **`my_equipment_checkouts`**, **`get_player_availability`**, plus `list_matches` / `get_match` |
 | `crew` | "which matches need commentators", "sign me up to track match N" | `list_matches`, `get_match`, `get_schedule`, **`signup_as_crew`**, **`withdraw_crew_signup`** |
 | `player_actions` | acknowledge, offer for stream, watch, enter a tournament, book a match, suggest a time | **`acknowledge_match`**, **`offer_match_for_stream`**, **`withdraw_stream_offer`**, **`watch_match`**, **`unwatch_match`**, **`sign_up_for_tournament`**, **`withdraw_from_tournament`**, **`submit_match_request`**, **`suggest_match_time`**, plus REST reschedule and bracket-booking tools later |
-| `help` | how acknowledging, check-in, crew approval, race rooms and seeds work | no tools; a short summary of the in-app help, linking `onsite.speedgaming.org/help/<topic>` |
+| `help` | how acknowledging, check-in, crew approval, stations, seeds and reschedule requests work | no tools; a short summary of the in-app help, linking `onsite.speedgaming.org/help/<topic>` |
 | `staff` (later) | reports, coverage, live board, for linked staff only | the admin read tools, gated on the user's role from `whoami` / `get_user` |
 | `chat` | anything else, or low confidence | none; a short answer plus a nudge to `/ask` something specific |
 
 Permission gate, in code, after routing: linked routes without a link reply "run `/link` first".
 Staff routes check the user's roles.
+
+### Standings come from Challonge
+
+SGL 2026 runs its brackets on Challonge. Wizzrobe's own brackets, async qualifiers and race rooms
+are switched off for `sgl26`; those tools answer "This feature is not enabled for this
+community". Each tournament's `bracket_url` points at its Challonge bracket (for example
+`https://speedgaming.challonge.com/sgl26alttpr`).
+
+- **v1:** standings and "who's left" answers include the tournament's bracket link and rules
+  link, plus what Wizzrobe knows: finished and upcoming matches and who played in them.
+- **With a Challonge key:** one client tool, `challonge_bracket(tournament_id)`. It reads the
+  Wizzrobe tournament's `bracket_url`, fetches participants and matches from the Challonge API
+  (read-only, `CHALLONGE_API_KEY`), and returns a compact table: entrants, eliminated or alive,
+  each round's results. It is cached for 2 minutes. The builder checks the current Challonge API
+  docs before writing the card (subdomain tournaments are addressed as `<subdomain>-<url>`).
+  Without the key, the tool returns the link only and the answer says so.
 
 **Write tools never run inside the model's loop.** On write routes the responder gets one extra
 tool, `propose_action`. When the model calls it, the loop stops, and the bot stores the proposal
@@ -191,7 +212,7 @@ contracts. Every task is its own commit, merged and gated wave by wave.
 - `docs/build.md`: roles, model choice per task, branches and PRs, gates, fix loop, reviewers,
   and the kickoff prompt.
 - `docs/contracts.md`: repo layout, shared types, every module signature, the request flow.
-- `docs/tasks.md`: W0 (scaffold, one worker), waves 1-4 (25 tasks), review, live phase.
+- `docs/tasks.md`: W0 (scaffold, one worker), waves 1-4 (27 tasks), review, live phase.
 - `docs/lessons.md`: 24 rules from beer-league's shipped bugs, each with its test.
 
 Everything builds and tests against fakes. Only the live phase needs real keys and the Wizzrobe
@@ -202,18 +223,34 @@ Later, after v0.1:
 - a webhook receiver posting match changes to a channel (needs staff to configure),
 - the staff route.
 
-## Open questions to settle first
+## Open questions
 
-1. **The tenant list is empty.** On 2026-10-15 the MCP showed no communities for `homemadebeer`,
-   although the account is a member of SGL 2026 on onsite.speedgaming.org. Until that works, no
-   MCP tool can reach SGL data. Ask Synack, and get the SGL tenant slug.
-2. Does the MCP accept a `wizzrobe_pat_` token, and does REST accept an MCP OAuth token? This
-   decides whether the bot's own account can use a simple PAT.
+Settled on 2026-10-15, by testing the MCP as `homemadebeer` (a plain member):
+
+- **Tenant:** `sgl26` ("SpeedGaming Live 2026"). The empty tenant list was a server bug; Synack
+  fixed it the same day.
+- **Stages carry stream links:** Earth, Fire, Water and Air map to twitch.tv/SpeedGaming,
+  SpeedGaming2, SpeedGaming3 and SpeedGaming4. Each match also carries `restream_url`.
+- **A plain member sees** every tournament, the full schedule and match list, match detail with
+  approved crew, their own signup state per tournament, and randomizers. Staff tools answer
+  "forbidden: Staff access required".
+- **Features off for `sgl26`:** Wizzrobe brackets, async qualifiers, race rooms. Standings come
+  from Challonge (above).
+
+Still open:
+
+1. **Discord-id precision bug** (reported 2026-10-15, assumed fixed soon): `get_match` returns
+   `discord_id` as a JSON number, and 18-digit ids lose their last digits through a JavaScript
+   parser. When it's fixed it should arrive as a string. The bot only matches on a string id
+   (L19).
+2. Does the MCP accept a `wizzrobe_pat_` token, and does REST accept an MCP OAuth token? Synack
+   says the REST API is complete (token from Profile, "API tokens & AI clients"). This decides
+   whether the bot's own account can use a simple PAT.
 3. Is a dedicated bot account allowed? Ask SG staff before creating one and joining it to the
    community.
-4. Do stages carry their Twitch or stream URL? `get_stage` should say; the Watch page shows them.
-5. Can a non-staff member see matches on every stage and tournament, or only some?
-6. Which server, and which channels may the bot answer in? Default to a test channel first.
+4. Challonge: whose API key, and is read-only access to `speedgaming.challonge.com` tournaments
+   enough for the standings tool?
+5. Which server, and which channels may the bot answer in? Default to a test channel first.
 
 ## Deploying (later, together)
 

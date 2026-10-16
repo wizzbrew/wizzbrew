@@ -43,6 +43,9 @@ src/
   wizzrobe/mcp.ts        connector params for responders + direct tools/call client
   wizzrobe/rest.ts       typed REST calls for the MCP gaps
   wizzrobe/resolve.ts    name -> id matching that never guesses (L18)
+  wizzrobe/mine.ts       matchesForDiscordUser: a user's matches by Discord id, no link needed
+  challonge/challonge.ts read-only Challonge bracket summary for a Wizzrobe tournament
+  responders/clientTools.ts  client tools the responder loop can run in code (challonge_bracket, matches_for_me)
   personality/voice.ts   Wizzbrew's voice: voice(register), registers data | help | chat
   responders/base.ts     runResponder: one tool loop, shared by all routes
   responders/specs.ts    per-route prompt + allowlist + output rules
@@ -251,7 +254,14 @@ export function createMessage(purpose: Purpose, params: Omit<BetaMessageCreatePa
 export function textOf(msg: BetaMessage): string;              // L9
 
 // router/routes.ts
-export interface RouteSpec { route: Route; auth: AuthLevel; readTools: string[]; writeTools: WriteTool[]; description: string }
+export type ClientTool = "challonge_bracket" | "matches_for_me";
+export interface RouteSpec {
+  route: Route; auth: AuthLevel;
+  readTools: string[];          // MCP read tools on the connector (allowlist)
+  clientTools: ClientTool[];    // tools the loop runs in code (responders/clientTools.ts)
+  writeTools: WriteTool[];      // what propose_action may name; never on the connector
+  description: string; ephemeral: boolean;
+}
 export const ROUTES: Record<Route, RouteSpec>;
 
 // router/router.ts
@@ -274,7 +284,10 @@ export function deleteLink(discordUserId: string): Promise<void>;
 
 // wizzrobe/mcp.ts
 export function connectorParams(token: string, readTools: string[]): { mcp_servers: unknown[]; tools: unknown[]; betas: string[] };
-export function callTool(token: string, name: string, args: Record<string, unknown>): Promise<unknown>;   // direct MCP tools/call, used for confirmed writes
+export function callTool(token: string, name: string, args: Record<string, unknown>): Promise<unknown>;   // direct MCP tools/call, used for confirmed writes and code-side reads
+// Tool errors arrive as text "<code>: <message>". Map: not_found 404, forbidden 403,
+// unauthorized 401, invalid_request 400, rate limit 429, anything else 500 (keep the message as
+// detail). List tools return {"result": [...]}; callTool returns the parsed JSON as-is.
 
 // wizzrobe/rest.ts
 export function createRescheduleRequest(token: string, matchId: number, body: { reason: string; preferredTime?: string }): Promise<unknown>;
@@ -283,6 +296,29 @@ export function myOpenBracketMatches(token: string): Promise<unknown[]>;
 
 // wizzrobe/resolve.ts
 export function resolveByName<T>(input: string, items: T[], nameOf: (t: T) => string): ResolveResult<T>;   // L18
+
+// wizzrobe/mine.ts
+export interface MyMatch { matchId: number; tournament: string; scheduledAt: Date; status: string; stage: string | null; streamUrl: string | null; opponents: string[] }
+export function matchesForDiscordUser(discordUserId: string, window: { start: Date; end: Date }): Promise<MyMatch[] | "id_unreliable">;
+// Bot token. list_matches over the window, get_match per match (cached), keep matches where a
+// player's user.discord_id is a STRING equal to discordUserId. A numeric discord_id anywhere in
+// the batch -> "id_unreliable" (the precision bug, L19); the answer then asks the user to /link.
+
+// challonge/challonge.ts
+export interface BracketSummary {
+  tournament: string; bracketUrl: string; rulesUrl: string | null;
+  state: string | null;                                   // Challonge tournament state
+  alive: string[]; eliminated: string[];                  // participant display names
+  recent: { round: string; players: [string, string]; winner: string | null }[];
+  source: "challonge" | "link_only";                      // link_only when no key or the fetch failed
+}
+export function bracketFor(tournamentId: number): Promise<BracketSummary>;
+// get_tournament (bot token) -> bracket_url -> Challonge API (CHALLONGE_API_KEY, read-only),
+// cached 120 s. No key or a Challonge failure -> source "link_only", never an invented table.
+
+// responders/clientTools.ts
+export function clientToolDefs(names: ClientTool[]): BetaTool[];   // strict input schemas
+export function runClientTool(name: ClientTool, input: unknown, ctx: AskContext): Promise<string>;   // JSON string for tool_result
 
 // personality/voice.ts
 export type Register = "data" | "help" | "chat";
@@ -323,7 +359,8 @@ export function handleInteraction(i: APIInteraction, waitUntil: (p: Promise<unkn
    - `discordApi().editOriginal`
 
    Every error goes through `userMessageFor`.
-3. Responders run a tool loop with the MCP connector, scoped to `readTools`.
+3. Responders run a tool loop with the MCP connector, scoped to `readTools`, plus the route's
+   `clientTools`, which the loop executes in code through `runClientTool`.
    - Write routes also get one client tool, `propose_action`. When the model calls it, the loop
      ends with a `ProposedAction`. The write itself never runs inside the loop.
    - The handler stores it with `createPending` and renders Confirm/Cancel.
