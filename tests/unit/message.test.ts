@@ -38,6 +38,24 @@ beforeEach(() => {
 });
 
 describe("runMessagePipeline", () => {
+  it("normalizes timestamps in the content and the chain", async () => {
+    await runMessagePipeline(
+      msg({
+        content: "at <t:1792195200:f> ok",
+        chain: [
+          { authorId: "2", authorName: "Sam", isBot: false, content: "see <t:1792195200:f>" },
+        ],
+      }),
+      "req",
+      NOW,
+    );
+    const req = vi.mocked(runAskPipeline).mock.calls[0]?.[0];
+    expect(req?.question).not.toContain("<t:");
+    expect(req?.question).toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(req?.history[0]?.text).not.toContain("<t:");
+    expect(req?.history[0]?.text).toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+
   it("maps the chain to turns and replies under the message", async () => {
     await runMessagePipeline(
       msg({

@@ -1,4 +1,4 @@
-import { sanitizeForPrompt } from "../discord/markup.js";
+import { normalizeInput, sanitizeForPrompt } from "../discord/markup.js";
 import { userMessageFor } from "../errors.js";
 import { log } from "../log.js";
 import type { ConversationTurn, RelayMessage, ReplyTarget } from "../types.js";
@@ -11,14 +11,15 @@ const TURN_MAX_CHARS = 600;
 const EMPTY_MENTION = "(the asker mentioned you without saying anything else)";
 
 function historyFrom(m: RelayMessage): ConversationTurn[] {
-  return m.chain.slice(-HISTORY_MAX).map((c) =>
-    c.isBot
-      ? { role: "assistant", text: sanitizeForPrompt(c.content, TURN_MAX_CHARS) }
+  return m.chain.slice(-HISTORY_MAX).map((c) => {
+    const content = normalizeInput(c.content);
+    return c.isBot
+      ? { role: "assistant", text: sanitizeForPrompt(content, TURN_MAX_CHARS) }
       : {
           role: "user",
-          text: sanitizeForPrompt(`${c.authorName}: ${c.content}`, TURN_MAX_CHARS),
-        },
-  );
+          text: sanitizeForPrompt(`${c.authorName}: ${content}`, TURN_MAX_CHARS),
+        };
+  });
 }
 
 export async function runMessagePipeline(
@@ -29,7 +30,7 @@ export async function runMessagePipeline(
   const target: ReplyTarget = { kind: "message", channelId: m.channelId, messageId: m.messageId };
   try {
     const asker = await loadAskerFromMessage(m);
-    const question = sanitizeForPrompt(m.content, 500).trim() || EMPTY_MENTION;
+    const question = sanitizeForPrompt(normalizeInput(m.content), 500).trim() || EMPTY_MENTION;
     await runAskPipeline({
       requestId,
       asker,

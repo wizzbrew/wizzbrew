@@ -2,13 +2,18 @@ import { createHmac } from "node:crypto";
 import { waitUntil } from "@vercel/functions";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../../api/message.js";
+import { deliverError } from "../../src/handlers/deliver.js";
 import { runMessagePipeline } from "../../src/handlers/message.js";
+import { log } from "../../src/log.js";
 import { isPaused } from "../../src/ops/alerts.js";
+import { setKvForTests } from "../../src/store/kv.js";
 
 const SECRET = "s".repeat(40);
 
 vi.mock("@vercel/functions", () => ({ waitUntil: vi.fn() }));
 vi.mock("../../src/handlers/message.js", () => ({ runMessagePipeline: vi.fn() }));
+vi.mock("../../src/handlers/deliver.js", () => ({ deliverError: vi.fn() }));
+vi.mock("../../src/log.js", () => ({ log: vi.fn() }));
 vi.mock("../../src/ops/alerts.js", () => ({ isPaused: vi.fn() }));
 vi.mock("../../src/config.js", () => ({ config: () => ({ relaySecret: "s".repeat(40) }) }));
 
@@ -46,6 +51,16 @@ function signed(raw: string, over: { ts?: string; secret?: string } = {}): Reque
 }
 
 beforeEach(() => {
+  const seen = new Set<string>();
+  setKvForTests({
+    setIfAbsent: async (k: string) => {
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    },
+  } as never);
+  vi.mocked(deliverError).mockReset().mockResolvedValue(undefined);
+  vi.mocked(log).mockReset();
   vi.mocked(waitUntil).mockReset();
   vi.mocked(runMessagePipeline).mockReset().mockResolvedValue(undefined);
   vi.mocked(isPaused).mockReset().mockResolvedValue(false);
@@ -87,6 +102,31 @@ describe("POST /api/message", () => {
     const res = await POST(signed(body()));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ paused: true });
-    expect(waitUntil).not.toHaveBeenCalled();
+    expect(runMessagePipeline).not.toHaveBeenCalled();
+  });
+
+  it("posts the paused reply under the message", async () => {
+    vi.mocked(isPaused).mockResolvedValue(true);
+    await POST(signed(body()));
+    expect(deliverError).toHaveBeenCalledWith(
+      { kind: "message", channelId: "c", messageId: "m" },
+      "Wizzbrew is paused right now.",
+    );
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers a duplicate messageId once", async () => {
+    expect((await POST(signed(body()))).status).toBe(202);
+    const res = await POST(signed(body()));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ duplicate: true });
+    expect(runMessagePipeline).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs the length, never the content", async () => {
+    await POST(signed(body()));
+    const calls = JSON.stringify(vi.mocked(log).mock.calls);
+    expect(calls).toContain('"length":2');
+    expect(calls).not.toContain('"hi"');
   });
 });
