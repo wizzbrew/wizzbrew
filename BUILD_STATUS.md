@@ -28,6 +28,7 @@ Wave 2: T09 to T14 merged and green; T15, T26, T27 dispatched (schemas read live
 | T13 mcp | sonnet | merged (about 45k; fetch wrapper captures Retry-After; real SDK path untested until live) | build/t13 | 688bee8 |
 | T14 rest gaps | haiku | merged (about 35k) | build/t14 | fd5d369 |
 | T15 pending and execute | sonnet (moved from haiku after T04 overran) | merged (about 40k; saveThread mints its own id: T18 uses the returned id) | build/t15 | 836d79f |
+| T26 challonge snapshot | sonnet | merged (about 45k; rules gate caught Date.parse, fix F2 dispatched) | build/t26 | d9d5768 |
 | T27 my matches and client tools | sonnet | merged (about 40k; tool JSON uses snake_case keys) | build/t27 | e6b6d63 |
 
 Waves 3 and 4: queued.
