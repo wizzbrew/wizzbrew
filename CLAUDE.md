@@ -19,9 +19,25 @@ responder.
 
 ## Read first
 
-- `plan.md`: architecture, routes, phases, open questions, deploy steps. Status lives there.
+- `plan.md`: architecture, routes, open questions, deploy steps. Status lives there.
+- `docs/build.md`: how the build runs (builder plus parallel workers, gates, fix loop).
+- `docs/contracts.md`: layout, types and every module signature. Frozen after wave 0.
+- `docs/tasks.md`: the task DAG.
+- `docs/lessons.md`: the beer-league failure modes as rules with tests. Every change respects
+  them.
 - `docs/wizzrobe-surface.md`: every Wizzrobe tool, who may call it, and whether the bot uses it.
   Check it before adding a tool to a responder.
+
+## Building
+
+- The builder session does wave 0 itself, then dispatches each wave's task cards in parallel to
+  subagents. Each card uses the model named in `docs/tasks.md` and `isolation: "worktree"`. The
+  builder merges, gates, fixes through fresh fixer agents, reviews and ships. Details are in
+  `docs/build.md`.
+- A worker touches only the files its card owns. It never changes a contract, `package.json`,
+  `src/types.ts` or `src/errors.ts`, and it reports BLOCKED instead of improvising.
+- One commit per task: `type(area): what`, with the Co-Authored-By trailer.
+- Never weaken a test to make it pass.
 
 ## Public repo
 
@@ -59,7 +75,7 @@ responder.
   in the cached prefix kills the cache.
 - Example phrasings in a prompt anchor the model hard. Describe routes; don't list sample
   questions.
-- Run lint and tests before every commit.
+- `npm run check` (typecheck, Biome, vitest, `scripts/check-rules.ts`) passes before every merge.
 
 ## Branch workflow
 

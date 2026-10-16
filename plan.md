@@ -38,7 +38,8 @@ permissions, then a responder handles it. What differs here:
 - `@anthropic-ai/sdk`, `discord-interactions` (signature check), `@upstash/redis`, `zod`.
 - Upstash Redis from the Vercel Marketplace for linked accounts, cache, conversation state and
   the spend counter.
-- vitest and a lint/format tool.
+- `@modelcontextprotocol/sdk` to call Wizzrobe tools directly when a user confirms a write.
+- vitest, Biome, strict `tsc`.
 
 ### Models
 
@@ -145,26 +146,31 @@ runs on the bot's read-only account.
 Permission gate, in code, after routing: linked routes without a link reply "run `/link` first".
 Staff routes check the user's roles.
 
-## Build phases
+**Write tools never run inside the model's loop.** On write routes the responder gets one extra
+tool, `propose_action`. When the model calls it, the loop stops, and the bot stores the proposal
+and shows Confirm/Cancel. Only the Confirm press runs the write, deterministically, with that
+user's token and no model in the path. The write tools in the table (the `WriteTool`
+list in `docs/contracts.md`) are what `propose_action` may name. They are never enabled on the
+connector, which only carries each route's read tools.
 
-1. **Skeleton.**
-   - Interactions route with signature verify, PING, deferred reply and followup.
-   - Command registration script.
-   - A `/ask` that echoes.
-   - Deployed to Vercel and installed in a test server.
-2. **Read-only Q&A.**
-   - Bot Wizzrobe account and token refresh.
-   - Router plus `schedule`, `streams`, `standings`, `players`, `tournaments`, `help`, `chat`.
-   - Caching, spend cap, timezone formatting.
-3. **Linking and self-service.**
-   - `/link` OAuth with PKCE, encrypted token store, `/me`.
-   - `crew` and `player_actions` with confirm buttons.
-   - REST tools for reschedule requests and bracket booking.
-4. **Later.**
-   - Follow-up threads.
-   - Webhook receiver posting match changes to a channel (needs staff to configure).
-   - Staff route.
-   - Evals on a fixed question set.
+## Build
+
+The build runs as one Opus builder dispatching parallel Sonnet and Haiku workers against frozen
+contracts. Every task is its own commit, merged and gated wave by wave.
+
+- `docs/build.md`: roles, model choice per task, branches and PRs, gates, fix loop, reviewers,
+  and the kickoff prompt.
+- `docs/contracts.md`: repo layout, shared types, every module signature, the request flow.
+- `docs/tasks.md`: wave 0 (scaffold), waves 1-4 (24 tasks), review, live phase.
+- `docs/lessons.md`: 24 rules from beer-league's shipped bugs, each with its test.
+
+Everything builds and tests against fakes. Only the live phase needs real keys and the Wizzrobe
+tenant.
+
+Later, after v0.1:
+- follow-up threads,
+- a webhook receiver posting match changes to a channel (needs staff to configure),
+- the staff route.
 
 ## Open questions to settle first
 
