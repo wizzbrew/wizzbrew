@@ -1,3 +1,5 @@
+import { APIError } from "@anthropic-ai/sdk";
+
 export class NotImplemented extends Error {}
 
 export class WizzrobeError extends Error {
@@ -38,7 +40,9 @@ export class DiscordError extends Error {
 }
 
 // The one place errors become replies (L16, L17). No em dashes, no raw status codes.
-export function userMessageFor(err: unknown): string {
+// With opts.public the reply may land in a public channel, so no Wizzrobe or Discord detail.
+export function userMessageFor(err: unknown, opts?: { public?: boolean }): string {
+  const isPublic = opts?.public === true;
   if (err instanceof UserInputError) return err.message;
   if (err instanceof NotLinkedError) {
     return err.message !== ""
@@ -51,18 +55,33 @@ export function userMessageFor(err: unknown): string {
     if (err.status === 429) return "Wizzrobe is busy, try again in a minute.";
     if (err.status === 401)
       return "Your Wizzrobe link expired. Ask me to link you again (or use /link).";
-    if (err.status === 403) return `Your Wizzrobe account can't do that (${err.detail}).`;
+    if (err.status === 403) {
+      return isPublic
+        ? "Your Wizzrobe account can't do that."
+        : `Your Wizzrobe account can't do that (${err.detail}).`;
+    }
     if (err.status === 404) {
       return err.detail.includes("not enabled")
         ? "That feature is not turned on for this event."
         : "Wizzrobe couldn't find that.";
     }
-    if (err.status === 400) return `Wizzrobe turned that down: ${err.detail}`;
+    if (err.status === 400) {
+      return isPublic ? "Wizzrobe turned that down." : `Wizzrobe turned that down: ${err.detail}`;
+    }
     return "Wizzrobe is having trouble right now. Try again in a minute.";
   }
   if (err instanceof ModelOutputError) {
     return "I couldn't put an answer together for that. Try asking another way.";
   }
-  if (err instanceof DiscordError) return `I couldn't post that in Discord (${err.message}).`;
+  if (err instanceof DiscordError) {
+    return isPublic
+      ? "I couldn't post that in Discord."
+      : `I couldn't post that in Discord (${err.message}).`;
+  }
+  if (err instanceof APIError && typeof err.status === "number") {
+    if (err.status === 429 || err.status === 529 || err.status >= 500) {
+      return "The model is busy right now. Try again in a minute.";
+    }
+  }
   return "Something went wrong on my side. Try again in a minute.";
 }
