@@ -19,8 +19,9 @@ src/actions/pending.ts and their tests; exports of src/ops/rate.ts, src/actions/
 (saveThread), src/discord/markup.ts (finalizeText), src/ops/alerts.ts (isPaused).
 
 OWN: src/handlers/dispatch.ts, api/interactions.ts, src/handlers/component.ts,
-src/actions/pending.ts and tests/unit/dispatch.test.ts, api.test.ts, component.test.ts,
-pending.test.ts.
+src/actions/pending.ts, src/handlers/ask.ts (one line), src/handlers/message.ts (one line) and
+tests/unit/dispatch.test.ts, api.test.ts, component.test.ts, pending.test.ts, ask.test.ts,
+message.test.ts.
 
 CHANGES
 1. dispatch /schedule: `allowRequest` first (false -> the R3a rate message); when
@@ -38,6 +39,10 @@ CHANGES
    choose on a public thread runs the pipeline with a NEW reply target (an ephemeral followup)
    instead of editing the original; an expired thread replies privately (followup flags 64)
    instead of blanking the shared message.
+8. Public errors: any reply that others can see uses `userMessageFor(err, {public: true})`.
+   In ask.ts the condition becomes `reply.kind === "message" || !reply.ephemeral`; message.ts
+   (errors before the pipeline) always public; dispatch.ts uses public for non-ephemeral
+   deferrals; component.ts uses public when editing a public message.
 7. Tests for each.
 
 DONE WHEN: `npm run typecheck`, `npx vitest run tests/unit`, `npm run lint` and `npm run rules` pass (run `npx vitest run tests/e2e` too and list any e2e failures your intended change causes in DEVIATIONS; do not edit tests/e2e); perl dash check clean; one commit on build/r3b
