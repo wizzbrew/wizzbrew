@@ -166,7 +166,9 @@ describe("relay messages end to end", () => {
     await owner.done;
     const edits = sent(world, "editOriginal", "tok-owner");
     expect(edits).toHaveLength(1);
-    expect(edits[0]?.content).toMatch(/https:\/\/wizzrobe\.test\/oauth\/authorize\?/);
+    expect(edits[0]?.content).toMatch(
+      /https:\/\/discord\.com\/oauth2\/authorize\?[^ ]*scope=identify[^ ]*state=[A-Za-z0-9_-]+/,
+    );
   });
 
   it("4. a linked user's shifts come back as a stub, then privately on press", async () => {
@@ -210,7 +212,9 @@ describe("relay messages end to end", () => {
     );
     await shown.done;
     const card = sent(world, "editOriginal", "tok-show")[0] as Payload;
-    expect(card.content).toBe("Sign up as commentator for match 1");
+    expect(card.content).toBe(
+      "Sign you up as commentator for match 1.\nNote: Sign up as commentator for match 1",
+    );
     expect(buttons(card).map((b) => b.label)).toContain("Confirm");
 
     const confirmed = await post(press(USER_A, "tok-confirm", buttonId(card, "Confirm")));
@@ -243,7 +247,11 @@ describe("relay messages end to end", () => {
     const res = await relay(relayMessage(USER_B, "m7", "what's on today"));
     expect(res.status).toBe(200);
     await settle();
-    expect(world.discord.calls).toHaveLength(0);
+    const out = posted();
+    expect(out).toHaveLength(1);
+    expect(out[0]?.replyToMessageId).toBe("m7");
+    expect(out[0]?.body.content).toBe("Wizzbrew is paused right now.");
+    expect(world.discord.calls).toHaveLength(1);
     expect(world.anthropic.requests).toHaveLength(0);
   });
 

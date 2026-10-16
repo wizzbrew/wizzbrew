@@ -25,7 +25,7 @@ import { setRawToolCallForTests } from "../../src/wizzrobe/mcp.js";
 import { block, FakeAnthropic, fakeMessage } from "../fakes/anthropic.js";
 import { FakeChallonge } from "../fakes/challonge.js";
 import { FakeDiscordApi } from "../fakes/discord.js";
-import { combineFetch } from "../fakes/fetch.js";
+import { combineFetch, requestUrl } from "../fakes/fetch.js";
 import { FakeKv } from "../fakes/kv.js";
 import { FakeWizzrobe } from "../fakes/wizzrobe.js";
 
@@ -76,6 +76,14 @@ export interface World {
   discord: FakeDiscordApi;
   wizzrobe: FakeWizzrobe;
   challonge: FakeChallonge;
+  oauth: OauthStubs;
+}
+
+// What the stubbed Discord and Wizzrobe token endpoints answer during a link flow.
+export interface OauthStubs {
+  discordUserId: string; // the id Discord reports for whoever authorized
+  discordCalls: string[]; // urls hit on discord.com, in order
+  wizzrobeTokenCalls: number;
 }
 
 let signer: { privateKey: CryptoKey; publicKeyHex: string } | null = null;
@@ -119,9 +127,32 @@ export async function setupWorld(): Promise<World> {
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
+  const oauth: OauthStubs = { discordUserId: USER_A, discordCalls: [], wizzrobeTokenCalls: 0 };
+  const jsonResponse = (body: unknown): Response =>
+    new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  const discordOauth: typeof fetch = async (input) => {
+    const url = requestUrl(input);
+    oauth.discordCalls.push(url);
+    if (url.endsWith("/oauth2/token")) return jsonResponse({ access_token: "discord-access" });
+    if (url.endsWith("/users/@me")) return jsonResponse({ id: oauth.discordUserId });
+    throw new Error(`no fake for ${url}`);
+  };
+  const wizzrobeToken: typeof fetch = async () => {
+    oauth.wizzrobeTokenCalls += 1;
+    return jsonResponse({
+      access_token: "linked-access",
+      refresh_token: "linked-refresh",
+      expires_in: 3600,
+    });
+  };
   vi.stubGlobal(
     "fetch",
     combineFetch(
+      { prefix: "https://discord.com/api/v10/", fetch: discordOauth },
+      { prefix: `${WIZZROBE_ORIGIN}/oauth/token`, fetch: wizzrobeToken },
       { prefix: `${WIZZROBE_ORIGIN}/.well-known/`, fetch: metadata },
       { prefix: WIZZROBE_ORIGIN, fetch: wizzrobe.fetch },
       { prefix: "https://api.challonge.com", fetch: challonge.fetch },
@@ -130,7 +161,7 @@ export async function setupWorld(): Promise<World> {
 
   // No OAuth fetch ever happens: the bot token is already cached.
   await kv.set(keys.botToken(), { accessToken: "bot-token", expiresAt: FAR_FUTURE });
-  return { kv, anthropic, discord, wizzrobe, challonge };
+  return { kv, anthropic, discord, wizzrobe, challonge, oauth };
 }
 
 export function teardownWorld(): void {
