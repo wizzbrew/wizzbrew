@@ -3,7 +3,7 @@ import { config } from "../config.js";
 import { log } from "../log.js";
 import { keys } from "../store/keys.js";
 import { kv } from "../store/kv.js";
-import { parseWizzrobeTime } from "../time/time.js";
+import { communityDate, parseUserDateTime, parseWizzrobeTime } from "../time/time.js";
 import { callTool } from "../wizzrobe/mcp.js";
 import { botAccessToken } from "../wizzrobe/tokens.js";
 
@@ -22,13 +22,14 @@ export interface BracketSummary {
 
 interface Snapshot {
   summary: BracketSummary;
-  completedIds: number[];
+  etags?: { participants?: string; matches?: string };
 }
 
 const API = "https://api.challonge.com/v2.1";
 const PER_PAGE = 100;
 const MAX_PAGES = 5;
-const MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const MAX_AGE_MS = 60 * 60 * 1000;
+const QUIET_UNTIL = "08:00";
 const MONTHLY_LIMIT = 450;
 const COUNT_TTL_SEC = 3456000;
 const MAX_RECENT = 8;
@@ -43,10 +44,6 @@ const tournamentSchema = z.object({
   name: z.string(),
   bracket_url: z.string().nullable().optional(),
   rules_url: z.string().nullable().optional(),
-});
-
-const wizzrobeMatchesSchema = z.object({
-  result: z.array(z.object({ id: z.number(), status: z.string() })),
 });
 
 const snapshotSchema = z.object({
@@ -73,7 +70,9 @@ const snapshotSchema = z.object({
     source: z.enum(["challonge", "link_only"]),
     fetchedAt: z.string().nullable(),
   }),
-  completedIds: z.array(z.number()),
+  etags: z
+    .object({ participants: z.string().optional(), matches: z.string().optional() })
+    .optional(),
 });
 
 const participantsSchema = z.object({
@@ -152,27 +151,36 @@ function countKey(): string {
   return keys.cache("challonge", `count-${new Date().toISOString().slice(0, 7)}`);
 }
 
+interface PagesResult<T> {
+  items: T[] | null; // null: page 1 answered 304, nothing changed
+  etag: string | undefined;
+}
+
 async function fetchPages<T>(
   path: string,
   communityId: string | null,
   apiKey: string,
   schema: z.ZodType<{ data: T[] }>,
   counter: string,
-): Promise<T[]> {
+  etag: string | undefined,
+): Promise<PagesResult<T>> {
   const all: T[] = [];
+  let newEtag: string | undefined;
   for (let page = 1; page <= MAX_PAGES; page++) {
     const query = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE) });
     if (communityId !== null) query.set("community_id", communityId);
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "Content-Type": "application/vnd.api+json",
+      "Authorization-Type": "v1",
+      Authorization: apiKey,
+    };
+    if (page === 1 && etag) headers["If-None-Match"] = etag;
     await kv().incrByFloat(counter, 1, COUNT_TTL_SEC);
-    const response = await fetch(`${API}${path}?${query.toString()}`, {
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/vnd.api+json",
-        "Authorization-Type": "v1",
-        Authorization: apiKey,
-      },
-    });
+    const response = await fetch(`${API}${path}?${query.toString()}`, { headers });
+    if (page === 1 && response.status === 304) return { items: null, etag };
     if (!response.ok) throw new ChallongeFailure(response.status);
+    if (page === 1) newEtag = response.headers.get("ETag") ?? undefined;
     let items: T[];
     try {
       items = schema.parse(await response.json()).data;
@@ -182,7 +190,7 @@ async function fetchPages<T>(
     all.push(...items);
     if (items.length < PER_PAGE) break;
   }
-  return all;
+  return { items: all, etag: newEtag };
 }
 
 function roundLabel(round: number): string {
@@ -281,6 +289,10 @@ function snapshotTime(iso: string | null): number | null {
   }
 }
 
+function quietEnd(now: Date): Date {
+  return parseUserDateTime(`${communityDate(now)} ${QUIET_UNTIL}`, now).instant;
+}
+
 export async function bracketFor(tournamentId: number): Promise<BracketSummary> {
   const bot = await botAccessToken();
   const t = tournamentSchema.parse(
@@ -294,17 +306,14 @@ export async function bracketFor(tournamentId: number): Promise<BracketSummary> 
   const snapshot = await readSnapshot(snapKey);
   const fallback = (): BracketSummary => snapshot?.summary ?? linkOnly(t, bracketUrl);
 
-  const listed = wizzrobeMatchesSchema.parse(
-    await callTool(bot, "list_matches", { tournament_id: [tournamentId], limit: 500 }),
-  );
-  const completed = listed.result.filter((m) => m.status === "complete").map((m) => m.id);
-
   if (snapshot) {
-    const seen = new Set(snapshot.completedIds);
     const fetchedAt = snapshotTime(snapshot.summary.fetchedAt);
-    const fresh = fetchedAt !== null && Date.now() - fetchedAt < MAX_AGE_MS;
-    if (fresh && completed.every((id) => seen.has(id))) return snapshot.summary;
+    const now = Date.now();
+    const fresh = fetchedAt !== null && now - fetchedAt < MAX_AGE_MS;
+    if (fresh) return snapshot.summary;
   }
+  // Quiet hours: before 08:00 community time, serve what we have. With no snapshot, fetch once.
+  if (snapshot && Date.now() < quietEnd(new Date()).getTime()) return snapshot.summary;
 
   const apiKey = config().challongeApiKey;
   if (!apiKey) return fallback();
@@ -318,22 +327,29 @@ export async function bracketFor(tournamentId: number): Promise<BracketSummary> 
 
   try {
     const base = `/tournaments/${encodeURIComponent(target.url)}`;
-    const participants = await fetchPages(
-      `${base}/participants.json`,
-      target.communityId,
-      apiKey,
-      participantsSchema,
-      counter,
-    );
-    const matches = await fetchPages(
-      `${base}/matches.json`,
-      target.communityId,
-      apiKey,
-      matchesSchema,
-      counter,
-    );
-    const summary = build(t, bracketUrl, participants, matches);
-    await kv().set<Snapshot>(snapKey, { summary, completedIds: completed });
+    const get = <T>(
+      name: string,
+      schema: z.ZodType<{ data: T[] }>,
+      etag: string | undefined,
+    ): Promise<PagesResult<T>> =>
+      fetchPages(`${base}/${name}.json`, target.communityId, apiKey, schema, counter, etag);
+    const oldTags = snapshot?.etags;
+    let p = await get("participants", participantsSchema, oldTags?.participants);
+    let m = await get("matches", matchesSchema, oldTags?.matches);
+    if (p.items === null && m.items === null && snapshot) {
+      const summary = { ...snapshot.summary, fetchedAt: new Date().toISOString() };
+      await kv().set<Snapshot>(snapKey, { summary, etags: snapshot.etags });
+      return summary;
+    }
+    // One list changed and the other did not: the unchanged data is not stored, so refetch it.
+    if (p.items === null) p = await get("participants", participantsSchema, undefined);
+    if (m.items === null) m = await get("matches", matchesSchema, undefined);
+    const summary = build(t, bracketUrl, p.items ?? [], m.items ?? []);
+    const etags = {
+      ...(p.etag ? { participants: p.etag } : {}),
+      ...(m.etag ? { matches: m.etag } : {}),
+    };
+    await kv().set<Snapshot>(snapKey, { summary, etags });
     return summary;
   } catch (err) {
     log("warn", "challonge.refresh_failed", {
