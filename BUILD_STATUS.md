@@ -11,15 +11,15 @@ Wave 1: dispatched (9 tasks).
 | Task | Model | State | Branch | Commit |
 |---|---|---|---|---|
 | W0 scaffold and contracts | sonnet | merged (about 95k tokens) | build/w0 | 967adac |
-| T01 time | sonnet | dispatched | build/t01 | |
-| T02 discord I/O | sonnet | dispatched | build/t02 | |
+| T01 time | sonnet | merged (about 45k; 37 tests; "Oct 8 pm" is refused as ambiguous) | build/t01 | a587d39 |
+| T02 discord I/O | sonnet | merged (about 40k; network failure -> DiscordError(0)) | build/t02 | a5f51eb |
 | T03 markup | haiku | dispatched | build/t03 | |
-| T04 render and components | haiku | dispatched | build/t04 | |
-| T05 store | haiku | dispatched | build/t05 | |
-| T06 models and budget | haiku | dispatched | build/t06 | |
+| T04 render and components | haiku | merged (about 96k: over budget, split similar cards) | build/t04 | 0e5780d |
+| T05 store | haiku | merged (about 40k; bad key surfaces as config error) | build/t05 | 36848d4 |
+| T06 models and budget | haiku | merged after T05; budget tests 12/12 green on the real seam (card error, not code) | build/t06 | 3e825d0 |
 | T07 resolve and rule checks | haiku | dispatched | build/t07 | |
-| T08 fakes | sonnet | dispatched | build/t08 | |
-| T25 personality | sonnet | dispatched | build/t25 | |
+| T08 fakes | sonnet | merged (about 45k; extra export `requestUrl` in tests/fakes/fetch.ts) | build/t08 | 2995d94 |
+| T25 personality | sonnet | merged (about 20k tokens; voice text read in full) | build/t25 | 7fa7877 |
 
 Waves 2 to 4: queued.
 
@@ -76,6 +76,16 @@ None.
   needed. Known non-secret values for the deploy checklist (T24): WIZZROBE_MCP_URL
   `https://wizzrobe.synack.live/mcp`, WIZZROBE_TENANT `sgl26`, COMMUNITY_TIMEZONE
   `America/New_York`, ANTHROPIC_DAILY_BUDGET_USD `5` (the planned default).
+
+- SDK shapes confirmed by T08 against @anthropic-ai/sdk 0.131: text `{type, text, citations}`;
+  thinking `{type, thinking, signature}`; tool_use `{type, id, name, input}`; mcp_tool_use
+  `{type, id, name, server_name, input}`; mcp_tool_result `{type, tool_use_id, is_error,
+  content: [text blocks]}`. BetaMessage also requires `container`, `context_management`,
+  `diagnostics`, `stop_details` (null). Use `fakeMessage` and `block` from tests/fakes/anthropic.ts.
+- Biome `--write` rewrites `U+2014`-style escapes in regex literals into literal dashes (T01).
+  Cards that match or assert on dashes build them with `String.fromCharCode(0x2014, 0x2013)`.
+- Card rule (from T06): a test may only call a sibling's seam (`set*ForTests`) when that
+  sibling merged in an earlier wave. A sibling in the same wave is `vi.mock`ed by contract.
 
 ## Open questions for Vince
 
