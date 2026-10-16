@@ -83,6 +83,41 @@ function resultLine(tool: WriteTool, a: Args): string {
   }
 }
 
+function clip(text: unknown, max: number): string {
+  const s = String(text).replace(/\s+/g, " ").trim();
+  return s.length > max ? `${s.slice(0, max - 1)}...` : s;
+}
+
+// The Confirm line, built from validated args only (never from model text).
+export function describeAction(tool: WriteTool, a: Args): string {
+  switch (tool) {
+    case "acknowledge_match":
+      return `Acknowledge match ${a.match_id}.`;
+    case "offer_match_for_stream":
+      return `Offer match ${a.match_id} for stream.`;
+    case "withdraw_stream_offer":
+      return `Withdraw your stream offer for match ${a.match_id}.`;
+    case "watch_match":
+      return `Watch match ${a.match_id} for changes.`;
+    case "unwatch_match":
+      return `Stop watching match ${a.match_id}.`;
+    case "signup_as_crew":
+      return `Sign you up as ${a.role} for match ${a.match_id}.`;
+    case "withdraw_crew_signup":
+      return `Withdraw your ${a.role} signup for match ${a.match_id}.`;
+    case "sign_up_for_tournament":
+      return `Enter you in tournament ${a.tournament_id}.`;
+    case "withdraw_from_tournament":
+      return `Withdraw you from tournament ${a.tournament_id}.`;
+    case "submit_match_request":
+      return `Send a match request for ${a.scheduled_date} ${a.scheduled_time} in tournament ${a.tournament_id}.`;
+    case "rest_create_reschedule_request":
+      return `Send a ${a.kind} request for match ${a.match_id}: ${clip(a.reason, 120)}.`;
+    case "rest_book_bracket_game":
+      return `Book the next game for bracket match ${a.bracket_match_id} on ${a.scheduled_date} ${a.scheduled_time}.`;
+  }
+}
+
 // Runs a confirmed write as the person who confirmed it, never with the bot's token.
 export async function executeAction(p: PendingAction): Promise<string> {
   const parsed = WRITE_ARGS[p.tool].safeParse(p.args);

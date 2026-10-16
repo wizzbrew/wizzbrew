@@ -18,6 +18,7 @@ export interface BracketSummary {
   upcoming: { round: string; players: [string | null, string | null] }[]; // null = slot not decided yet
   source: "challonge" | "link_only"; // link_only when no key, no bracket or the fetch failed
   fetchedAt: string | null; // ISO time the snapshot was taken
+  degraded: boolean; // true when a refresh was attempted and failed; the stale or link-only answer is served
 }
 
 interface Snapshot {
@@ -69,6 +70,7 @@ const snapshotSchema = z.object({
     ),
     source: z.enum(["challonge", "link_only"]),
     fetchedAt: z.string().nullable(),
+    degraded: z.boolean().default(false),
   }),
   etags: z
     .object({ participants: z.string().optional(), matches: z.string().optional() })
@@ -123,6 +125,7 @@ function linkOnly(t: TournamentInfo, bracketUrl: string): BracketSummary {
     upcoming: [],
     source: "link_only",
     fetchedAt: null,
+    degraded: false,
   };
 }
 
@@ -270,6 +273,7 @@ function build(
     upcoming,
     source: "challonge",
     fetchedAt: new Date().toISOString(),
+    degraded: false,
   };
 }
 
@@ -355,6 +359,6 @@ export async function bracketFor(tournamentId: number): Promise<BracketSummary> 
     log("warn", "challonge.refresh_failed", {
       status: err instanceof ChallongeFailure ? err.status : undefined,
     });
-    return fallback();
+    return { ...fallback(), degraded: true };
   }
 }

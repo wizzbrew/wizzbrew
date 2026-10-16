@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { executeAction, WRITE_ARGS } from "../../src/actions/execute.js";
+import { describeAction, executeAction, WRITE_ARGS } from "../../src/actions/execute.js";
 import { UserInputError, WizzrobeError } from "../../src/errors.js";
 import type { PendingAction, WriteTool } from "../../src/types.js";
 import { callTool } from "../../src/wizzrobe/mcp.js";
@@ -98,6 +98,25 @@ describe("WRITE_ARGS", () => {
         reason: "",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("describeAction", () => {
+  it("describes in the future from args", () => {
+    expect(describeAction("signup_as_crew", { match_id: 41, role: "commentator" })).toBe(
+      "Sign you up as commentator for match 41.",
+    );
+    expect(describeAction("acknowledge_match", { match_id: 18 })).toBe("Acknowledge match 18.");
+  });
+
+  it("clips a reschedule reason to 120", () => {
+    const line = describeAction("rest_create_reschedule_request", {
+      match_id: 7,
+      kind: "reschedule",
+      reason: "x".repeat(300),
+    });
+    expect(line.startsWith("Send a reschedule request for match 7: ")).toBe(true);
+    expect(line.length).toBeLessThan(180);
   });
 });
 

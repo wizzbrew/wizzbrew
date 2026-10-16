@@ -275,7 +275,8 @@ describe("bracketFor", () => {
     vi.setSystemTime(new Date(NOW.getTime() + HOUR));
     const s = await bracketFor(42);
     expect(calls.length).toBeGreaterThan(0);
-    expect(s).toEqual(first);
+    expect(s).toEqual({ ...first, degraded: true });
+    expect(first.degraded).toBe(false);
     expect(s.fetchedAt).toBe(NOW.toISOString());
   });
 
@@ -283,6 +284,7 @@ describe("bracketFor", () => {
     fake.fail(status);
     const s = await bracketFor(42);
     expect(s.source).toBe("link_only");
+    expect(s.degraded).toBe(true);
     expect(s.fetchedAt).toBeNull();
     expect(s.bracketUrl).toBe("https://speedgaming.challonge.com/sgl26alttpr");
   });

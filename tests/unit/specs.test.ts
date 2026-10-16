@@ -31,15 +31,20 @@ describe("specs", () => {
   });
 
   it("SHARED_RULES carries the required pieces", () => {
-    for (const s of [
-      "<t:",
-      "offer_choices",
-      "propose_action",
-      "tenant",
-      "Wizzrobe doesn't show that",
-    ]) {
+    for (const s of ["<t:", "offer_choices", "propose_action", "tenant"]) {
       expect(SHARED_RULES).toContain(s);
     }
+  });
+
+  it("SHARED_RULES quotes no phrase longer than three words", () => {
+    for (const m of SHARED_RULES.matchAll(/"([^"]+)"/g)) {
+      expect((m[1] ?? "").split(/\s+/).length, m[0]).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it("SHARED_RULES covers epoch fields and degraded standings", () => {
+    expect(SHARED_RULES).toContain("_epoch");
+    expect(SHARED_RULES).toContain("degraded");
   });
 
   it("each spec mentions only tools its route may use", () => {
