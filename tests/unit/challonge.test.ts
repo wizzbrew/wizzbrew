@@ -3,18 +3,17 @@ import { bracketFor, parseBracketUrl } from "../../src/challonge/challonge.js";
 import { resetConfigForTests } from "../../src/config.js";
 import { keys } from "../../src/store/keys.js";
 import { setKvForTests } from "../../src/store/kv.js";
+import { callTool } from "../../src/wizzrobe/mcp.js";
 import { FakeChallonge } from "../fakes/challonge.js";
 import { FakeKv } from "../fakes/kv.js";
 
 const state = vi.hoisted(() => ({
   tournament: {} as Record<string, unknown>,
-  matches: [] as { id: number; status: string }[],
 }));
 
 vi.mock("../../src/wizzrobe/mcp.js", () => ({
   callTool: vi.fn(async (_token: string, name: string) => {
     if (name === "get_tournament") return state.tournament;
-    if (name === "list_matches") return { result: state.matches };
     throw new Error(`unexpected tool ${name}`);
   }),
 }));
@@ -51,11 +50,6 @@ beforeEach(() => {
     return fake.fetch(input, init);
   }) as typeof fetch);
   state.tournament = tournament("https://speedgaming.challonge.com/sgl26alttpr");
-  state.matches = [
-    { id: 1, status: "complete" },
-    { id: 2, status: "complete" },
-    { id: 3, status: "scheduled" },
-  ];
 });
 
 afterEach(() => {
@@ -174,32 +168,75 @@ describe("bracketFor", () => {
     expect(s.upcoming[2]).toEqual({ round: "Round 2", players: ["Player Five", null] });
   });
 
-  it("serves the snapshot when no new match completed", async () => {
+  it("serves a snapshot under 60 minutes old without fetching", async () => {
     const first = await bracketFor(42);
     calls.length = 0;
-    vi.setSystemTime(new Date(NOW.getTime() + HOUR));
+    vi.setSystemTime(new Date(NOW.getTime() + 59 * 60 * 1000));
     expect(await bracketFor(42)).toEqual(first);
     expect(calls).toHaveLength(0);
   });
 
-  it("refreshes when a new completed match appears", async () => {
+  it("refreshes a snapshot over 60 minutes old", async () => {
     await bracketFor(42);
     calls.length = 0;
-    state.matches = [...state.matches, { id: 4, status: "complete" }];
-    vi.setSystemTime(new Date(NOW.getTime() + HOUR));
+    vi.setSystemTime(new Date(NOW.getTime() + HOUR + 1000));
     const s = await bracketFor(42);
     expect(calls).toHaveLength(2);
-    expect(s.fetchedAt).toBe(new Date(NOW.getTime() + HOUR).toISOString());
-    const snap = await kvStore.get<{ completedIds: number[] }>(SNAP_KEY);
-    expect(snap?.completedIds).toEqual([1, 2, 4]);
+    expect(s.fetchedAt).toBe(new Date(NOW.getTime() + HOUR + 1000).toISOString());
   });
 
-  it("refreshes a snapshot older than 6 hours", async () => {
+  it("never calls list_matches", async () => {
+    await bracketFor(42);
+    vi.setSystemTime(new Date(NOW.getTime() + 2 * HOUR));
+    await bracketFor(42);
+    const names = vi.mocked(callTool).mock.calls.map((c) => c[1]);
+    expect(names).not.toContain("list_matches");
+  });
+
+  it("serves the snapshot in quiet hours (02:00 Eastern)", async () => {
+    const first = await bracketFor(42);
+    calls.length = 0;
+    vi.setSystemTime(new Date("2026-10-17T06:00:00Z"));
+    expect(await bracketFor(42)).toEqual(first);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("fetches in quiet hours when there is no snapshot", async () => {
+    vi.setSystemTime(new Date("2026-10-17T06:00:00Z"));
+    const s = await bracketFor(42);
+    expect(calls).toHaveLength(2);
+    expect(s.source).toBe("challonge");
+  });
+
+  it("refreshes at 08:30 Eastern once the snapshot is over an hour old", async () => {
     await bracketFor(42);
     calls.length = 0;
-    vi.setSystemTime(new Date(NOW.getTime() + 6 * HOUR + 1000));
+    vi.setSystemTime(new Date("2026-10-17T12:30:00Z"));
     await bracketFor(42);
     expect(calls).toHaveLength(2);
+  });
+
+  it("sends If-None-Match and keeps the summary on a 304", async () => {
+    const original = fake.fetch;
+    const seen: (string | undefined)[] = [];
+    vi.stubGlobal("fetch", (async (input, init) => {
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      seen.push(headers["If-None-Match"]);
+      if (headers["If-None-Match"]) return new Response(null, { status: 304 });
+      const res = await original(input, init);
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      const tag = url.includes("/participants.json") ? '"p1"' : '"m1"';
+      return new Response(await res.text(), { status: 200, headers: { ETag: tag } });
+    }) as typeof fetch);
+    const first = await bracketFor(42);
+    expect(seen).toEqual([undefined, undefined]);
+    const later = new Date(NOW.getTime() + HOUR + 1000);
+    vi.setSystemTime(later);
+    const second = await bracketFor(42);
+    expect(seen.slice(2)).toEqual(['"p1"', '"m1"']);
+    expect({ ...second, fetchedAt: null }).toEqual({ ...first, fetchedAt: null });
+    expect(second.fetchedAt).toBe(later.toISOString());
+    expect(await kvStore.get(COUNT_KEY)).toBe(4);
   });
 
   it("refreshes a snapshot whose fetchedAt is unreadable", async () => {
@@ -226,7 +263,6 @@ describe("bracketFor", () => {
     calls.length = 0;
     vi.stubEnv("CHALLONGE_API_KEY", "");
     resetConfigForTests();
-    state.matches = [...state.matches, { id: 9, status: "complete" }];
     expect(await bracketFor(42)).toEqual(first);
     expect(calls).toHaveLength(0);
     vi.unstubAllEnvs();
@@ -236,7 +272,6 @@ describe("bracketFor", () => {
     const first = await bracketFor(42);
     calls.length = 0;
     fake.fail(status);
-    state.matches = [...state.matches, { id: 4, status: "complete" }];
     vi.setSystemTime(new Date(NOW.getTime() + HOUR));
     const s = await bracketFor(42);
     expect(calls.length).toBeGreaterThan(0);
