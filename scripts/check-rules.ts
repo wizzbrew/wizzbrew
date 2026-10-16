@@ -36,11 +36,21 @@ function literal(text: string): RegExp {
 
 const DISCORD_TOKEN = /[MN][A-Za-z\d]{23,25}\.[\w-]{6}\.[\w-]{27,}/g;
 
+// A prefix alone is prose; only a prefix followed by a credential sized body is flagged.
+function credential(prefix: string, minBody: number): RegExp {
+  return new RegExp(`${literal(prefix).source}[A-Za-z0-9_-]{${minBody},}`, "g");
+}
+
+const ANTHROPIC_KEY = credential("sk-" + "ant-", 20);
+const WIZZROBE_TOKEN = credential("wizzrobe" + "_pat_", 16);
+
 type Rule = {
   id: string;
   message: string;
   applies: (file: string) => boolean;
   patterns: RegExp[];
+  // True for the code rules: they match against the text with comments blanked out.
+  skipComments?: boolean;
 };
 
 const isTs = (file: string): boolean => file.endsWith(".ts");
@@ -58,7 +68,7 @@ const RULES: Rule[] = [
     id: "secret",
     message: "credential shaped string; secrets come from env vars",
     applies: () => true,
-    patterns: [literal("sk-" + "ant-"), literal("wizzrobe" + "_pat_"), DISCORD_TOKEN],
+    patterns: [ANTHROPIC_KEY, WIZZROBE_TOKEN, DISCORD_TOKEN],
   },
   {
     id: "env",
@@ -66,6 +76,7 @@ const RULES: Rule[] = [
     applies: (f) =>
       isTs(f) && under(f, ["src", "api", "scripts", "evals"]) && f !== "src/config.ts",
     patterns: [literal(ENV_READ)],
+    skipComments: true,
   },
   {
     id: "time",
@@ -78,26 +89,48 @@ const RULES: Rule[] = [
       literal("new Date" + "(`"),
       literal("." + "toLocale"),
     ],
+    skipComments: true,
   },
   {
     id: "link-key",
     message: `${LINK_CALL} outside src/wizzrobe/identity.ts (L19)`,
     applies: (f) => isTs(f) && under(f, CODE_DIRS) && f !== "src/wizzrobe/identity.ts",
     patterns: [literal(LINK_CALL)],
+    skipComments: true,
   },
   {
     id: "empty-catch",
     message: "empty catch block swallows an error",
     applies: isTs,
     patterns: [/\bcatch\s*(?:\([^)]*\)\s*)?\{\s*\}/g],
+    skipComments: true,
   },
   {
     id: "dynamic-import",
     message: "dynamic import call; use a static import instead (L22)",
     applies: isTs,
     patterns: [/\bimport\s*\(/g],
+    skipComments: true,
   },
 ];
+
+// Replaces comment text with a single # marker so the code rules do not read it. Line count and
+// order are unchanged, so file:line numbers stay valid. A line that starts with //, /* or * is
+// replaced whole; a trailing // comment is cut from the first // that follows whitespace or starts
+// the line, so the // in a URL inside a string survives. The marker, rather than nothing, keeps a
+// catch block whose only content is an explanatory comment from reading as empty.
+function stripComments(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")) {
+        return "#";
+      }
+      return line.replace(/(^|\s)\/\/.*$/, "$1#");
+    })
+    .join("\n");
+}
 
 function lineOf(text: string, index: number): number {
   let line = 1;
@@ -142,6 +175,7 @@ export function scanRepo(root: string): {
   const violations: Violation[] = [];
   for (const file of files) {
     const text = readFileSync(join(root, file), "utf8");
+    const code = stripComments(text);
     for (const rule of RULES) {
       if (!rule.applies(file)) {
         continue;
@@ -149,8 +183,9 @@ export function scanRepo(root: string): {
       // One violation per rule per line, however many times it matches there.
       const seen = new Set<number>();
       for (const pattern of rule.patterns) {
-        for (const match of text.matchAll(pattern)) {
-          const line = lineOf(text, match.index ?? 0);
+        const haystack = rule.skipComments ? code : text;
+        for (const match of haystack.matchAll(pattern)) {
+          const line = lineOf(haystack, match.index ?? 0);
           if (seen.has(line)) {
             continue;
           }

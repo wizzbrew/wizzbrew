@@ -9,8 +9,8 @@ import {
 } from "../../src/personality/voice.js";
 
 const REGISTERS: Register[] = ["data", "help", "chat"];
-const EM_DASH = "—";
-const EN_DASH = "–";
+const EM_DASH = String.fromCharCode(0x2014);
+const EN_DASH = String.fromCharCode(0x2013);
 
 describe("voice", () => {
   it("returns CORE, a blank line, then the register block", () => {
