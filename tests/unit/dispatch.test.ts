@@ -1,20 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/wizzrobe/identity.js", () => ({ loadAsker: vi.fn() }));
-vi.mock("../../src/actions/pending.js", () => ({ takePending: vi.fn(), loadThread: vi.fn() }));
+vi.mock("../../src/actions/pending.js", () => ({
+  takePending: vi.fn(),
+  loadThread: vi.fn(),
+  saveThread: vi.fn(),
+}));
+vi.mock("../../src/ops/rate.js", () => ({ allowRequest: vi.fn() }));
 vi.mock("../../src/handlers/ask.js", () => ({ runAskPipeline: vi.fn() }));
 vi.mock("../../src/handlers/deliver.js", () => ({ deliver: vi.fn(), deliverError: vi.fn() }));
 vi.mock("../../src/handlers/component.js", () => ({ runComponent: vi.fn() }));
 vi.mock("../../src/responders/direct.js", () => ({ scheduleAnswer: vi.fn(), liveAnswer: vi.fn() }));
 vi.mock("../../src/ops/alerts.js", () => ({ isPaused: vi.fn(), alertStaff: vi.fn() }));
 
-import { loadThread, takePending } from "../../src/actions/pending.js";
+import { loadThread, saveThread, takePending } from "../../src/actions/pending.js";
 import { encodeCustomId } from "../../src/discord/components.js";
 import { runAskPipeline } from "../../src/handlers/ask.js";
 import { runComponent } from "../../src/handlers/component.js";
 import { deliver, deliverError } from "../../src/handlers/deliver.js";
 import { handleInteraction } from "../../src/handlers/dispatch.js";
 import { isPaused } from "../../src/ops/alerts.js";
+import { allowRequest } from "../../src/ops/rate.js";
 import { scheduleAnswer } from "../../src/responders/direct.js";
 import { loadAsker } from "../../src/wizzrobe/identity.js";
 
@@ -92,6 +98,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   pending = [];
   vi.mocked(isPaused).mockResolvedValue(false);
+  vi.mocked(allowRequest).mockResolvedValue(true);
   vi.mocked(loadAsker).mockResolvedValue(asker);
   vi.mocked(runAskPipeline).mockResolvedValue(undefined);
   vi.mocked(runComponent).mockResolvedValue(undefined);
@@ -170,6 +177,52 @@ describe("handleInteraction", () => {
       {},
     );
     expect(runAskPipeline).not.toHaveBeenCalled();
+  });
+
+  it("/schedule saves a thread when the answer has choices", async () => {
+    const answer = { text: "which?", ephemeral: false, choices: [{ label: "A", value: "a" }] };
+    vi.mocked(scheduleAnswer).mockResolvedValue(answer);
+    vi.mocked(saveThread).mockResolvedValue(thread({ id: "tx" }) as never);
+    await run(command("schedule", [{ name: "stage", type: 3, value: "Ma" }]));
+    expect(saveThread).toHaveBeenCalledWith(
+      expect.objectContaining({ discordUserId: "u1", ephemeral: false, turns: [] }),
+      expect.any(Date),
+    );
+    expect(deliver).toHaveBeenCalledWith(expect.anything(), answer, { threadId: "tx" });
+  });
+
+  it("/schedule is rate limited", async () => {
+    vi.mocked(allowRequest).mockResolvedValue(false);
+    await run(command("schedule"));
+    expect(scheduleAnswer).not.toHaveBeenCalled();
+    expect(deliverError).toHaveBeenCalledWith(expect.anything(), expect.stringContaining("faster"));
+  });
+
+  it("confirm presses honor the kill switch", async () => {
+    vi.mocked(isPaused).mockResolvedValue(true);
+    const b = await body(await run(button(encodeCustomId({ kind: "confirm", pendingId: "p1" }))));
+    expect(b.type).toBe(4);
+    expect(b.data.content).toBe("Wizzbrew is paused right now.");
+    expect(runComponent).not.toHaveBeenCalled();
+  });
+
+  it("a non-owner's choose is deferred as its own ephemeral reply", async () => {
+    vi.mocked(loadThread).mockResolvedValue(thread() as never);
+    const b = await body(
+      await run(button(encodeCustomId({ kind: "choose", threadId: "t1", value: "a" }), "u2")),
+    );
+    expect(b).toEqual({ type: 5, data: { flags: 64 } });
+    expect(runComponent).toHaveBeenCalled();
+  });
+
+  it("an expired thread on choose answers privately", async () => {
+    vi.mocked(loadThread).mockResolvedValue("expired");
+    const b = await body(
+      await run(button(encodeCustomId({ kind: "choose", threadId: "t1", value: "a" }))),
+    );
+    expect(b.type).toBe(4);
+    expect(b.data.flags).toBe(64);
+    expect(runComponent).not.toHaveBeenCalled();
   });
 
   it("/me is private and forces my_stuff", async () => {

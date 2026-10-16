@@ -126,6 +126,17 @@ describe("confirm", () => {
   });
 });
 
+describe("text finalizing", () => {
+  it("strips dashes and caps edit text", async () => {
+    vi.mocked(takePending).mockResolvedValue(pending);
+    vi.mocked(executeAction).mockResolvedValue(`done \u2014 ${"x".repeat(3000)}`);
+    await runComponent(press(confirmId), "r1", NOW);
+    const last = api.calls.at(-1)?.body as { content: string };
+    expect(last.content).not.toContain("\u2014");
+    expect(last.content.length).toBeLessThanOrEqual(2000);
+  });
+});
+
 describe("cancel", () => {
   it("cancels", async () => {
     vi.mocked(takePending).mockResolvedValue(pending);
@@ -171,6 +182,24 @@ describe("choose", () => {
     await runComponent(press(chooseId, "u2"), "r1", NOW);
     expect(loadThread).toHaveBeenCalledWith("t1", "u2", NOW);
     expect(runAskPipeline).toHaveBeenCalledTimes(1);
+  });
+
+  it("replies privately instead of editing when the thread expired", async () => {
+    vi.mocked(loadThread).mockResolvedValue("expired");
+    await runComponent(press(chooseId, "u1"), "r1", NOW);
+    expect(api.calls[0]?.method).toBe("followup");
+    expect(api.calls[0]?.body).toMatchObject({ flags: 64 });
+  });
+
+  it("answers a non-owner's pick on its own ephemeral target", async () => {
+    vi.mocked(loadThread).mockResolvedValue(thread());
+    vi.mocked(loadAsker).mockResolvedValue(asker as never);
+    await runComponent(press(chooseId, "u2"), "r1", NOW);
+    expect(vi.mocked(runAskPipeline).mock.calls[0]?.[0].reply).toEqual({
+      kind: "interaction",
+      token: "tok",
+      ephemeral: true,
+    });
   });
 
   it("refuses another user on a private thread", async () => {

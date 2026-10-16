@@ -33,8 +33,11 @@ beforeEach(() => {
   waitUntilSpy.mockReset();
 });
 
-async function signed(body: string, tamper = false): Promise<Request> {
-  const timestamp = "1700000000";
+async function signed(
+  body: string,
+  tamper = false,
+  timestamp = String(Math.floor(Date.now() / 1000)),
+): Promise<Request> {
   const sig = await crypto.subtle.sign(
     "Ed25519",
     privateKey,
@@ -59,6 +62,13 @@ describe("POST /api/interactions", () => {
 
   it("rejects missing headers with 401", async () => {
     const res = await POST(new Request("https://example.test/", { method: "POST", body: "{}" }));
+    expect(res.status).toBe(401);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("rejects a stale signed timestamp with 401", async () => {
+    const old = String(Math.floor(Date.now() / 1000) - 301);
+    const res = await POST(await signed(JSON.stringify({ type: 2 }), false, old));
     expect(res.status).toBe(401);
     expect(handler).not.toHaveBeenCalled();
   });

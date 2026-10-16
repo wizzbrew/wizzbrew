@@ -47,13 +47,11 @@ export async function takePending(
   now: Date,
 ): Promise<PendingAction | "expired" | "not_yours"> {
   const key = keys.pending(id);
+  const peek = await kv().get<PendingAction>(key);
+  if (peek === null || peek.expiresAt <= now.getTime()) return "expired";
+  if (peek.discordUserId !== discordUserId) return "not_yours";
   const record = await kv().take<PendingAction>(key);
   if (record === null || record.expiresAt <= now.getTime()) return "expired";
-  if (record.discordUserId !== discordUserId) {
-    const remainingSec = Math.max(1, Math.ceil((record.expiresAt - now.getTime()) / 1000));
-    await kv().set(key, record, remainingSec);
-    return "not_yours";
-  }
   return record;
 }
 

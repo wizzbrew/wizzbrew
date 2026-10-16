@@ -45,7 +45,7 @@ export async function runMessagePipeline(
       error: err instanceof Error ? err.message : "unknown",
     });
     try {
-      await deliverError(target, userMessageFor(err));
+      await deliverError(target, userMessageFor(err, { public: true }));
     } catch (deliverErr) {
       log("error", "message.deliver_error_failed", {
         requestId,

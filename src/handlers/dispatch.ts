@@ -4,11 +4,13 @@ import type {
   APIMessageComponentInteraction,
   APIModalSubmitInteraction,
 } from "discord-api-types/v10";
-import { loadThread, takePending } from "../actions/pending.js";
+import { loadThread, saveThread, takePending } from "../actions/pending.js";
 import { decodeCustomId, encodeCustomId } from "../discord/components.js";
 import { normalizeInput } from "../discord/markup.js";
 import { userMessageFor } from "../errors.js";
+import { log } from "../log.js";
 import { isPaused } from "../ops/alerts.js";
+import { allowRequest } from "../ops/rate.js";
 import { scheduleAnswer } from "../responders/direct.js";
 import type { ReplyTarget, RoutingDecision } from "../types.js";
 import { loadAsker } from "../wizzrobe/identity.js";
@@ -96,13 +98,36 @@ async function runCommand(
       if (!sc) throw new Error(`no shortcut for /${name}`);
       if (name === "schedule") {
         const { day, stage, tournament } = sc.decision.params;
-        await deliver(target, await scheduleAnswer({ day, stage, tournament }, now), {});
+        if (!(await allowRequest(asker.discordUserId, now))) {
+          await deliverError(target, "You're asking faster than I can keep up. Give it a minute.");
+          return;
+        }
+        const answer = await scheduleAnswer({ day, stage, tournament }, now);
+        if (answer.choices !== undefined && answer.choices.length > 0) {
+          const thread = await saveThread(
+            {
+              id: "",
+              discordUserId: asker.discordUserId,
+              question: sc.question,
+              decision: sc.decision,
+              ephemeral: false,
+              turns: [],
+            },
+            now,
+          );
+          await deliver(target, answer, { threadId: thread.id });
+        } else {
+          await deliver(target, answer, {});
+        }
       } else {
         await runAskPipeline({ ...base, question: sc.question, forced: sc.decision });
       }
     }
   } catch (err) {
-    await deliverError(target, userMessageFor(err));
+    await deliverError(
+      target,
+      userMessageFor(err, { public: !(target.kind === "interaction" && target.ephemeral) }),
+    );
   }
 }
 
@@ -141,6 +166,17 @@ async function handleComponent(
     if (pending === "not_yours") return say("Only the person who asked can change this.");
     if (pending === "expired") return say("That request expired. Ask again.");
     return modal(a.threadId, "What should change?");
+  }
+  if (a.kind === "confirm" && (await isPaused())) return say("Wizzbrew is paused right now.");
+  if (a.kind === "choose") {
+    const thread = await loadThread(a.threadId, presser.id, now);
+    if (thread === "expired") return say("That request expired. Ask again.");
+    if (thread === "not_yours") return say("That one is private.");
+    if (thread.discordUserId !== presser.id) {
+      // Someone else's pick on a public thread gets its own private reply.
+      waitUntil(runComponent(i, requestId, now));
+      return json({ type: 5, data: { flags: EPHEMERAL } });
+    }
   }
   waitUntil(runComponent(i, requestId, now));
   if (a.kind === "private") return json({ type: 5, data: { flags: EPHEMERAL } });
@@ -183,7 +219,7 @@ async function handleModal(
           now,
         });
       } catch (err) {
-        await deliverError(reply, userMessageFor(err));
+        await deliverError(reply, userMessageFor(err, { public: !reply.ephemeral }));
       }
     })(),
   );
@@ -216,7 +252,12 @@ export async function handleInteraction(i: APIInteraction, waitUntil: Waiter): P
       default:
         return new Response("Bad request", { status: 400 });
     }
-  } catch {
+  } catch (err) {
+    log("error", "dispatch.failed", {
+      requestId,
+      name: err instanceof Error ? err.name : "unknown",
+      error: userMessageFor(err),
+    });
     return say("Something went wrong on my side. Try again in a minute.");
   }
 }
