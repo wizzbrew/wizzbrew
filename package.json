@@ -1,0 +1,35 @@
+{
+  "name": "wizzbrew",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "test": "vitest run --passWithNoTests",
+    "test:e2e": "vitest run --passWithNoTests tests/e2e",
+    "rules": "tsx scripts/check-rules.ts",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run rules",
+    "register": "tsx scripts/register-commands.ts",
+    "eval": "tsx evals/run.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "@upstash/redis": "1.39.0",
+    "@vercel/functions": "3.9.9",
+    "discord-interactions": "4.4.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "26.6.3",
+    "discord-api-types": "0.38.56",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  }
+}

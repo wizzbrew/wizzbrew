@@ -1,0 +1,17 @@
+{
+  "_note": "shape from the Challonge API v2.1 schema, 2026-10-15, values fake",
+  "data": {
+    "id": "30201",
+    "type": "tournament",
+    "attributes": {
+      "name": "A Link to the Past Randomizer",
+      "url": "sgl26alttpr",
+      "tournament_type": "single elimination",
+      "game_name": "The Legend of Zelda: A Link to the Past",
+      "private": false,
+      "starts_at": "2026-10-16T16:00:00Z",
+      "description": "Fake bracket for tests",
+      "group_stage_enabled": false
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
+  "result": [
+    {
+      "id": 9,
+      "name": "A Link to the Past Randomizer",
+      "is_active": true,
+      "tournament_format": "Groups to Single Elim, Bo1",
+      "players_per_match": 2,
+      "event_start_date": null,
+      "event_end_date": null
+    },
+    {
+      "id": 4,
+      "name": "Super Metroid Any%",
+      "is_active": true,
+      "tournament_format": "Single Elim, Bo3",
+      "players_per_match": 2,
+      "event_start_date": null,
+      "event_end_date": null
+    },
+    {
+      "id": 5,
+      "name": "Super Metroid Map Rando",
+      "is_active": true,
+      "tournament_format": "Single Elim, Bo3",
+      "players_per_match": 2,
+      "event_start_date": null,
+      "event_end_date": null
+    },
+    {
+      "id": 6,
+      "name": "Super Mario World",
+      "is_active": true,
+      "tournament_format": "Double Elim, Bo1",
+      "players_per_match": 2,
+      "event_start_date": null,
+      "event_end_date": null
+    },
+    {
+      "id": 7,
+      "name": "Mario Kart 64",
+      "is_active": false,
+      "tournament_format": "Round Robin",
+      "players_per_match": 4,
+      "event_start_date": null,
+      "event_end_date": null
+    }
+  ]
+}

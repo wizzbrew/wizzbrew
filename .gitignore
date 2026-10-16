@@ -1,9 +1,12 @@
 node_modules/
-.vercel/
-dist/
-coverage/
 .env
 .env.*
 !.env.example
+.vercel/
+coverage/
+.idea/
+*.iml
+.claude/worktrees/
+.claude/settings.local.json
 *.log
 .DS_Store

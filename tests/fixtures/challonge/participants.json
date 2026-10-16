@@ -1,0 +1,125 @@
+{
+  "_note": "shape from the Challonge API v2.1 schema, 2026-10-15, values fake",
+  "data": [
+    {
+      "id": "1001",
+      "type": "participant",
+      "attributes": {
+        "name": "Player One",
+        "seed": 1,
+        "group_id": null,
+        "tournament_id": 30201,
+        "username": null,
+        "final_rank": null,
+        "states": { "active": true },
+        "misc": null,
+        "timestamps": { "created_at": "2026-10-01T12:00:00Z", "updated_at": "2026-10-16T18:00:00Z" }
+      }
+    },
+    {
+      "id": "1002",
+      "type": "participant",
+      "attributes": {
+        "name": "Player Two",
+        "seed": 2,
+        "group_id": null,
+        "tournament_id": 30201,
+        "username": null,
+        "final_rank": 5,
+        "states": { "active": false },
+        "misc": null,
+        "timestamps": { "created_at": "2026-10-01T12:00:00Z", "updated_at": "2026-10-16T18:00:00Z" }
+      }
+    },
+    {
+      "id": "1003",
+      "type": "participant",
+      "attributes": {
+        "name": "Player Three",
+        "seed": 3,
+        "group_id": null,
+        "tournament_id": 30201,
+        "username": null,
+        "final_rank": null,
+        "states": { "active": true },
+        "misc": null,
+        "timestamps": { "created_at": "2026-10-01T12:00:00Z", "updated_at": "2026-10-16T18:30:00Z" }
+      }
+    },
+    {
+      "id": "1004",
+      "type": "participant",
+      "attributes": {
+        "name": "Player Four",
+        "seed": 4,
+        "group_id": null,
+        "tournament_id": 30201,
+        "username": null,
+        "final_rank": 5,
+        "states": { "active": false },
+        "misc": null,
+        "timestamps": { "created_at": "2026-10-01T12:00:00Z", "updated_at": "2026-10-16T18:30:00Z" }
+      }
+    },
+    {
+      "id": "1005",
+      "type": "participant",
+      "attributes": {
+        "name": "Player Five",
+        "seed": 5,
+        "group_id": null,
+        "tournament_id": 30201,
+        "username": null,
+        "final_rank": null,
+        "states": { "active": true },
+        "misc": null,
+        "timestamps": { "created_at": "2026-10-01T12:00:00Z", "updated_at": "2026-10-16T19:00:00Z" }
+      }
+    },
+    {
+      "id": "1006",
+      "type": "participant",
+      "attributes": {
+        "name": "Player Six",
+        "seed": 6,
+        "group_id": null,
+        "tournament_id": 30201,
+        "username": null,
+        "final_rank": 5,
+        "states": { "active": false },
+        "misc": null,
+        "timestamps": { "created_at": "2026-10-01T12:00:00Z", "updated_at": "2026-10-16T19:00:00Z" }
+      }
+    },
+    {
+      "id": "1007",
+      "type": "participant",
+      "attributes": {
+        "name": "Player Seven",
+        "seed": 7,
+        "group_id": null,
+        "tournament_id": 30201,
+        "username": null,
+        "final_rank": null,
+        "states": { "active": true },
+        "misc": null,
+        "timestamps": { "created_at": "2026-10-01T12:00:00Z", "updated_at": "2026-10-16T19:30:00Z" }
+      }
+    },
+    {
+      "id": "1008",
+      "type": "participant",
+      "attributes": {
+        "name": "Player Eight",
+        "seed": 8,
+        "group_id": null,
+        "tournament_id": 30201,
+        "username": null,
+        "final_rank": null,
+        "states": { "active": true },
+        "misc": null,
+        "timestamps": { "created_at": "2026-10-01T12:00:00Z", "updated_at": "2026-10-16T19:30:00Z" }
+      }
+    }
+  ]
+}

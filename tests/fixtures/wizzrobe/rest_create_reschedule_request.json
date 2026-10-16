@@ -1,0 +1,18 @@
+{
+  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
+  "id": 11,
+  "match_id": 1,
+  "kind": "reschedule",
+  "status": "pending",
+  "reason": "Travel delay, can we move this later in the day?",
+  "proposed_at": "2026-10-16T20:00:00Z",
+  "original_scheduled_at": "2026-10-16T17:00:00Z",
+  "opponent_agreed_at": null,
+  "requested_by_id": 5,
+  "requested_by_name": "Player One",
+  "decided_by_id": null,
+  "decided_by_name": null,
+  "decided_at": null,
+  "decision_note": null,
+  "created_at": "2026-10-15T14:00:00Z"
+}
