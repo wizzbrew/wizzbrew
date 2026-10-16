@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Wave 1: dispatched (9 tasks).
+Wave 2: T09 to T14 dispatched; T15, T26, T27 wait for the Wizzrobe MCP tool schemas.
 
 ## Tasks
 
@@ -13,25 +13,37 @@ Wave 1: dispatched (9 tasks).
 | W0 scaffold and contracts | sonnet | merged (about 95k tokens) | build/w0 | 967adac |
 | T01 time | sonnet | merged (about 45k; 37 tests; "Oct 8 pm" is refused as ambiguous) | build/t01 | a587d39 |
 | T02 discord I/O | sonnet | merged (about 40k; network failure -> DiscordError(0)) | build/t02 | a5f51eb |
-| T03 markup | haiku | dispatched | build/t03 | |
+| T03 markup | haiku | merged (about 60k) | build/t03 | e801d15 |
 | T04 render and components | haiku | merged (about 96k: over budget, split similar cards) | build/t04 | 0e5780d |
 | T05 store | haiku | merged (about 40k; bad key surfaces as config error) | build/t05 | 36848d4 |
 | T06 models and budget | haiku | merged after T05; budget tests 12/12 green on the real seam (card error, not code) | build/t06 | 3e825d0 |
-| T07 resolve and rule checks | haiku | dispatched | build/t07 | |
+| T07 resolve and rule checks | haiku | merged (about 60k) | build/t07 | a5a16d6 |
 | T08 fakes | sonnet | merged (about 45k; extra export `requestUrl` in tests/fakes/fetch.ts) | build/t08 | 2995d94 |
 | T25 personality | sonnet | merged (about 20k tokens; voice text read in full) | build/t25 | 7fa7877 |
+| F1 rule gate fix | sonnet | merged (about 25k; comments become a marker so a comment-only catch stays non-empty) | build/f1 | db01094 |
+| T09 anthropic client | sonnet | dispatched | build/t09 | |
+| T10 router | sonnet | dispatched | build/t10 | |
+| T11 wizzrobe oauth | sonnet | dispatched | build/t11 | |
+| T12 tokens and identity | sonnet | dispatched | build/t12 | |
+| T13 mcp | sonnet | dispatched | build/t13 | |
+| T14 rest gaps | haiku | dispatched | build/t14 | |
+| T15 pending and execute | haiku | waiting: write-tool input schemas | | |
+| T26 challonge standings | sonnet | waiting: get_tournament args; snapshot design | | |
+| T27 my matches and client tools | sonnet | waiting: list_matches and get_match args | | |
 
-Waves 2 to 4: queued.
+Waves 3 and 4: queued.
 
 ## Gates
 
 | Gate | Result |
 |---|---|
 | W0 merge (`npm run check`) | green: typecheck, lint, 57 tests, rules stub |
+| Wave 1 (`npm run check`) | typecheck, lint, 271 tests green; rules red (4 findings) -> F1 |
+| Wave 1 after F1 | green: typecheck, lint, 271 tests, rules ok (84 files), no dash characters |
 
 ## Open fix cards
 
-None.
+None open (F1 merged).
 
 ## Decisions and notes
 
@@ -89,6 +101,10 @@ None.
 
 ## Open questions for Vince
 
-- Challonge free apps are capped at 500 requests a month (429 after). A 120 s cache across 15
-  tournaments can exceed that in a day. Decide before T26: a longer cache, a monthly counter, or
-  a paid tier.
+- Challonge: decided with Vince. Demand-driven snapshot per tournament, refreshed on an ask
+  when older than 15 minutes, answers show the snapshot age, failures serve the stale snapshot.
+  About a dozen asks a day means about 25 to 40 requests a day, inside the free 500 a month.
+  Check whether Challonge v2.1 has webhooks before writing T26.
+- Wizzrobe MCP input schemas for write tools, get_tournament, list_matches and get_match are not
+  in the docs (the MCP needs auth). T15, T26 and T27 wait for Vince to authenticate the
+  Wizzrobe MCP in this project so the builder can read them.

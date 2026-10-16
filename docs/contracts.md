@@ -430,11 +430,14 @@ export interface BracketSummary {
   state: string | null;                                   // Challonge tournament state
   alive: string[]; eliminated: string[];                  // participant display names
   recent: { round: string; players: [string, string]; winner: string | null }[];
-  source: "challonge" | "link_only";                      // link_only when no key or the fetch failed
+  source: "challonge" | "link_only";                      // link_only when no key and no snapshot
+  fetchedAt: string | null;                               // ISO time the snapshot was taken (added before wave 2)
 }
 export function bracketFor(tournamentId: number): Promise<BracketSummary>;
-// get_tournament (bot token) -> bracket_url -> Challonge API (CHALLONGE_API_KEY, read-only),
-// cached 120 s. No key or a Challonge failure -> source "link_only", never an invented table.
+// get_tournament (bot token) -> bracket_url -> Challonge API (CHALLONGE_API_KEY, read-only).
+// Demand-driven snapshot per tournament: served while under 15 minutes old, refreshed on the
+// next ask after that; a failed refresh serves the stale snapshot with its fetchedAt. No key and
+// no snapshot -> source "link_only", never an invented table.
 
 // responders/clientTools.ts
 export function clientToolDefs(names: ClientTool[]): BetaTool[];   // strict input schemas
