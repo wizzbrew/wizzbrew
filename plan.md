@@ -5,7 +5,7 @@ the onsite tool: the schedule, what's on stream, standings, players, crew, and h
 Linked users can also do a few things for themselves (sign up to commentate, acknowledge a match).
 The name is Wizzrobe plus homebrew (after `homemadebeer`).
 
-Status: plan only, nothing built. Written 2026-10-15.
+Status: built through wave 4 on fakes; live phase next.
 
 ## Shape
 
