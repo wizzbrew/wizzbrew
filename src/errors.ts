@@ -41,13 +41,16 @@ export class DiscordError extends Error {
 export function userMessageFor(err: unknown): string {
   if (err instanceof UserInputError) return err.message;
   if (err instanceof NotLinkedError) {
-    return err.message !== "" ? err.message : "Run /link first to connect your Wizzrobe account.";
+    return err.message !== ""
+      ? err.message
+      : "Ask me to link your Wizzrobe account first (or use /link).";
   }
   if (err instanceof BudgetExceededError)
     return "I've hit today's usage limit. Try again tomorrow.";
   if (err instanceof WizzrobeError) {
     if (err.status === 429) return "Wizzrobe is busy, try again in a minute.";
-    if (err.status === 401) return "Your Wizzrobe link expired. Run /link to connect again.";
+    if (err.status === 401)
+      return "Your Wizzrobe link expired. Ask me to link you again (or use /link).";
     if (err.status === 403) return `Your Wizzrobe account can't do that (${err.detail}).`;
     if (err.status === 404) {
       return err.detail.includes("not enabled")

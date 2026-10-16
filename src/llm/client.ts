@@ -16,7 +16,10 @@ export type Purpose = keyof typeof MODELS;
 export interface AnthropicLike {
   beta: {
     messages: {
-      create(params: BetaMessageCreateParams & { betas?: string[] }): Promise<BetaMessage>;
+      create(
+        params: BetaMessageCreateParams & { betas?: string[] },
+        options?: { timeout?: number },
+      ): Promise<BetaMessage>;
     };
   };
 }
@@ -48,8 +51,14 @@ function statusOf(err: unknown): number | undefined {
 export async function createMessage(
   purpose: Purpose,
   params: Omit<BetaMessageCreateParams, "model"> & { betas?: string[] },
-  ctx: { requestId: string; now: Date },
+  ctx: { requestId: string; now: Date; deadline?: number },
 ): Promise<BetaMessage> {
+  let timeout: number | undefined;
+  if (ctx.deadline !== undefined) {
+    const remaining = ctx.deadline - Date.now();
+    if (remaining <= 0) throw new ModelOutputError("timeout", "that took too long");
+    timeout = Math.min(120000, remaining);
+  }
   await assertUnderBudget(ctx.now);
 
   const model = MODELS[purpose];
@@ -57,7 +66,10 @@ export async function createMessage(
 
   let msg: BetaMessage;
   try {
-    msg = await anthropic().beta.messages.create({ ...params, model, max_tokens });
+    msg = await anthropic().beta.messages.create(
+      { ...params, model, max_tokens },
+      timeout === undefined ? undefined : { timeout },
+    );
   } catch (err) {
     // L16: SDK errors propagate unchanged. Log context first, never the prompt.
     log("warn", "anthropic.error", { requestId: ctx.requestId, purpose, status: statusOf(err) });

@@ -155,7 +155,7 @@ async function handleModal(
 ): Promise<Response> {
   const a = decodeCustomId(i.data.custom_id);
   const presser = i.member?.user ?? i.user;
-  if (!a || a.kind !== "followup" || !presser) return say("That form isn't mine.");
+  if (a?.kind !== "followup" || !presser) return say("That form isn't mine.");
 
   let question = "";
   for (const row of i.data.components) {

@@ -28,7 +28,7 @@ describe("userMessageFor", () => {
 
   it("NotLinkedError: the default when the message is empty", () => {
     expect(userMessageFor(new NotLinkedError())).toBe(
-      "Run /link first to connect your Wizzrobe account.",
+      "Ask me to link your Wizzrobe account first (or use /link).",
     );
   });
 
@@ -46,7 +46,7 @@ describe("userMessageFor", () => {
 
   it("WizzrobeError 401", () => {
     expect(userMessageFor(new WizzrobeError(401, "token expired"))).toBe(
-      "Your Wizzrobe link expired. Run /link to connect again.",
+      "Your Wizzrobe link expired. Ask me to link you again (or use /link).",
     );
   });
 
