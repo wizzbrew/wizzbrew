@@ -1,0 +1,129 @@
+import { Client, GatewayIntentBits, type Message, Partials } from "discord.js";
+import { loadConfig } from "./config.js";
+import { buildRelayMessage, MAX_CHAIN, type RelayMessage, shouldForward, sign } from "./forward.js";
+
+const config = loadConfig();
+const FAIL_TEXT = "I can't answer right now. Try again in a minute.";
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
+  ],
+  partials: [Partials.Channel],
+});
+
+function nameOf(m: Message): string {
+  return m.member?.displayName ?? m.author.globalName ?? m.author.username;
+}
+
+async function fetchRef(m: Message): Promise<Message | null> {
+  const id = m.reference?.messageId;
+  if (!id) return null;
+  try {
+    return await m.channel.messages.fetch(id);
+  } catch {
+    return null;
+  }
+}
+
+async function walkChain(m: Message): Promise<RelayMessage["chain"]> {
+  const newestFirst: RelayMessage["chain"] = [];
+  let cur: Message | null = m;
+  while (newestFirst.length < MAX_CHAIN) {
+    cur = await fetchRef(cur);
+    if (!cur) break;
+    newestFirst.push({
+      authorId: cur.author.id,
+      authorName: nameOf(cur),
+      isBot: cur.author.bot,
+      content: cur.cleanContent,
+    });
+  }
+  return newestFirst.reverse();
+}
+
+async function post(msg: RelayMessage): Promise<number> {
+  const body = JSON.stringify(msg);
+  const ts = String(Math.floor(Date.now() / 1000));
+  const res = await fetch(`${config.baseUrl}/api/message`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Relay-Timestamp": ts,
+      "X-Relay-Signature": sign(config.secret, ts, body),
+    },
+    body,
+    signal: AbortSignal.timeout(10_000),
+  });
+  return res.status;
+}
+
+client.on("messageCreate", async (message) => {
+  const botId = client.user?.id;
+  if (!botId) return;
+  try {
+    const isDm = message.guildId === null;
+    let repliesToBot = false;
+    if (!message.author.bot && message.reference?.messageId) {
+      const ref = await fetchRef(message);
+      repliesToBot = ref?.author.id === botId;
+    }
+    const channel = message.channel;
+    const parentId = channel.isThread() ? channel.parentId : null;
+    const ok = shouldForward(
+      {
+        authorIsBot: message.author.bot,
+        isDm,
+        mentionsBot: message.mentions.users.has(botId),
+        repliesToBot,
+        channelId: message.channelId,
+        parentId,
+      },
+      config.channelIds,
+    );
+    if (!ok) return;
+
+    if ("sendTyping" in channel) await channel.sendTyping().catch(() => undefined);
+    const chain = await walkChain(message);
+    const relay = buildRelayMessage({
+      messageId: message.id,
+      channelId: message.channelId,
+      guildId: message.guildId,
+      isDm,
+      author: {
+        id: message.author.id,
+        username: message.author.username,
+        globalName: message.author.globalName,
+        nick: message.member?.nickname ?? null,
+      },
+      text: message.cleanContent,
+      botId,
+      chain,
+    });
+
+    let status = 0;
+    try {
+      status = await post(relay);
+    } catch {
+      status = 0;
+    }
+    console.log(`forward channel=${message.channelId} message=${message.id} status=${status}`);
+    if (status < 200 || status >= 300) {
+      await message.reply({ content: FAIL_TEXT, allowedMentions: { parse: [] } });
+    }
+  } catch (err) {
+    console.error("relay error", err instanceof Error ? err.name : "unknown");
+  }
+});
+
+client.once("clientReady", () => console.log("relay ready"));
+
+function shutdown(): void {
+  client.destroy().finally(() => process.exit(0));
+}
+process.on("SIGTERM", shutdown);
+
+await client.login(config.botToken);
