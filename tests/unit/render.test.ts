@@ -168,6 +168,30 @@ describe("renderAnswer", () => {
     }
   });
 
+  it("adds the follow-up button only without choices and without pendingId", () => {
+    const plain = rowsOf(renderAnswer({ text: "Hi.", ephemeral: false }, { threadId: "t1" })[0]);
+    expect(plain).toHaveLength(1);
+    expect(plain[0]?.components).toEqual([
+      { type: 2, style: 2, label: "Ask a follow-up", custom_id: "wb:followup:t1" },
+    ]);
+    const withChoices = rowsOf(
+      renderAnswer(
+        { text: "Hi.", choices: [{ label: "A", value: "a" }], ephemeral: false },
+        { threadId: "t1" },
+      )[0],
+    );
+    expect(withChoices.flatMap((r) => r.components.map((b) => b.custom_id))).toEqual([
+      "wb:choose:t1:a",
+    ]);
+    const withPending = rowsOf(
+      renderAnswer({ text: "Hi.", ephemeral: false }, { pendingId: "p1", threadId: "t1" })[0],
+    );
+    expect(withPending.flatMap((r) => r.components.map((b) => b.label))).toEqual([
+      "Confirm",
+      "Cancel",
+    ]);
+  });
+
   it("returns components as an empty array when no ids are given", () => {
     const payloads = renderAnswer({
       text: "Plain.",

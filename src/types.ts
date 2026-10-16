@@ -43,12 +43,18 @@ export interface LinkedAccount {
   canWrite: boolean;
 }
 
+export interface ConversationTurn {
+  role: "user" | "assistant";
+  text: string;
+}
+
 export interface AskContext {
   requestId: string;
   asker: Asker;
   question: string; // already normalizeInput()'d
   now: Date;
   ephemeral: boolean;
+  history: ConversationTurn[]; // earlier turns of this thread, oldest first (empty for a new question)
 }
 
 export interface Answer {
@@ -105,12 +111,13 @@ export interface LinkRecord {
 }
 
 export interface ThreadRecord {
-  // disambiguation context, keys.thread(id), sliding TTL (L15)
+  // conversation and disambiguation context, keys.thread(id), 30-minute sliding TTL (L15)
   id: string;
   discordUserId: string; // only this user may pick a choice
   question: string; // the normalized question that produced the choices
   decision: RoutingDecision;
   ephemeral: boolean;
+  turns: ConversationTurn[]; // last 6 turns, oldest first, each text capped at 1500 chars
   createdAt: number;
   expiresAt: number;
 }

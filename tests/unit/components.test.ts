@@ -10,6 +10,7 @@ describe("encodeCustomId and decodeCustomId", () => {
     ["confirm", { kind: "confirm", pendingId: "p_1-x" }, "wb:confirm:p_1-x"],
     ["cancel", { kind: "cancel", pendingId: "p_1-x" }, "wb:cancel:p_1-x"],
     ["choose", { kind: "choose", threadId: "t1", value: "v1" }, "wb:choose:t1:v1"],
+    ["followup", { kind: "followup", threadId: "t1" }, "wb:followup:t1"],
   ];
 
   for (const [name, action, expected] of cases) {
@@ -38,6 +39,8 @@ describe("encodeCustomId and decodeCustomId", () => {
     "wb:choose:t1",
     "wb:choose:t1:",
     "wb:choose::v1",
+    "wb:followup:",
+    "wb:followup:t1:v1",
     "wb:confirm:a b",
     "wb:confirm:a:b",
     `wb:confirm:${"a".repeat(41)}`,

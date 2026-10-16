@@ -69,6 +69,14 @@ function text(value: string | null | undefined): string | undefined {
   return value === null || value === undefined || value.trim() === "" ? undefined : value;
 }
 
+function historyBlock(ctx: AskContext): string {
+  if (ctx.history.length === 0) return "";
+  const lines = ctx.history.map(
+    (turn) => `${turn.role === "user" ? "User" : "Wizzbrew"}: ${sanitizeForPrompt(turn.text, 500)}`,
+  );
+  return `Earlier in this conversation:\n${lines.join("\n")}\n\n`;
+}
+
 export async function routeQuestion(ctx: AskContext): Promise<RoutingDecision> {
   let raw: string;
   try {
@@ -81,7 +89,7 @@ export async function routeQuestion(ctx: AskContext): Promise<RoutingDecision> {
         messages: [
           {
             role: "user",
-            content: `${nowBlock(ctx.now)}\nAsker linked: ${ctx.asker.linked ? "yes" : "no"}\n\n${sanitizeForPrompt(ctx.question)}`,
+            content: `${nowBlock(ctx.now)}\nAsker linked: ${ctx.asker.linked ? "yes" : "no"}\n\n${historyBlock(ctx)}${sanitizeForPrompt(ctx.question)}`,
           },
         ],
         output_config: {
