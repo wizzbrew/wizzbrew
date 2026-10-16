@@ -151,3 +151,12 @@ None open (F1 merged).
   client timeout); 3b T16 responder, T17 specs, T18 dispatch, T31 ask and deliver, T19 account,
   T20 buttons, T21 entry points, T29 direct answers, T30 alerts; 3c T32 message pipeline and
   endpoint, T28 relay. The earlier T16 to T21 cards get rewritten for this.
+
+## Review-phase follow-ups (found while merging wave 3b)
+
+- Responder wall clock: the 200 s check runs before each call, but a call started at 199 s can
+  run 120 s (more with a retry), past Vercel's 300 s. Give createMessage a per-call timeout of the
+  time remaining (a small client.ts and base.ts change).
+- Wording: user-facing lines that say "run /link" could say "ask me to link you or use /link".
+- Chat event block reads the first array field of list_tournaments and list_stages results;
+  confirm against the real `{"result": [...]}` shape in the e2e suite.
