@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Wave 3b merged and green (654 tests, 1 Biome warning in dispatch.ts). Wave 3c dispatched: T32, T28.
+Waves 3b and 3c merged and green after R1 and F5 (669 tests, no warnings). Wave 4 dispatched: T22a, T23, T24 (T22b after T22a).
 
 ## Tasks
 
