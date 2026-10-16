@@ -11,6 +11,7 @@ vi.mock("../../src/handlers/account.js", () => ({ accountAnswer: vi.fn() }));
 vi.mock("../../src/responders/direct.js", () => ({ liveAnswer: vi.fn() }));
 vi.mock("../../src/ops/alerts.js", () => ({ alertStaff: vi.fn(), isPaused: vi.fn() }));
 
+import { APIError } from "@anthropic-ai/sdk";
 import { createPending, saveThread } from "../../src/actions/pending.js";
 import { setDiscordApiForTests } from "../../src/discord/api.js";
 import { UserInputError, WizzrobeError } from "../../src/errors.js";
@@ -195,5 +196,54 @@ describe("runAskPipeline", () => {
     await run();
     expect(alertStaff).not.toHaveBeenCalled();
     expect(sentText()).toContain("bad time");
+  });
+
+  it("holds the lock for 300 seconds", async () => {
+    const spy = vi.spyOn(store, "setIfAbsent");
+    await run();
+    expect(spy).toHaveBeenCalledWith(keys.lock(USER), "req1", 300);
+  });
+
+  it("rate limits the ninth request in a minute before the lock", async () => {
+    for (let i = 0; i < 8; i++) await run();
+    vi.mocked(routeQuestion).mockClear();
+    await run();
+    expect(routeQuestion).not.toHaveBeenCalled();
+    expect(sentText()).toContain("asking faster than I can keep up");
+  });
+
+  it("stores a placeholder turn instead of the account link", async () => {
+    vi.mocked(routeQuestion).mockResolvedValue(decision("account", { accountAction: "link" }));
+    vi.mocked(accountAnswer).mockResolvedValue({
+      text: "https://oauth.example/secret",
+      ephemeral: true,
+    });
+    await run();
+    const saved = vi.mocked(saveThread).mock.calls[0]?.[0];
+    expect(JSON.stringify(saved?.turns)).not.toContain("oauth.example");
+    expect(saved?.turns.at(-1)).toEqual({
+      role: "assistant",
+      text: "(sent a private account link)",
+    });
+  });
+
+  it("does not alert for Anthropic 429 or 529 but does for 503", async () => {
+    const err = (status: number) => new APIError(status, undefined, "x", new Headers());
+    vi.mocked(runResponder).mockRejectedValue(err(429));
+    await run();
+    vi.mocked(runResponder).mockRejectedValue(err(529));
+    await run();
+    expect(alertStaff).not.toHaveBeenCalled();
+    vi.mocked(runResponder).mockRejectedValue(err(503));
+    await run();
+    expect(alertStaff).toHaveBeenCalledOnce();
+    expect(sentText()).toContain("model is busy");
+  });
+
+  it("uses the public error text on the message path", async () => {
+    vi.mocked(runResponder).mockRejectedValue(new WizzrobeError(403, "secret detail"));
+    await run({ reply: msg });
+    expect(sentText()).not.toContain("secret detail");
+    expect(sentText()).toContain("can't do that.");
   });
 });

@@ -1,3 +1,4 @@
+import { APIError } from "@anthropic-ai/sdk";
 import { describe, expect, it } from "vitest";
 import {
   BudgetExceededError,
@@ -144,5 +145,26 @@ describe("error classes", () => {
     const e = new DiscordError(403, "Missing Access");
     expect(e.status).toBe(403);
     expect(e.message).toBe("Missing Access");
+  });
+
+  it("public drops Wizzrobe and Discord detail", () => {
+    const pub = { public: true };
+    expect(userMessageFor(new WizzrobeError(400, "bad field x"), pub)).toBe(
+      "Wizzrobe turned that down.",
+    );
+    expect(userMessageFor(new WizzrobeError(403, "Staff only"), pub)).toBe(
+      "Your Wizzrobe account can't do that.",
+    );
+    expect(userMessageFor(new DiscordError(403, "Missing Access"), pub)).toBe(
+      "I couldn't post that in Discord.",
+    );
+  });
+
+  it("Anthropic 429, 529 and 5xx say the model is busy", () => {
+    for (const status of [429, 529, 500, 503]) {
+      expect(userMessageFor(new APIError(status, undefined, "x", new Headers()))).toBe(
+        "The model is busy right now. Try again in a minute.",
+      );
+    }
   });
 });

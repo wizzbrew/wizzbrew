@@ -1,3 +1,4 @@
+import { APIError } from "@anthropic-ai/sdk";
 import { createPending, saveThread } from "../actions/pending.js";
 import {
   BudgetExceededError,
@@ -9,6 +10,7 @@ import {
 import { assertUnderBudget } from "../llm/budget.js";
 import { clip, log } from "../log.js";
 import { alertStaff, isPaused } from "../ops/alerts.js";
+import { allowRequest } from "../ops/rate.js";
 import { runResponder } from "../responders/base.js";
 import { liveAnswer } from "../responders/direct.js";
 import { routeQuestion } from "../router/router.js";
@@ -37,13 +39,14 @@ export interface PipelineRequest {
   now: Date;
 }
 
-const LOCK_TTL_SEC = 120;
+const LOCK_TTL_SEC = 300;
 const USER_FAULT_STATUSES = new Set([400, 401, 403, 404]);
 
 function isUserFault(err: unknown): boolean {
   if (err instanceof UserInputError) return true;
   if (err instanceof NotLinkedError) return true;
   if (err instanceof BudgetExceededError) return true;
+  if (err instanceof APIError && (err.status === 429 || err.status === 529)) return true;
   return err instanceof WizzrobeError && USER_FAULT_STATUSES.has(err.status);
 }
 
@@ -82,6 +85,10 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
   let locked = false;
   let route = "none";
   try {
+    if (!(await allowRequest(asker.discordUserId, now))) {
+      await deliverError(reply, "You're asking faster than I can keep up. Give it a minute.");
+      return;
+    }
     locked = await kv().setIfAbsent(lockKey, requestId, LOCK_TTL_SEC);
     if (!locked) {
       await deliverError(reply, "Still working on your last one. Ask again in a moment.");
@@ -123,7 +130,10 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
         turns: [
           ...history,
           { role: "user", text: question },
-          { role: "assistant", text: answer.text },
+          {
+            role: "assistant",
+            text: decision.route === "account" ? "(sent a private account link)" : answer.text,
+          },
         ],
         ...(held ? { held } : {}),
       },
@@ -146,7 +156,7 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
         log("error", "ask.alert_failed", { requestId, error: alertErr });
       }
     }
-    await deliverError(reply, userMessageFor(err));
+    await deliverError(reply, userMessageFor(err, { public: reply.kind === "message" }));
   } finally {
     if (locked) {
       try {
