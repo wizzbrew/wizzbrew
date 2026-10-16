@@ -32,6 +32,10 @@ const NO_TENANT = new Set(["whoami", "list_tenants"]);
 
 const MAX_RETRY_WAIT_SEC = 10;
 
+// Wizzrobe allows 120 requests a minute per token; stay under it for the shared bot token.
+const TOKEN_RATE_LIMIT = 100;
+const TOKEN_RATE_TTL_SEC = 120;
+
 export interface RawToolResult {
   isError: boolean;
   text: string; // the tool result's text content
@@ -199,6 +203,16 @@ export async function callTool(
         log("info", "wizzrobe.tool", { name, ok: true, ms: Date.now() - started, cached: true });
         return hit.value;
       }
+    }
+
+    const minute = Math.floor(Date.now() / 60000);
+    const used = await kv().incrByFloat(
+      keys.cache("tokrate", `${sha256hex(token).slice(0, 16)}-${minute}`),
+      1,
+      TOKEN_RATE_TTL_SEC,
+    );
+    if (used > TOKEN_RATE_LIMIT) {
+      throw new WizzrobeError(429, "too many Wizzrobe requests this minute", 30);
     }
 
     let value: unknown;
