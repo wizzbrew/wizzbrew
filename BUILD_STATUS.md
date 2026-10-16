@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Wave 3a: C2 to C5 dispatched (hybrid model contract changes). C1, F3 merged. Wave 3b and 3c cards follow.
+Wave 3a merged and green (525 tests). S1 stubs merged. Wave 3b dispatched: T16, T17, T18, T31, T19, T20, T21, T29, T30. Wave 3c next: T32, T28.
 
 ## Tasks
 
