@@ -94,7 +94,8 @@ vercel.json              maxDuration 300 for api/**/*.ts (the Hobby maximum; Pro
 ```ts
 export type Route =
   | "schedule" | "streams" | "standings" | "players" | "tournaments"
-  | "my_stuff" | "crew" | "player_actions" | "help" | "staff" | "chat";
+  | "my_stuff" | "crew" | "player_actions" | "help" | "staff" | "chat"
+  | "live" | "account";                  // added 2026-10-15: direct live answer; link or unlink by name
 
 export type AuthLevel = "public" | "linked" | "staff";
 
@@ -107,6 +108,7 @@ export interface RoutingDecision {
     player?: string;
     stage?: string;
     matchId?: number;
+    accountAction?: "link" | "unlink";   // route "account" only
   };
   reason: string;                   // one short line, logged (L24)
 }
@@ -136,6 +138,20 @@ export interface AskContext {
 }
 
 export interface ConversationTurn { role: "user" | "assistant"; text: string }
+
+export type ReplyTarget =             // where an answer goes (added 2026-10-15, hybrid model)
+  | { kind: "interaction"; token: string; ephemeral: boolean }   // the deferred reply; ephemeral = the deferral's visibility
+  | { kind: "message"; channelId: string; messageId: string };  // reply under a relayed message; never ephemeral
+
+export interface RelayMessage {       // what the relay POSTs to /api/message
+  messageId: string;
+  channelId: string;
+  guildId: string | null;
+  isDm: boolean;
+  author: { id: string; username: string; globalName: string | null; nick: string | null };
+  content: string;                    // bot mention removed, other mentions expanded to names by the relay
+  chain: { authorId: string; authorName: string; isBot: boolean; content: string }[];   // reply chain, oldest first, at most 10
+}
 
 export interface Answer {
   text: string;                     // markdown, finalizeText() applied at render
@@ -190,6 +206,7 @@ export interface ThreadRecord {       // one conversation (follow-ups and choice
   turns: ConversationTurn[];          // last 6 turns, oldest first, each text capped at 1500 chars
   decision: RoutingDecision;
   ephemeral: boolean;
+  held?: { answer: Answer; pendingId?: string };   // a private answer waiting behind "Show me privately"
   createdAt: number;
   expiresAt: number;
 }
@@ -259,6 +276,8 @@ export interface Config {
   kvRestApiToken: string;               // KV_REST_API_TOKEN (same)
   communityTimezone: string;            // COMMUNITY_TIMEZONE, IANA zone, e.g. America/New_York
   challongeApiKey: string | null;       // CHALLONGE_API_KEY, optional
+  relaySecret: string;                  // RELAY_SECRET, at least 32 chars, shared with the relay
+  staffAlertChannelId: string | null;   // STAFF_ALERT_CHANNEL_ID, optional
 }
 export function config(): Config;                        // validates every var at first use, then caches
 export function configFor<K extends keyof Config>(...keys: K[]): Pick<Config, K>;   // validates only these (scripts)
@@ -293,21 +312,28 @@ export function finalizeText(text: string): string[];   // dash-free, split <= 2
 
 // discord/render.ts
 export function renderAnswer(a: Answer, ids?: { pendingId?: string; threadId?: string }): RESTPatchAPIInteractionOriginalResponseJSONBody[];
-// pendingId -> Confirm/Cancel buttons (no follow-up button); threadId with choices -> one
-// "choose" button per choice; threadId without choices -> one "Ask a follow-up" button
+// pendingId -> Confirm/Cancel buttons, plus "Change something" when threadId is given;
+// threadId with choices -> one "choose" button per choice; threadId without choices or
+// pendingId -> one "Ask a follow-up" button
+export function renderPrivateStub(threadId: string): RESTPatchAPIInteractionOriginalResponseJSONBody;
+// "This one is just for you." plus a "Show me privately" button (kind private)
 export function renderError(message: string, ephemeral: boolean): RESTPatchAPIInteractionOriginalResponseJSONBody;
 // every payload carries allowed_mentions: { parse: [] } (L20)
 
 // discord/commands.ts (added before wave 1)
 export type CommandName = "ask" | "schedule" | "live" | "standings" | "player" | "link" | "unlink" | "me";
 export const COMMANDS: RESTPostAPIChatInputApplicationCommandsJSONBody[];   // what register-commands PUTs
+// /player takes `name` (string) and an optional `user` (type 6, a Discord user); a user option resolves
+// through the interaction's resolved data, so mentions are never lost.
 
 // discord/components.ts
 export type ComponentAction =
   | { kind: "confirm"; pendingId: string }
   | { kind: "cancel"; pendingId: string }
   | { kind: "choose"; threadId: string; value: string }
-  | { kind: "followup"; threadId: string };              // opens the follow-up modal
+  | { kind: "followup"; threadId: string }               // opens the follow-up modal
+  | { kind: "change"; pendingId: string; threadId: string }   // cancels the proposal, opens the modal
+  | { kind: "private"; threadId: string };               // shows the held answer ephemerally (owner only)
 export function encodeCustomId(a: ComponentAction): string;   // <= 100 chars
 export function decodeCustomId(id: string): ComponentAction | null;
 
@@ -316,6 +342,8 @@ export interface DiscordApi {
   editOriginal(token: string, body: unknown): Promise<void>;
   followup(token: string, body: unknown): Promise<void>;
   registerCommands(commands: unknown[], guildId?: string): Promise<void>;
+  postMessage(channelId: string, body: unknown, replyToMessageId?: string): Promise<void>;
+  // bot token; POST /channels/{id}/messages with message_reference {message_id, fail_if_not_exists: false}
 }
 export function discordApi(): DiscordApi;
 export function setDiscordApiForTests(d: DiscordApi | null): void;
@@ -328,6 +356,8 @@ export interface Kv {
   del(key: string): Promise<void>;
   incrByFloat(key: string, by: number, ttlSec?: number): Promise<number>;
   expire(key: string, ttlSec: number): Promise<void>;
+  take<T>(key: string): Promise<T | null>;                              // atomic get and delete (GETDEL)
+  setIfAbsent<T>(key: string, value: T, ttlSec: number): Promise<boolean>;   // SET NX EX; true when set
 }
 export function kv(): Kv;                        // Upstash, lazy singleton
 export function setKvForTests(k: Kv | null): void;
@@ -342,6 +372,9 @@ export const keys: {
   thread(id: string): string;                    // disambiguation / follow-up context
   spend(day: string): string;                    // daily USD
   cache(scope: string, hash: string): string;    // short-lived Wizzrobe read cache
+  lock(discordUserId: string): string;           // per-user in-flight lock, 120 s
+  kill(): string;                                // kill switch: any value pauses the bot
+  alert(event: string): string;                  // staff-alert rate limit, 600 s
 };
 
 // store/crypto.ts
@@ -397,6 +430,7 @@ export function userAccessToken(discordUserId: string): Promise<string>;   // th
 
 // wizzrobe/identity.ts
 export function loadAsker(i: APIInteraction): Promise<Asker>;              // the only reader of link keys (L19)
+export function loadAskerFromMessage(m: RelayMessage): Promise<Asker>;    // same link and role logic as loadAsker
 export function getLink(discordUserId: string): Promise<LinkRecord | null>;
 export function saveLink(discordUserId: string, rec: LinkRecord): Promise<void>;
 export function deleteLink(discordUserId: string): Promise<void>;
@@ -485,35 +519,73 @@ export function executeAction(p: PendingAction): Promise<string>;   // user-faci
 // rest_create_reschedule_request {match_id, kind, reason, proposed_at?};
 // rest_book_bracket_game {bracket_match_id, scheduled_date, scheduled_time, comment?}.
 
-// handlers/ask.ts
+// handlers/ask.ts (revised for the hybrid model, 2026-10-15)
 export interface PipelineRequest {
   requestId: string;
-  interaction: APIInteraction;          // for loadAsker and the interaction token
-  question: string;                     // raw text; the pipeline runs normalizeInput itself
-  ephemeral: boolean;
-  forced?: RoutingDecision;             // shortcuts, /me and picked choices skip the router
-  threadId?: string;                    // continue this thread (follow-up or picked choice); history comes from it
+  asker: Asker;                         // built by the caller: loadAsker (interaction) or loadAskerFromMessage (relay)
+  question: string;                     // already normalized by the caller
+  reply: ReplyTarget;                   // where the answer goes
+  history: ConversationTurn[];          // earlier turns: from the thread (slash path) or the reply chain (message path)
+  threadId?: string;                    // the thread this continues, if any (follow-up, picked choice)
+  forced?: RoutingDecision;             // slash shortcuts, /me and picked choices skip the router
   now: Date;
 }
-export function runAskPipeline(req: PipelineRequest): Promise<void>;   // never throws; always ends in editOriginal (L16)
+export function runAskPipeline(req: PipelineRequest): Promise<void>;   // never throws; always ends in a delivered reply (L16)
+// Order: per-user lock -> kill switch -> budget -> route (unless forced) -> auth gate -> capability:
+// route "account" -> runAccountAction; route "live" -> liveAnswer; else runResponder. Then
+// save the thread (turns + this question + the answer text), then deliver.
+
+// handlers/deliver.ts
+export function deliver(target: ReplyTarget, answer: Answer, ids: { pendingId?: string; threadId?: string }): Promise<void>;
+// interaction: edit the deferred reply with payload 0, followups for the rest; a private answer
+// behind a public deferral -> public "I sent you the answer privately." + ephemeral followups.
+// message: never ephemeral; a private answer is held on the thread and the reply is
+// renderPrivateStub(threadId); public answers reply under the user's message (postMessage).
+export function deliverError(target: ReplyTarget, message: string): Promise<void>;   // never throws
+
+// handlers/account.ts (replaces handlers/link.ts)
+export function runAccountAction(action: "link" | "unlink", asker: Asker, target: ReplyTarget, threadId: string | null, now: Date): Promise<void>;   // never throws
+// link: the link button is always private (interaction deferral is ephemeral; message path holds it behind "Show me privately")
+
+// handlers/message.ts
+export function runMessagePipeline(m: RelayMessage, requestId: string, now: Date): Promise<void>;   // never throws
+// loadAskerFromMessage, history from m.chain (bot turns -> assistant, others -> user "Name: text"), reply target "message".
 
 // handlers/shortcuts.ts
 export function shortcutRequest(i: APIChatInputApplicationCommandInteraction, now: Date): { question: string; decision: RoutingDecision } | null;
 // /schedule /live /standings /player -> a fixed route; null for any other command; UserInputError on a bad day
 
-// handlers/link.ts
-export function runLinkCommand(name: "link" | "unlink" | "me", i: APIChatInputApplicationCommandInteraction, requestId: string, now: Date): Promise<void>;   // never throws
-
 // handlers/component.ts
 export function runComponent(i: APIMessageComponentInteraction, requestId: string, now: Date): Promise<void>;   // never throws
+// confirm, cancel, choose (forks a public thread for a non-owner), private (shows the held answer)
 
 // handlers/dispatch.ts
 export function handleInteraction(i: APIInteraction, waitUntil: (p: Promise<unknown>) => void): Promise<Response>;
+// followup and change buttons answer synchronously with a modal (type 9); modal submits (type 5)
+// defer and run the pipeline on the thread.
 
-// api/interactions.ts, api/health.ts, api/oauth/callback.ts (Vercel web-standard handlers)
-export function POST(request: Request): Promise<Response>;   // interactions
+// responders/direct.ts (no model call)
+export function liveAnswer(now: Date): Promise<Answer>;                                        // what's on each stage now and next
+export function scheduleAnswer(params: { day?: string; stage?: string; tournament?: string }, now: Date): Promise<Answer>;   // plain /schedule
+
+// ops/alerts.ts
+export function alertStaff(event: string, detail: string): Promise<void>;   // posts to STAFF_ALERT_CHANNEL_ID, at most once per event per 10 min; never throws
+export function isPaused(): Promise<boolean>;                              // the Redis kill switch at keys.kill()
+
+// api/interactions.ts, api/health.ts, api/oauth/callback.ts, api/message.ts (Vercel web-standard handlers)
+export function POST(request: Request): Promise<Response>;   // interactions; message (relay, HMAC-signed, 202 then waitUntil)
 export function GET(request: Request): Promise<Response>;    // health, oauth/callback
 ```
+
+## Relay (`relay/`, its own package, deployed on Railway)
+
+A gateway process with discord.js. Its only config module is `relay/src/config.ts` (RELAY_SECRET,
+DISCORD_BOT_TOKEN, WIZZBREW_URL, RELAY_CHANNEL_IDS). It forwards a message when it @mentions the
+bot, is a DM to the bot, or replies to one of the bot's messages, in an allowlisted channel (DMs
+always), and ignores bots. It fetches up to 10 messages of the reply chain, expands mentions to
+names, builds a `RelayMessage`, and POSTs it to `<WIZZBREW_URL>/api/message` with headers
+`X-Relay-Timestamp` (unix seconds) and `X-Relay-Signature` (hex HMAC-SHA256 of
+`timestamp + "." + body` with RELAY_SECRET). It sends a typing indicator and holds no other logic.
 
 ## Fakes (`tests/fakes/`, test code only)
 

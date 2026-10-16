@@ -123,11 +123,62 @@ Slash commands, registered by `scripts/register-commands.ts`:
   standings answers are public in the channel.
 - Writes always show a **Confirm / Cancel button** first. The confirm handler re-checks everything
   and runs the action. Pending actions sit in Redis with a 10-minute TTL.
-- Follow-ups: v1 is single-shot. v2 adds an "Ask a follow-up" button that opens a modal, with the
-  thread's history keyed in Redis by message id.
 - The app can also be **user-installable**, so `/ask` works in DMs.
-- Free-form @mentions in channels would need a gateway process (Railway, as beer-league does).
-  That is out of scope unless slash commands feel too stiff.
+
+## Interaction model (decided 2026-10-15)
+
+People talk to Wizzbrew the way they talk to beer-league: casually, by @mentioning it, by
+replying to it, by correcting it. Slash commands stay, as shortcuts. Decided with Vince after a
+review of beer-league's code; this replaces "v1 is single-shot" and "@mentions out of scope".
+
+**Hybrid wiring.**
+- Vercel keeps the HTTP interactions endpoint: slash commands, buttons, modals, the OAuth
+  callback.
+- A small always-on **relay** on Railway (discord.js, gateway) watches for @mentions of the bot,
+  DMs to the bot, and replies to the bot's own messages, in allowlisted channels. It fetches the
+  reply chain (up to 10 messages, other people's included), expands mentions to names, signs the
+  bundle (HMAC with a shared secret) and POSTs it to `/api/message` on Vercel. Vercel runs the
+  same pipeline and replies under the message through the Discord REST API. The relay holds no
+  logic beyond that.
+- Requires the Message Content intent (privileged) on the Discord app, and a channel allowlist.
+
+**One handler per capability.** Every capability (link, unlink, me, schedule, live, standings,
+player, ask, and the write actions) is one handler. A slash command, a button, or the router
+(from natural language) all reach the same handler. "Connect me to SGL" runs the same link flow
+as `/link`; "what's live" the same answer as `/live`.
+
+**Conversation.**
+- Mentions and replies: the reply chain is the conversation (as in beer-league). Each turn
+  rebuilds context from the chain plus a fresh clock (L1).
+- Slash answers: an "Ask a follow-up" button opens a modal; the thread's last 6 turns live in
+  Redis with a 30-minute idle expiry (L15). Anyone may follow up on a public answer (their
+  follow-up forks a thread they own); a private thread stays with its owner.
+- Responders and chat see the earlier turns, not only the router.
+- A proposed write shows Confirm, Cancel and "Change something" (cancels and asks what to fix).
+
+**Private answers on a public path.** A message reply can't be ephemeral. When an answer is
+personal (account, my_stuff, writes, the link button), the bot replies publicly with one line and
+a "Show me privately" button; pressing it shows the held answer ephemerally, to the asker only.
+
+**Safeguards.** A per-user lock ("still working on your last one"), an atomic take of pending
+actions (no double writes), a wall-clock cap on responders with an honest reply before Vercel's
+limit, a Redis kill switch, and staff alerts for failures that aren't the user's.
+
+**Cheap answers.** "What's live" (`/live` or the router's `live` route) and a plain `/schedule
+day: stage: tournament:` render straight from Wizzrobe with no model call, so they are instant
+and survive the budget cap. Free-form schedule questions still go to the schedule responder.
+
+**Capabilities and how each is reached.**
+| Capability | Slash | Router route | Handler |
+|---|---|---|---|
+| Link account | `/link` | `account` (action link) | account handler, always private |
+| Unlink | `/unlink` | `account` (action unlink) | account handler |
+| My stuff | `/me` | `my_stuff` | responder |
+| What's live | `/live` | `live` | direct (no model) |
+| Schedule | `/schedule` | `schedule` | direct for the plain slash form; responder otherwise |
+| Standings | `/standings` | `standings` | responder with challonge_bracket |
+| Player | `/player` | `players` | responder |
+| Anything | `/ask`, @mention, reply, DM | any | per route |
 
 ## Routes and responders
 

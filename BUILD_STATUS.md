@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Wave 2: complete and green after F2. Wave 3: cards in progress.
+Wave 3a: C2 to C5 dispatched (hybrid model contract changes). C1, F3 merged. Wave 3b and 3c cards follow.
 
 ## Tasks
 
@@ -130,3 +130,24 @@ None open (F1 merged).
   callback) before running `scripts/wizzrobe-login.ts`.
 - `finishLink` reads then deletes the OAuth state; two simultaneous callbacks could both pass.
   Wizzrobe's one-time authorization code limits the damage. Revisit if Kv gains get-and-delete.
+
+## Hybrid interaction model (decided with Vince, 2026-10-15)
+
+- After a code review of beer-league (subagent, file:line evidence): Wizzbrew becomes hybrid.
+  Vercel keeps slash commands, buttons, modals and OAuth; a small discord.js relay on Railway
+  forwards @mentions, DMs and replies to the bot (with the reply chain) to a signed
+  `/api/message` endpoint. See plan.md "Interaction model" and contracts "Relay".
+- One handler per capability: slash commands, buttons and the router reach the same handler
+  ("connect me to SGL" runs the link flow). New routes `live` and `account`.
+- Follow-ups in v0.1 (Vince), anyone can follow up on a public answer (fork), responders see
+  history, "Change something" on proposals, "Show me privately" for personal answers on the
+  message path, atomic pending take, per-user lock, wall-clock cap, kill switch, staff alerts,
+  direct `/live` and plain `/schedule`, chat voice stops listing capabilities.
+- Challonge: refresh only on demand, over 60 minutes old, never 00:00 to 08:00 Eastern, with
+  ETags (F3 merged).
+- Builder miss, recorded: wave 3 was carded from the docs without reading beer-league; Vince
+  caught that the bot must be conversational. Reviews of a predecessor come before carding.
+- Wave plan: 3a contract changes (C2 store, C3 types and routes, C4 discord, C5 config, voice,
+  client timeout); 3b T16 responder, T17 specs, T18 dispatch, T31 ask and deliver, T19 account,
+  T20 buttons, T21 entry points, T29 direct answers, T30 alerts; 3c T32 message pipeline and
+  endpoint, T28 relay. The earlier T16 to T21 cards get rewritten for this.
