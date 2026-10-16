@@ -7,6 +7,8 @@ export interface Kv {
   del(key: string): Promise<void>;
   incrByFloat(key: string, by: number, ttlSec?: number): Promise<number>;
   expire(key: string, ttlSec: number): Promise<void>;
+  take<T>(key: string): Promise<T | null>; // atomic get and delete (GETDEL)
+  setIfAbsent<T>(key: string, value: T, ttlSec: number): Promise<boolean>; // SET NX EX; true when set
 }
 
 let instance: Kv | null = null;
@@ -36,6 +38,13 @@ function upstash(redis: Redis): Kv {
     },
     async expire(key: string, ttlSec: number): Promise<void> {
       await redis.expire(key, ttlSec);
+    },
+    async take<T>(key: string): Promise<T | null> {
+      return redis.getdel<T>(key);
+    },
+    async setIfAbsent<T>(key: string, value: T, ttlSec: number): Promise<boolean> {
+      const result = await redis.set(key, value, { nx: true, ex: ttlSec });
+      return result === "OK";
     },
   };
 }

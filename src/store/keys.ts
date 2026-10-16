@@ -1,6 +1,7 @@
 const PREFIX = "wb:v1";
 const DISCORD_ID = /^\d+$/;
 const TOKEN_PART = /^[A-Za-z0-9_.-]{1,128}$/;
+const EVENT = /^[a-z0-9_.-]{1,64}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 // Returns the value when it matches; throws without echoing the value.
@@ -18,6 +19,9 @@ export const keys: {
   thread(id: string): string; // disambiguation / follow-up context
   spend(day: string): string; // daily USD
   cache(scope: string, hash: string): string; // short-lived Wizzrobe read cache
+  lock(discordUserId: string): string; // per-user in-flight lock, 120 s
+  kill(): string; // kill switch: any value pauses the bot
+  alert(event: string): string; // staff-alert rate limit, 600 s
 } = {
   link(discordUserId: string): string {
     return `${PREFIX}:link:${part(discordUserId, DISCORD_ID, "discord id")}`;
@@ -44,5 +48,14 @@ export const keys: {
     const s = part(scope, TOKEN_PART, "cache scope");
     const h = part(hash, TOKEN_PART, "cache hash");
     return `${PREFIX}:cache:${s}:${h}`;
+  },
+  lock(discordUserId: string): string {
+    return `${PREFIX}:lock:${part(discordUserId, DISCORD_ID, "discord id")}`;
+  },
+  kill(): string {
+    return `${PREFIX}:kill`;
+  },
+  alert(event: string): string {
+    return `${PREFIX}:alert:${part(event, EVENT, "alert event")}`;
   },
 };

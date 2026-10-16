@@ -46,10 +46,14 @@ export async function takePending(
   discordUserId: string,
   now: Date,
 ): Promise<PendingAction | "expired" | "not_yours"> {
-  const record = await kv().get<PendingAction>(keys.pending(id));
+  const key = keys.pending(id);
+  const record = await kv().take<PendingAction>(key);
   if (record === null || record.expiresAt <= now.getTime()) return "expired";
-  if (record.discordUserId !== discordUserId) return "not_yours";
-  await kv().del(keys.pending(id));
+  if (record.discordUserId !== discordUserId) {
+    const remainingSec = Math.max(1, Math.ceil((record.expiresAt - now.getTime()) / 1000));
+    await kv().set(key, record, remainingSec);
+    return "not_yours";
+  }
   return record;
 }
 
@@ -75,7 +79,7 @@ export async function loadThread(
 ): Promise<ThreadRecord | "expired" | "not_yours"> {
   const record = await kv().get<ThreadRecord>(keys.thread(id));
   if (record === null || record.expiresAt <= now.getTime()) return "expired";
-  if (record.discordUserId !== discordUserId) return "not_yours";
+  if (record.discordUserId !== discordUserId && record.ephemeral) return "not_yours";
   const slid: ThreadRecord = { ...record, expiresAt: now.getTime() + THREAD_TTL_MS };
   await kv().set(keys.thread(id), slid, THREAD_TTL_SEC);
   return slid;
