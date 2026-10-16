@@ -132,7 +132,10 @@ export interface AskContext {
   question: string;                 // already normalizeInput()'d
   now: Date;
   ephemeral: boolean;
+  history: ConversationTurn[];       // earlier turns of this thread, oldest first (empty for a new question)
 }
+
+export interface ConversationTurn { role: "user" | "assistant"; text: string }
 
 export interface Answer {
   text: string;                     // markdown, finalizeText() applied at render
@@ -180,10 +183,11 @@ export interface LinkRecord {         // stored at keys.link(discordUserId) as J
   rolesCheckedAt: number;             // epoch ms; roles refresh at most every 10 minutes
 }
 
-export interface ThreadRecord {       // disambiguation context, keys.thread(id), sliding TTL (L15)
+export interface ThreadRecord {       // one conversation (follow-ups and choices), keys.thread(id), sliding 30 min TTL (L15)
   id: string;
-  discordUserId: string;              // only this user may pick a choice
-  question: string;                   // the normalized question that produced the choices
+  discordUserId: string;              // only this user may follow up or pick a choice
+  question: string;                   // the latest normalized question
+  turns: ConversationTurn[];          // last 6 turns, oldest first, each text capped at 1500 chars
   decision: RoutingDecision;
   ephemeral: boolean;
   createdAt: number;
@@ -289,7 +293,8 @@ export function finalizeText(text: string): string[];   // dash-free, split <= 2
 
 // discord/render.ts
 export function renderAnswer(a: Answer, ids?: { pendingId?: string; threadId?: string }): RESTPatchAPIInteractionOriginalResponseJSONBody[];
-// pendingId -> Confirm/Cancel buttons; threadId -> one "choose" button per choice
+// pendingId -> Confirm/Cancel buttons (no follow-up button); threadId with choices -> one
+// "choose" button per choice; threadId without choices -> one "Ask a follow-up" button
 export function renderError(message: string, ephemeral: boolean): RESTPatchAPIInteractionOriginalResponseJSONBody;
 // every payload carries allowed_mentions: { parse: [] } (L20)
 
@@ -301,7 +306,8 @@ export const COMMANDS: RESTPostAPIChatInputApplicationCommandsJSONBody[];   // w
 export type ComponentAction =
   | { kind: "confirm"; pendingId: string }
   | { kind: "cancel"; pendingId: string }
-  | { kind: "choose"; threadId: string; value: string };
+  | { kind: "choose"; threadId: string; value: string }
+  | { kind: "followup"; threadId: string };              // opens the follow-up modal
 export function encodeCustomId(a: ComponentAction): string;   // <= 100 chars
 export function decodeCustomId(id: string): ComponentAction | null;
 
@@ -441,8 +447,9 @@ export interface BracketSummary {
 }
 export function bracketFor(tournamentId: number): Promise<BracketSummary>;
 // get_tournament (bot token) -> bracket_url -> Challonge API v2.1 (CHALLONGE_API_KEY, read-only).
-// Change-driven snapshot per tournament: refreshed only when Wizzrobe's list_matches for that
-// tournament shows a completed match the snapshot hasn't seen, or the snapshot is over 6 h old.
+// Snapshot per tournament, refreshed only when someone asks AND it is over 60 minutes old AND
+// the community clock is between 08:00 and midnight (no refreshes 00:00 to 08:00 Eastern).
+// Conditional request with the stored ETag; no Wizzrobe call decides freshness.
 // A failed refresh serves the stale snapshot; no key and no snapshot -> "link_only", never an
 // invented table. Monthly Challonge request guard at 450.
 
@@ -467,7 +474,7 @@ export function createPending(a: ProposedAction, discordUserId: string, now: Dat
 export function takePending(id: string, discordUserId: string, now: Date): Promise<PendingAction | "expired" | "not_yours">;
 export function saveThread(t: Omit<ThreadRecord, "createdAt" | "expiresAt">, now: Date): Promise<ThreadRecord>;
 export function loadThread(id: string, discordUserId: string, now: Date): Promise<ThreadRecord | "expired" | "not_yours">;
-// Threads are not single use: loading one slides its TTL (600 s) and keeps it.
+// Threads are not single use: loading one slides its TTL (1800 s) and keeps it.
 
 // actions/execute.ts
 export const WRITE_ARGS: Record<WriteTool, z.ZodType>;              // strict arg schema per write tool (no tenant)
@@ -485,6 +492,7 @@ export interface PipelineRequest {
   question: string;                     // raw text; the pipeline runs normalizeInput itself
   ephemeral: boolean;
   forced?: RoutingDecision;             // shortcuts, /me and picked choices skip the router
+  threadId?: string;                    // continue this thread (follow-up or picked choice); history comes from it
   now: Date;
 }
 export function runAskPipeline(req: PipelineRequest): Promise<void>;   // never throws; always ends in editOriginal (L16)
