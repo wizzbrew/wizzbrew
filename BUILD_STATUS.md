@@ -164,3 +164,6 @@ None open (F1 merged).
   confirm against the real `{"result": [...]}` shape in the e2e suite.
 - Lint: dispatch.ts handleModal `!a || a.kind !== "followup"` -> `a?.kind !== "followup"` (Biome warning).
 - tokens.ts lines 65 and 74 still throw "Run /link" wording; update with tokens.test.ts (R1 left them, outside its files).
+- e2e to reconcile: relay.test.ts scenario 7 (paused now posts a reply, R3c).
+- e2e to reconcile: slash.test.ts cases 3, 4, 5, 6 and Cancel, relay.test.ts case 5 (Confirm line now from describeAction, R4b).
+- e2e to reconcile: slash.test.ts #8 and relay.test.ts #3 (startLink now returns a Discord authorize URL, R2a).
