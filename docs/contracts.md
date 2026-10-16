@@ -68,7 +68,26 @@ tests/
 evals/
   questions.jsonl        fixed question set with expected route (+ expected facts later)
   run.ts                 runs router (and later responders) against them, prints a table
+.env.example             every env var name, empty values
+.gitignore               node_modules, .env*, .vercel, .idea, *.iml, .claude/worktrees
+vercel.json              maxDuration 300 for api/**/*.ts (the Hobby maximum; Pro allows 800)
 ```
+
+`tests/fakes/` holds `kv.ts`, `anthropic.ts`, `discord.ts`, `wizzrobe.ts`, `challonge.ts`, `fetch.ts`.
+`tests/fixtures/challonge/` holds the Challonge v2.1 fixtures.
+
+## Conventions (refined in wave 0, frozen with the rest)
+
+- ESM (`"type": "module"`), `module` and `moduleResolution` `NodeNext`. Every relative import ends
+  in `.js` (Vercel runs the compiled files as Node ESM, which needs the extension; NodeNext makes
+  `tsc` enforce it).
+- `discord-api-types` is a dev dependency: import from it with `import type` only. Use numeric
+  literals for interaction and component types at runtime.
+- Boundary modules expose one test seam each, named `set<Thing>ForTests(x | null)`; `null`
+  restores the real implementation. Tests inject fakes through these, never through `vi.mock` of
+  the module under test (L23).
+- Scripts (`scripts/*.ts`, `evals/run.ts`) read configuration through `configFor(...)`, never
+  `process.env`.
 
 ## Shared types (`src/types.ts`)
 
@@ -148,9 +167,31 @@ export type ResolveResult<T> =
   | { kind: "match"; value: T }
   | { kind: "ambiguous"; options: T[] }
   | { kind: "none" };
+
+export type DiscordEmbed = APIEmbed;  // import type { APIEmbed } from "discord-api-types/v10"
+
+export interface LinkRecord {         // stored at keys.link(discordUserId) as JSON
+  sealedRefreshToken: string;         // seal()ed; never logged
+  wizzrobeUserId: number;
+  username: string;
+  roles: string[];
+  canWrite: boolean;
+  linkedAt: number;                   // epoch ms
+  rolesCheckedAt: number;             // epoch ms; roles refresh at most every 10 minutes
+}
+
+export interface ThreadRecord {       // disambiguation context, keys.thread(id), sliding TTL (L15)
+  id: string;
+  discordUserId: string;              // only this user may pick a choice
+  question: string;                   // the normalized question that produced the choices
+  decision: RoutingDecision;
+  ephemeral: boolean;
+  createdAt: number;
+  expiresAt: number;
+}
 ```
 
-`DiscordEmbed` and the raw interaction types come from `discord-api-types` (dev dependency, types
+The raw interaction types come from `discord-api-types/v10` (dev dependency, `import type`
 only).
 
 ## Errors (`src/errors.ts`)
@@ -166,15 +207,67 @@ export class ModelOutputError extends Error {   // refusal, max_tokens, schema f
   constructor(public stopReason: string, message: string) { super(message); }
 }
 export class UserInputError extends Error {}     // e.g. unparseable time (L3); message is shown to the user
+export class DiscordError extends Error {        // Discord REST failure; 403 names the missing permission (L17)
+  constructor(public status: number, message: string) { super(message); }
+}
 export function userMessageFor(err: unknown): string;   // the one place errors become replies (L16, L17)
 ```
+
+`userMessageFor` maps, in this order (no em dashes, no raw status codes):
+
+| Error | Reply |
+|---|---|
+| `UserInputError` | its own message |
+| `NotLinkedError` | its message if non-empty, else "Run /link first to connect your Wizzrobe account." |
+| `BudgetExceededError` | "I've hit today's usage limit. Try again tomorrow." |
+| `WizzrobeError` 429 | "Wizzrobe is busy, try again in a minute." |
+| `WizzrobeError` 401 | "Your Wizzrobe link expired. Run /link to connect again." |
+| `WizzrobeError` 403 | "Your Wizzrobe account can't do that (`<detail>`)." |
+| `WizzrobeError` 404, detail contains "not enabled" | "That feature is not turned on for this event." |
+| `WizzrobeError` 404, otherwise | "Wizzrobe couldn't find that." |
+| `WizzrobeError` 400 | "Wizzrobe turned that down: `<detail>`" |
+| `WizzrobeError` other | "Wizzrobe is having trouble right now. Try again in a minute." |
+| `ModelOutputError` | "I couldn't put an answer together for that. Try asking another way." |
+| `DiscordError` | "I couldn't post that in Discord (`<message>`)." |
+| anything else | "Something went wrong on my side. Try again in a minute." |
 
 ## Module signatures
 
 ```ts
 // config.ts
-export interface Config { /* every var in .env.example, typed */ }
-export function config(): Config;                        // throws on missing/invalid at first use
+export interface Config {
+  anthropicApiKey: string;              // ANTHROPIC_API_KEY
+  anthropicDailyBudgetUsd: number;      // ANTHROPIC_DAILY_BUDGET_USD, positive
+  discordApplicationId: string;         // DISCORD_APPLICATION_ID
+  discordPublicKey: string;             // DISCORD_PUBLIC_KEY, 64 hex chars
+  discordBotToken: string;              // DISCORD_BOT_TOKEN
+  discordDevGuildId: string | null;     // DISCORD_DEV_GUILD_ID, optional
+  safeDefaultChannelId: string | null;  // SAFE_DEFAULT_CHANNEL_ID, optional (L20)
+  wizzrobeBaseUrl: string;              // WIZZROBE_BASE_URL, e.g. https://wizzrobe.synack.live
+  wizzrobeMcpUrl: string;               // WIZZROBE_MCP_URL, e.g. https://wizzrobe.synack.live/mcp
+  wizzrobeTenant: string;               // WIZZROBE_TENANT, sgl26
+  wizzrobeOauthClientId: string;        // WIZZROBE_OAUTH_CLIENT_ID
+  wizzrobeOauthClientSecret: string;    // WIZZROBE_OAUTH_CLIENT_SECRET
+  wizzrobeOauthRedirectUri: string;     // WIZZROBE_OAUTH_REDIRECT_URI, https://<domain>/api/oauth/callback
+  wizzrobeBotRefreshToken: string;      // WIZZROBE_BOT_REFRESH_TOKEN
+  tokenEncryptionKey: string;           // TOKEN_ENCRYPTION_KEY, base64 of exactly 32 bytes
+  kvRestApiUrl: string;                 // KV_REST_API_URL (injected by the Vercel Upstash integration)
+  kvRestApiToken: string;               // KV_REST_API_TOKEN (same)
+  communityTimezone: string;            // COMMUNITY_TIMEZONE, IANA zone, e.g. America/New_York
+  challongeApiKey: string | null;       // CHALLONGE_API_KEY, optional
+}
+export function config(): Config;                        // validates every var at first use, then caches
+export function configFor<K extends keyof Config>(...keys: K[]): Pick<Config, K>;   // validates only these (scripts)
+export function checkConfig(): { valid: boolean; problems: string[] };              // problems name variables, never values
+export function resetConfigForTests(): void;
+// Optional vars treat "" as absent. Errors name the env var and the rule, never the value.
+
+// log.ts
+export function log(level: "info" | "warn" | "error", event: string, fields?: Record<string, unknown>): void;
+// One JSON line on stdout (stderr for error): {ts, level, event, ...fields}. Any string field
+// longer than 200 chars is clipped (L24). Fields whose key matches
+// /token|secret|authorization|password|api_?key|refresh/i become "[redacted]".
+export function clip(text: string, max?: number): string;   // default 200, appends "..." when cut
 
 // time/time.ts
 export function nowBlock(now: Date): string;             // "Current time: Thu 2026-10-15 20:14 America/New_York"
@@ -194,7 +287,8 @@ export function sanitizeForPrompt(text: string, maxLen?: number): string;       
 export function finalizeText(text: string): string[];   // dash-free, split <= 2000 chars (L13)
 
 // discord/render.ts
-export function renderAnswer(a: Answer, pendingId?: string): RESTPatchAPIInteractionOriginalResponseJSONBody[];
+export function renderAnswer(a: Answer, ids?: { pendingId?: string; threadId?: string }): RESTPatchAPIInteractionOriginalResponseJSONBody[];
+// pendingId -> Confirm/Cancel buttons; threadId -> one "choose" button per choice
 export function renderError(message: string, ephemeral: boolean): RESTPatchAPIInteractionOriginalResponseJSONBody;
 // every payload carries allowed_mentions: { parse: [] } (L20)
 
@@ -213,6 +307,8 @@ export interface DiscordApi {
   registerCommands(commands: unknown[], guildId?: string): Promise<void>;
 }
 export function discordApi(): DiscordApi;
+export function setDiscordApiForTests(d: DiscordApi | null): void;
+// Failures throw DiscordError(status, message); a 403 message names the missing permission.
 
 // store/kv.ts
 export interface Kv {
@@ -222,11 +318,12 @@ export interface Kv {
   incrByFloat(key: string, by: number, ttlSec?: number): Promise<number>;
   expire(key: string, ttlSec: number): Promise<void>;
 }
-export function kv(): Kv;
+export function kv(): Kv;                        // Upstash, lazy singleton
+export function setKvForTests(k: Kv | null): void;
 
 // store/keys.ts
 export const keys: {
-  link(discordUserId: string): string;           // sealed LinkRecord
+  link(discordUserId: string): string;           // LinkRecord JSON (its refresh token is sealed)
   oauthState(state: string): string;             // PKCE verifier + discord user, 10 min
   botToken(): string;                            // cached bot access token
   userToken(discordUserId: string): string;      // cached user access token
@@ -246,12 +343,19 @@ export const PRICING: Record<string, { inPerM: number; outPerM: number; cacheRea
 
 // llm/budget.ts
 export function assertUnderBudget(now: Date): Promise<void>;   // throws BudgetExceededError
-export function recordSpend(model: string, usage: Usage, now: Date): Promise<number>;
+export function recordSpend(model: string, usage: BetaUsage, now: Date): Promise<number>;   // USD of this call
 
 // llm/client.ts
+// SDK types come from "@anthropic-ai/sdk/resources/beta/messages/messages": BetaMessage,
+// BetaUsage, BetaTool, BetaContentBlock, and the non-streaming create params (written here as
+// BetaMessageCreateParams; W0 aliases whatever the installed SDK names it).
 export type Purpose = keyof typeof MODELS;
-export function createMessage(purpose: Purpose, params: Omit<BetaMessageCreateParams, "model">, ctx: { requestId: string; now: Date }): Promise<BetaMessage>;
+export interface AnthropicLike {
+  beta: { messages: { create(params: BetaMessageCreateParams & { betas?: string[] }): Promise<BetaMessage> } };
+}
+export function createMessage(purpose: Purpose, params: Omit<BetaMessageCreateParams, "model"> & { betas?: string[] }, ctx: { requestId: string; now: Date }): Promise<BetaMessage>;
 export function textOf(msg: BetaMessage): string;              // L9
+export function setAnthropicForTests(c: AnthropicLike | null): void;
 
 // router/routes.ts
 export type ClientTool = "challonge_bracket" | "matches_for_me";
@@ -279,20 +383,28 @@ export function userAccessToken(discordUserId: string): Promise<string>;   // th
 
 // wizzrobe/identity.ts
 export function loadAsker(i: APIInteraction): Promise<Asker>;              // the only reader of link keys (L19)
+export function getLink(discordUserId: string): Promise<LinkRecord | null>;
 export function saveLink(discordUserId: string, rec: LinkRecord): Promise<void>;
 export function deleteLink(discordUserId: string): Promise<void>;
 
 // wizzrobe/mcp.ts
 export function connectorParams(token: string, readTools: string[]): { mcp_servers: unknown[]; tools: unknown[]; betas: string[] };
 export function callTool(token: string, name: string, args: Record<string, unknown>): Promise<unknown>;   // direct MCP tools/call, used for confirmed writes and code-side reads
+export interface RawToolResult { isError: boolean; text: string }       // the tool result's text content
+export type RawToolCall = (token: string, name: string, args: Record<string, unknown>) => Promise<RawToolResult>;
+export function setRawToolCallForTests(f: RawToolCall | null): void;   // real: MCP SDK Client over StreamableHTTP
+// A transport-level HTTP failure makes the raw call throw WizzrobeError(status, detail, retryAfterSec).
 // Tool errors arrive as text "<code>: <message>". Map: not_found 404, forbidden 403,
 // unauthorized 401, invalid_request 400, rate limit 429, anything else 500 (keep the message as
 // detail). List tools return {"result": [...]}; callTool returns the parsed JSON as-is.
 
 // wizzrobe/rest.ts
-export function createRescheduleRequest(token: string, matchId: number, body: { reason: string; preferredTime?: string }): Promise<unknown>;
-export function bookBracketGame(token: string, bracketMatchId: number, body: { scheduledAt: string }): Promise<unknown>;
-export function myOpenBracketMatches(token: string): Promise<unknown[]>;
+export function createRescheduleRequest(token: string, matchId: number, body: { kind: "reschedule" | "cancel"; reason: string; proposedAt?: string }): Promise<unknown>;
+// POST /api/matches/{id}/reschedule-requests {kind, reason, proposed_at (ISO UTC, omitted for cancel)} -> 201
+export function bookBracketGame(token: string, bracketMatchId: number, body: { scheduledDate: string; scheduledTime: string; comment?: string }): Promise<unknown>;
+// POST /api/brackets/matches/{id}/games {scheduled_date YYYY-MM-DD, scheduled_time HH:MM, both community clock} -> 201
+export function myOpenBracketMatches(token: string, tournamentId?: number): Promise<unknown[]>;
+// GET /api/brackets/my-open-matches[?tournament_id=] -> array. Native brackets are off for sgl26 (404).
 
 // wizzrobe/resolve.ts
 export function resolveByName<T>(input: string, items: T[], nameOf: (t: T) => string): ResolveResult<T>;   // L18
@@ -335,13 +447,95 @@ export function runResponder(route: Route, decision: RoutingDecision, ctx: AskCo
 // actions/pending.ts
 export function createPending(a: ProposedAction, discordUserId: string, now: Date): Promise<PendingAction>;
 export function takePending(id: string, discordUserId: string, now: Date): Promise<PendingAction | "expired" | "not_yours">;
+export function saveThread(t: Omit<ThreadRecord, "createdAt" | "expiresAt">, now: Date): Promise<ThreadRecord>;
+export function loadThread(id: string, discordUserId: string, now: Date): Promise<ThreadRecord | "expired" | "not_yours">;
+// Threads are not single use: loading one slides its TTL (600 s) and keeps it.
 
 // actions/execute.ts
 export function executeAction(p: PendingAction): Promise<string>;   // user-facing result line
 
-// handlers/*
+// handlers/ask.ts
+export interface PipelineRequest {
+  requestId: string;
+  interaction: APIInteraction;          // for loadAsker and the interaction token
+  question: string;                     // raw text; the pipeline runs normalizeInput itself
+  ephemeral: boolean;
+  forced?: RoutingDecision;             // shortcuts, /me and picked choices skip the router
+  now: Date;
+}
+export function runAskPipeline(req: PipelineRequest): Promise<void>;   // never throws; always ends in editOriginal (L16)
+
+// handlers/shortcuts.ts
+export function shortcutRequest(i: APIChatInputApplicationCommandInteraction, now: Date): { question: string; decision: RoutingDecision } | null;
+// /schedule /live /standings /player -> a fixed route; null for any other command; UserInputError on a bad day
+
+// handlers/link.ts
+export function runLinkCommand(name: "link" | "unlink" | "me", i: APIChatInputApplicationCommandInteraction, requestId: string, now: Date): Promise<void>;   // never throws
+
+// handlers/component.ts
+export function runComponent(i: APIMessageComponentInteraction, requestId: string, now: Date): Promise<void>;   // never throws
+
+// handlers/dispatch.ts
 export function handleInteraction(i: APIInteraction, waitUntil: (p: Promise<unknown>) => void): Promise<Response>;
+
+// api/interactions.ts, api/health.ts, api/oauth/callback.ts (Vercel web-standard handlers)
+export function POST(request: Request): Promise<Response>;   // interactions
+export function GET(request: Request): Promise<Response>;    // health, oauth/callback
 ```
+
+## Fakes (`tests/fakes/`, test code only)
+
+```ts
+// kv.ts
+export class FakeKv implements Kv {
+  constructor(clock?: () => number);                 // epoch ms; TTLs expire against it
+  has(key: string): boolean;                         // present and not expired
+  keys(): string[];                                  // live keys
+}
+
+// anthropic.ts
+export class FakeAnthropic implements AnthropicLike {
+  readonly requests: unknown[];                      // every create() params, in order
+  queue(...msgs: BetaMessage[]): this;               // answered in order; create() on an empty queue throws
+}
+export function fakeMessage(content: BetaContentBlock[], opts?: { stop_reason?: string; model?: string; usage?: Partial<BetaUsage> }): BetaMessage;
+export const block: {
+  text(text: string): BetaContentBlock;
+  thinking(thinking: string): BetaContentBlock;
+  toolUse(name: string, input: unknown, id?: string): BetaContentBlock;
+  mcpToolUse(name: string, input: unknown, id?: string): BetaContentBlock;          // server_name "wizzrobe"
+  mcpToolResult(toolUseId: string, text: string, isError?: boolean): BetaContentBlock;
+};
+
+// discord.ts
+export class FakeDiscordApi implements DiscordApi {
+  readonly calls: { method: "editOriginal" | "followup" | "registerCommands"; token: string | null; body: unknown }[];
+  failNext(err: Error): void;                        // the next call throws err
+}
+
+// wizzrobe.ts
+export class FakeWizzrobe {
+  readonly calls: { tool: string; token: string; args: Record<string, unknown> }[];
+  readonly rawToolCall: RawToolCall;                 // answers from tests/fixtures/wizzrobe/<tool>.json
+  readonly fetch: typeof fetch;                      // REST gaps, from rest_*.json fixtures
+  featuresOff: boolean;                              // bracket, qualifier, race-room tools -> not_found (default true)
+  answer(tool: string, result: unknown): void;       // override one tool's result
+  failTool(tool: string, code: string, message: string): void;   // isError text "<code>: <message>"
+  failRest(path: string, status: number, detail: string, retryAfterSec?: number): void;
+}
+
+// challonge.ts
+export class FakeChallonge {
+  readonly requests: string[];                       // URLs fetched
+  readonly fetch: typeof fetch;                      // serves tests/fixtures/challonge/*.json
+  fail(status: number): void;                        // every later request answers this status
+}
+
+// fetch.ts
+export function combineFetch(...routes: { prefix: string; fetch: typeof fetch }[]): typeof fetch;   // by URL prefix; unknown URL throws
+```
+
+Fixture files carry a `_note` key; the fakes strip it before answering.
 
 ## How a request flows
 
