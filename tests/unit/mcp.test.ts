@@ -158,6 +158,32 @@ describe("callTool read cache", () => {
   });
 });
 
+describe("callTool token rate cap", () => {
+  it("rejects the 101st uncached call in a minute without calling Wizzrobe", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-15T12:00:10Z"));
+    for (let i = 0; i < 100; i++) await callTool("tok-1", "whoami", {});
+    expect(fake.calls).toHaveLength(100);
+    const err = await callTool("tok-1", "whoami", {}).catch((e) => e);
+    expect(err).toBeInstanceOf(WizzrobeError);
+    expect(err).toMatchObject({ status: 429, retryAfterSec: 30 });
+    expect(fake.calls).toHaveLength(100);
+    // another token and the next minute are unaffected
+    await callTool("tok-2", "whoami", {});
+    vi.setSystemTime(new Date("2026-10-15T12:01:10Z"));
+    await callTool("tok-1", "whoami", {});
+    expect(fake.calls).toHaveLength(102);
+  });
+
+  it("does not count cached reads", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-15T12:00:10Z"));
+    await callTool("tok-1", "get_match", { match_id: 1 });
+    for (let i = 0; i < 150; i++) await callTool("tok-1", "get_match", { match_id: 1 });
+    expect(fake.calls).toHaveLength(1);
+  });
+});
+
 describe("callTool 429 retry", () => {
   // Fails the first `failures` calls with a rate error, then answers like the fake.
   function rateLimited(failures: number, retryAfterSec?: number): RawToolCall {

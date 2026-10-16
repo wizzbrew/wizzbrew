@@ -77,7 +77,7 @@ export async function createMessage(
   }
 
   // L12: price by the model that answered, not the one requested.
-  const usd = await recordSpend(msg.model, msg.usage, ctx.now);
+  const usd = await recordSpend(msg.model, msg.usage, ctx.now, MODELS[purpose]);
 
   // L24: usage and ids only. Never message text or the prompt. log() redacts any key that
   // matches /token/i, so the counts use "tok" and not "tokens" or they would log as [redacted].

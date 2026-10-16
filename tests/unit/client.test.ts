@@ -186,6 +186,12 @@ describe("createMessage spend and stops", () => {
     expect(spent).toBeGreaterThan(0);
   });
 
+  it("prices an unknown answering model as the requested purpose's model", async () => {
+    fake.queue(fakeMessage([block.text("ok")], { model: "claude-future-9", usage }));
+    await createMessage("responder", BASE, CTX);
+    expect(Number(await kv.get(spendKey()))).toBeCloseTo(expectedUsd("claude-sonnet-5-5"), 12);
+  });
+
   it("adds to the day's spend across calls", async () => {
     fake.queue(
       fakeMessage([block.text("a")], { usage }),

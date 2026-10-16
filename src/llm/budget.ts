@@ -1,6 +1,7 @@
 import type { BetaUsage } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { config } from "../config.js";
 import { BudgetExceededError } from "../errors.js";
+import { log } from "../log.js";
 import { keys } from "../store/keys.js";
 import { kv } from "../store/kv.js";
 import { communityDate } from "../time/time.js";
@@ -15,10 +16,20 @@ export async function assertUnderBudget(now: Date): Promise<void> {
   }
 }
 
-export async function recordSpend(model: string, usage: BetaUsage, now: Date): Promise<number> {
-  const price = PRICING[model];
+export async function recordSpend(
+  model: string,
+  usage: BetaUsage,
+  now: Date,
+  fallbackModel?: string,
+): Promise<number> {
+  let price = PRICING[model];
   if (price === undefined) {
-    throw new Error(`no pricing for ${model}`);
+    const fallback = fallbackModel === undefined ? undefined : PRICING[fallbackModel];
+    if (fallback === undefined) {
+      throw new Error(`no pricing for ${model}`);
+    }
+    log("warn", "budget.unknown_model", { model });
+    price = fallback;
   }
   const usd =
     (usage.input_tokens * price.inPerM +

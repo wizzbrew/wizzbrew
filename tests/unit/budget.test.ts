@@ -97,6 +97,29 @@ describe("recordSpend", () => {
     expect(usd).toBeCloseTo(0.000145, 12);
   });
 
+  it("prices an unknown model as the fallback and warns", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const usd = await recordSpend(
+      "claude-future-9",
+      usage({ input_tokens: 1000, output_tokens: 500 }),
+      NOW,
+      "claude-sonnet-5-5",
+    );
+    expect(usd).toBeCloseTo(0.007, 12);
+    const out = spy.mock.calls.map((c) => String(c[0])).join("\n");
+    expect(out).toContain("budget.unknown_model");
+    expect(out).toContain("claude-future-9");
+    spy.mockRestore();
+  });
+
+  it("throws for an unknown model with no fallback or an unknown fallback", async () => {
+    const u = usage({ input_tokens: 1, output_tokens: 1 });
+    await expect(recordSpend("claude-future-9", u, NOW)).rejects.toThrow("no pricing");
+    await expect(recordSpend("claude-future-9", u, NOW, "also-unknown")).rejects.toThrow(
+      "no pricing",
+    );
+  });
+
   it("treats null cache counts as zero", async () => {
     const usd = await recordSpend(
       "claude-sonnet-5-5",
