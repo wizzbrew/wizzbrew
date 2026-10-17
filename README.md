@@ -21,7 +21,7 @@ up as crew, acknowledge a match, offer a match for stream.
   stream and standings answers post publicly.
 - **Casual chat.** Chat has A Link to the Past and randomizer reference knowledge from
   `prompts/alttp-game-knowledge.md`. After editing it, rebuild the prompt constant with
-  `npx tsx scripts/build-knowledge.ts`; the unit tests fail until you do.
+  `npm run build:knowledge`; the unit tests fail until you do.
 
 ## Architecture
 
