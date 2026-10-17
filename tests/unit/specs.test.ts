@@ -70,6 +70,13 @@ describe("specs", () => {
     expect(SPECS.schedule.instructions).toContain("matches_for_me");
   });
 
+  it("chat answers game questions from the reference and admits a gap in one line", () => {
+    const chat = SPECS.chat.instructions;
+    expect(chat).toContain("reference material in the system prompt");
+    expect(chat).toContain("citing the dungeon, boss or item requirement");
+    expect(chat).toContain("say so in one line rather than guessing");
+  });
+
   it("avoids sample phrasing, trailing question marks and dashes", () => {
     for (const [name, text] of texts) {
       for (const bad of ["e.g.", "for example", "such as"]) {
