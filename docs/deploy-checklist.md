@@ -48,10 +48,11 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 ## 5. Vercel project and env vars
 
 - Push the repo to GitHub and import it in Vercel. Framework preset: Other. Set the production
-  branch to `release/v0.1` (Settings, Environments, Production).
-- Set every name from `.env.example` on Production only. Preview gets nothing: no env vars at
-  all, so branch code fails at startup instead of touching production. (When adding a variable in
-  Vercel, untick Preview and Development.)
+  branch to `release/v0.1` (Settings, Environments, Production) and the Ignored Build Step
+  (Settings, Git) to `[ "$VERCEL_ENV" = "production" ] && exit 1 || exit 0`, so only the release
+  branch ever builds.
+- Set every name from `.env.example` on Production only. (When adding a variable in Vercel,
+  untick Preview and Development.)
 
 | Name | Source |
 |---|---|
@@ -84,8 +85,8 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 
 ## 6. Deploy and the Interactions Endpoint
 
-- Production builds from `release/v0.1`. Every other branch, `main` included, gets a Preview
-  deploy, which has no env vars and so fails at startup by design.
+- Production builds from `release/v0.1` and nothing else: the Ignored Build Step skips every
+  other branch, `main` included.
 - To ship a release:
   1. On `main`, bump the patch version in `package.json` and `relay/package.json` (a PR, squash
      merged, with `npm run check` green locally).
