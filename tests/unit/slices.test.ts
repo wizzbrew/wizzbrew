@@ -59,7 +59,7 @@ describe("gameSystemBlocks order and cache flags", () => {
     ];
     for (const routine of [...ROUTINE_NAMES, undefined]) {
       for (const names of subjects) {
-        for (const g of [undefined, "alttp", "sm"] as const) {
+        for (const g of [undefined, "alttp", "sm", "z1r"] as const) {
           const blocks = gameSystemBlocks(game({ routine, subjects: names, game: g }));
           expect(blocks.length).toBeLessThanOrEqual(1 + MAX_SUBJECT_BLOCKS);
           expect(blocks.filter((b) => b.cache_control !== undefined).length).toBeLessThanOrEqual(3);
@@ -216,8 +216,8 @@ describe("routine and game inference", () => {
     expect(planGame(game({ game: "sm" })).game).toBe("sm");
   });
 
-  it("has a reference for both games (the fallback for a game with none is in slices-nodata)", () => {
-    for (const g of ["alttp", "sm"] as const) {
+  it("has a reference for every game (the fallback for a game with none is in slices-nodata)", () => {
+    for (const g of ["alttp", "sm", "z1r"] as const) {
       const d = game({ game: g, routine: "general" });
       expect(planGame(d).hasReference, g).toBe(true);
       expect(gameVolatileLines(d), g).toEqual([]);

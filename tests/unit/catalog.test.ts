@@ -68,7 +68,6 @@ describe("resolveSubjects bosses", () => {
     ["Trinexx", "tr"],
     ["Agahnim", "ct"],
     ["Agahnim 2", "gt"],
-    ["Ganon", "gt"],
     ["Ball & Chain Guard", "hc"],
   ];
   for (const [written, key] of cases) {
@@ -76,6 +75,12 @@ describe("resolveSubjects bosses", () => {
       expect(resolveSubjects([written]).dungeons).toEqual([{ game: "alttp", key }]);
     });
   }
+
+  // Ganon is a boss of Zelda 1 as well, so on its own the name needs a game; the tests for
+  // names several games know cover it.
+  it("sends Ganon to Ganon's Tower once the game is A Link to the Past", () => {
+    expect(resolveSubjects(["Ganon"], "alttp").dungeons).toEqual([{ game: "alttp", key: "gt" }]);
+  });
 });
 
 describe("resolveSubjects items", () => {
@@ -384,18 +389,20 @@ describe("Super Metroid catalog", () => {
   });
 });
 
-describe("names both games know", () => {
+describe("names several games know", () => {
   it("keeps one entry per game for bombs", () => {
     expect(resolveSubjects(["bombs"]).items).toEqual([
       { game: "alttp", key: "bombs" },
       { game: "sm", key: "bombs" },
+      { game: "z1r", key: "bombs" },
     ]);
     expect(resolveSubjects(["bombs"], "alttp").items).toEqual([{ game: "alttp", key: "bombs" }]);
     expect(resolveSubjects(["Bomb"], "sm").items).toEqual([{ game: "sm", key: "bombs" }]);
+    expect(resolveSubjects(["Bomb"], "z1r").items).toEqual([{ game: "z1r", key: "bombs" }]);
   });
 
   it("returns only the filtered game's hit and never reports the name unresolved", () => {
-    for (const game of ["alttp", "sm"] as const) {
+    for (const game of ["alttp", "sm", "z1r"] as const) {
       const out = resolveSubjects(["Bombs"], game);
       expect(out.unresolved).toEqual([]);
       expect(out.dungeons).toEqual([]);
