@@ -12,7 +12,8 @@ const REDIRECT_URI = `http://${HOST}:${PORT}/callback`;
 const SCOPE = "wizzrobe:read";
 const WAIT_MS = 5 * 60 * 1000;
 
-// Resolves with the authorization code from the first request to /callback.
+// Resolves with the authorization code from the first /callback request that carries the
+// expected state. A callback with any other state is answered 410 and ignored.
 function waitForCode(expectedState: string, authorizeUrl: string): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const server = createServer((req, res) => {
@@ -31,9 +32,11 @@ function waitForCode(expectedState: string, authorizeUrl: string): Promise<strin
       const code = url.searchParams.get("code");
       const denied = url.searchParams.get("error");
       if (url.searchParams.get("state") !== expectedState) {
-        finish(400, "State mismatch. Close this tab and run the script again.", () =>
-          reject(new Error("The callback state did not match; start again")),
-        );
+        // A stale tab reloading (an earlier run's link) is not the callback we are waiting for.
+        // Answer it and keep listening until the right one arrives or the timeout fires.
+        res
+          .writeHead(410, { "content-type": "text/plain", connection: "close" })
+          .end("Old link. Close this tab.");
       } else if (denied !== null || code === null || code === "") {
         finish(400, "Authorization failed. Close this tab.", () =>
           reject(new Error(`Authorization failed${denied === null ? "" : `: ${denied}`}`)),

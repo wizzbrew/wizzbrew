@@ -31,17 +31,15 @@ interface Item {
 }
 
 function listed(items: Item[]) {
-  return {
-    result: items.map((i) => ({
-      id: i.id,
-      tournament: "ALttPR",
-      scheduled_at: `2026-10-16T${String(10 + (i.id % 12)).padStart(2, "0")}:00:00Z`,
-      status: i.status ?? "scheduled",
-      players: i.players ?? ["Player One", "Player Two"],
-      stage: "Fire",
-      restream_url: "https://twitch.tv/x",
-    })),
-  };
+  return items.map((i) => ({
+    id: i.id,
+    tournament: "ALttPR",
+    scheduled_at: `2026-10-16T${String(10 + (i.id % 12)).padStart(2, "0")}:00:00Z`,
+    status: i.status ?? "scheduled",
+    players: i.players ?? ["Player One", "Player Two"],
+    stage: "Fire",
+    restream_url: "https://twitch.tv/x",
+  }));
 }
 
 function roster(discordIds: (string | number)[]) {

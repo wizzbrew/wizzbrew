@@ -119,7 +119,10 @@ describe("slash commands end to end", () => {
     expect(world.anthropic.requests).toHaveLength(0);
     const edits = sent(world, "editOriginal", "tok2");
     expect(edits).toHaveLength(1);
-    expect(edits[0]?.content).toContain("**Earth**");
+    // list_stages is the recorded live shape: a bare array, not {result: [...]}.
+    for (const stage of ["Earth", "Fire", "Water", "Air"]) {
+      expect(edits[0]?.content).toContain(`**${stage}**`);
+    }
     expect(edits[0]?.content).toContain("Now:");
   });
 
@@ -323,19 +326,17 @@ describe("slash commands end to end", () => {
   });
 
   it("10. a Wizzrobe 429 mid-answer becomes the busy message", async () => {
-    world.wizzrobe.answer("list_matches", {
-      result: [
-        {
-          id: 1,
-          tournament: "A Link to the Past Randomizer",
-          scheduled_at: new Date(Date.now() + 3_600_000).toISOString(),
-          status: "scheduled",
-          players: ["Player One", "Player Two"],
-          stage: null,
-          restream_url: null,
-        },
-      ],
-    });
+    world.wizzrobe.answer("list_matches", [
+      {
+        id: 1,
+        tournament: "A Link to the Past Randomizer",
+        scheduled_at: new Date(Date.now() + 3_600_000).toISOString(),
+        status: "scheduled",
+        players: ["Player One", "Player Two"],
+        stage: null,
+        restream_url: null,
+      },
+    ]);
     world.wizzrobe.failTool("get_match", "rate_limited", "slow down");
     world.anthropic.queue(
       routerReply("schedule"),

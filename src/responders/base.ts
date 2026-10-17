@@ -107,7 +107,7 @@ async function eventBlock(): Promise<string[]> {
   return out;
 }
 
-function interactionTools(r: RouteSpec): BetaTool[] {
+export function interactionTools(r: RouteSpec): BetaTool[] {
   const tools: BetaTool[] = [
     {
       name: "offer_choices",
@@ -120,8 +120,7 @@ function interactionTools(r: RouteSpec): BetaTool[] {
           prompt: { type: "string" },
           choices: {
             type: "array",
-            minItems: 1,
-            maxItems: 5,
+            description: "One to five choices",
             items: {
               type: "object",
               properties: { label: { type: "string" }, value: { type: "string" } },

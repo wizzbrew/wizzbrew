@@ -40,17 +40,18 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 
 ## 4. Upstash Redis
 
-- In the Vercel project, add Upstash Redis from the Marketplace. It injects `KV_REST_API_URL` and
-  `KV_REST_API_TOKEN`.
-- Verify: both names appear in the project's env vars.
+- In the Vercel project, add one Upstash Redis database from the Marketplace: the project's only
+  database. There is no second one for Preview. It injects `KV_REST_API_URL` and
+  `KV_REST_API_TOKEN`; connect it to Production only.
+- Verify: both names appear in the project's env vars, on Production only.
 
 ## 5. Vercel project and env vars
 
 - Push the repo to GitHub and import it in Vercel. Framework preset: Other. Set the production
   branch to `release/v0.1` (Settings, Environments, Production).
-- Set every name from `.env.example`. Production gets the real values. Preview gets its own test
-  values (a separate Anthropic key with a small limit, the test Discord app, a separate Upstash
-  database), so branch code never runs with production secrets:
+- Set every name from `.env.example` on Production only. Preview gets nothing: no env vars at
+  all, so branch code fails at startup instead of touching production. (When adding a variable in
+  Vercel, untick Preview and Development.)
 
 | Name | Source |
 |---|---|
@@ -78,12 +79,21 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 | `RELAY_SECRET` | `openssl rand -base64 32` (at least 32 characters); same value on Railway |
 | `STAFF_ALERT_CHANNEL_ID` | A staff channel id, optional (step 10) |
 
-- Verify: the Vercel env list has no empty required name.
+- Verify: the Vercel env list has no empty required name, and every name is scoped to Production
+  only.
 
 ## 6. Deploy and the Interactions Endpoint
 
-- Vercel's production branch is `release/v0.1`. Merge `main` into it through a PR; Vercel builds
-  production from it. Every other branch, `main` included, gets a Preview deploy.
+- Production builds from `release/v0.1`. Every other branch, `main` included, gets a Preview
+  deploy, which has no env vars and so fails at startup by design.
+- To ship a release:
+  1. On `main`, bump the patch version in `package.json` and `relay/package.json` (a PR, squash
+     merged, with `npm run check` green locally).
+  2. Open a PR from `main` into `release/v0.1`.
+  3. Merge it with a merge commit, never squash, or the branches diverge. Vercel builds
+     production from the merged commit.
+  4. Tag that commit `vX.Y.Z` (the version from step 1) and push the tag:
+     `git fetch origin && git tag vX.Y.Z origin/release/v0.1 && git push origin vX.Y.Z`.
 - In the Discord portal, set the Interactions Endpoint URL to
   `https://<vercel-domain>/api/interactions`.
 - Verify: Discord accepts the URL (it sends a PING and refuses on a bad signature check).
@@ -97,9 +107,15 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 
 ## 8. Railway relay
 
-- Create a Railway service from this repo with the root directory `relay`.
-- Set `RELAY_SECRET` (same value as Vercel), `DISCORD_BOT_TOKEN`, `WIZZBREW_URL` (the https
-  Vercel base URL) and `RELAY_CHANNEL_IDS` (comma-separated channel ids to answer in).
+- Create a Railway service from this repo. Railway rejects config as code (`railway.json` and
+  `railway.toml` are deprecated), so the settings live on the service:
+  - root directory: `relay`
+  - build command: `npm ci && npm run build`
+  - start command: `npm start`
+  - restart policy: always
+  - region: US East (`us-east4`)
+- Set the variables: `RELAY_SECRET` (same value as Vercel), `DISCORD_BOT_TOKEN`, `WIZZBREW_URL`
+  (the https Vercel base URL) and `RELAY_CHANNEL_IDS` (comma-separated channel ids to answer in).
 - Verify: the deploy log shows `relay ready`, and the bot shows online in Discord.
 
 ## 9. Smoke tests, in the test server

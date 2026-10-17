@@ -18,7 +18,12 @@ const DEFS: Record<ClientTool, BetaTool> = {
     strict: true,
     input_schema: {
       type: "object",
-      properties: { days_ahead: { type: "integer", minimum: 1, maximum: 14 } },
+      properties: {
+        days_ahead: {
+          type: "integer",
+          description: "How many days ahead to look, a whole number from 1 to 14",
+        },
+      },
       required: ["days_ahead"],
       additionalProperties: false,
     },

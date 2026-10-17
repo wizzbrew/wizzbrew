@@ -17,7 +17,7 @@ vi.mock("../../src/wizzrobe/mcp.js", () => ({
     if (failWith) throw failWith;
     if (name === "list_stages") return fixture("list_stages");
     if (name === "list_tournaments") return fixture("list_tournaments");
-    if (name === "get_schedule") return schedules[String(args.date)] ?? { result: [] };
+    if (name === "get_schedule") return schedules[String(args.date)] ?? [];
     throw new Error(`unexpected tool ${name}`);
   },
 }));
@@ -41,9 +41,7 @@ const match = (id: number, stage: string, at: string, status: string, tournament
   players: [`P${id}a`, `P${id}b`],
   stage,
 });
-const day = (...groups: [string, M[]][]) => ({
-  result: groups.map(([stage, matches]) => ({ stage, matches })),
-});
+const day = (...groups: [string, M[]][]) => groups.map(([stage, matches]) => ({ stage, matches }));
 const epoch = (iso: string): number => Math.floor(new Date(iso).getTime() / 1000);
 
 const TODAY = "2026-10-16";
@@ -158,7 +156,7 @@ describe("scheduleAnswer", () => {
     expect(a.text).toBe("Which one?");
     expect(a.choices).toEqual([
       { label: "Super Metroid Any%", value: "Super Metroid Any%" },
-      { label: "Super Metroid Map Rando", value: "Super Metroid Map Rando" },
+      { label: "Super Metroid Map Randomizer", value: "Super Metroid Map Randomizer" },
     ]);
   });
 
