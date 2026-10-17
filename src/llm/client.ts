@@ -48,6 +48,19 @@ function statusOf(err: unknown): number | undefined {
   return undefined;
 }
 
+// The API's own validation text (error type and message), never prompt or user text (L16, L24).
+function apiErrorDetail(err: unknown): { errType?: string; errMsg?: string } {
+  if (typeof err !== "object" || err === null) return {};
+  const e = err as { error?: { error?: { type?: unknown; message?: unknown } }; message?: unknown };
+  const inner = e.error?.error;
+  const type = typeof inner?.type === "string" ? inner.type : undefined;
+  const msg = typeof inner?.message === "string" ? inner.message : e.message;
+  return {
+    errType: type,
+    errMsg: typeof msg === "string" ? msg.slice(0, 300) : undefined,
+  };
+}
+
 export async function createMessage(
   purpose: Purpose,
   params: Omit<BetaMessageCreateParams, "model"> & { betas?: string[] },
@@ -72,7 +85,12 @@ export async function createMessage(
     );
   } catch (err) {
     // L16: SDK errors propagate unchanged. Log context first, never the prompt.
-    log("warn", "anthropic.error", { requestId: ctx.requestId, purpose, status: statusOf(err) });
+    log("warn", "anthropic.error", {
+      requestId: ctx.requestId,
+      purpose,
+      status: statusOf(err),
+      ...apiErrorDetail(err),
+    });
     throw err;
   }
 

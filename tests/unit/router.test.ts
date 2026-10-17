@@ -266,7 +266,7 @@ describe("routeQuestion request", () => {
         params: {
           additionalProperties: boolean;
           required: string[];
-          properties: Record<string, { type: string[] }>;
+          properties: Record<string, { anyOf: unknown[] }>;
         };
       };
     };
@@ -299,8 +299,12 @@ describe("routeQuestion request", () => {
       "matchId",
       "accountAction",
     ]);
-    expect(params.properties.matchId?.type).toEqual(["integer", "null"]);
-    expect(params.properties.day?.type).toEqual(["string", "null"]);
+    expect(params.properties.matchId?.anyOf).toEqual([{ type: "integer" }, { type: "null" }]);
+    expect(params.properties.day?.anyOf).toEqual([{ type: "string" }, { type: "null" }]);
+    expect(params.properties.accountAction?.anyOf).toEqual([
+      { type: "string", enum: ["link", "unlink"] },
+      { type: "null" },
+    ]);
   });
 
   it("sanitizes the question before it reaches the model", async () => {
