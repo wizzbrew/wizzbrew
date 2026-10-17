@@ -14,14 +14,20 @@ export async function deliver(
   if (target.kind === "interaction") {
     const payloads = renderAnswer(answer, ids);
     if (answer.ephemeral && !target.ephemeral) {
-      await api.editOriginal(target.token, {
-        content: "I sent you the answer privately.",
-        embeds: [],
-        components: [],
-        allowed_mentions: { parse: [] },
-      });
+      // Send the private answer first, then remove the public deferral so nothing public stays.
       for (const p of payloads) {
         await api.followup(target.token, { ...p, flags: PRIVATE_FLAG });
+      }
+      try {
+        await api.deleteOriginal(target.token);
+      } catch (err) {
+        log("warn", "deliver.delete_original_failed", { error: err });
+        await api.editOriginal(target.token, {
+          content: "I sent you the answer privately.",
+          embeds: [],
+          components: [],
+          allowed_mentions: { parse: [] },
+        });
       }
       return;
     }

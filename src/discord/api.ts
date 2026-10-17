@@ -3,6 +3,7 @@ import { DiscordError } from "../errors.js";
 
 export interface DiscordApi {
   editOriginal(token: string, body: unknown): Promise<void>;
+  deleteOriginal(token: string): Promise<void>;
   followup(token: string, body: unknown): Promise<void>;
   registerCommands(commands: unknown[], guildId?: string): Promise<void>;
   postMessage(channelId: string, body: unknown, replyToMessageId?: string): Promise<void>;
@@ -65,7 +66,7 @@ async function send(
 ): Promise<void> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (authorization !== null) headers.Authorization = authorization;
-  const payload = JSON.stringify(body);
+  const payload = body === undefined ? undefined : JSON.stringify(body);
 
   for (let attempt = 0; ; attempt++) {
     let res: Response;
@@ -106,6 +107,16 @@ function realApi(): DiscordApi {
         "PATCH",
         `/webhooks/${applicationId}/${token}/messages/@original`,
         body,
+        null,
+        FORBIDDEN_WEBHOOK,
+      );
+    },
+    async deleteOriginal(token) {
+      const { applicationId } = credentials();
+      await send(
+        "DELETE",
+        `/webhooks/${applicationId}/${token}/messages/@original`,
+        undefined,
         null,
         FORBIDDEN_WEBHOOK,
       );

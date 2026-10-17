@@ -257,8 +257,8 @@ describe("handleInteraction", () => {
     expect(scheduleAnswer).not.toHaveBeenCalled();
   });
 
-  it("follow-up button opens a modal", async () => {
-    vi.mocked(loadThread).mockResolvedValue(thread() as never);
+  it("follow-up button opens a modal, including one left on an old public answer", async () => {
+    vi.mocked(loadThread).mockResolvedValue(thread({ ephemeral: false }) as never);
     const b = await body(await run(button(encodeCustomId({ kind: "followup", threadId: "t1" }))));
     expect(b.type).toBe(9);
     expect(b.data.custom_id).toBe("wb:followup:t1");

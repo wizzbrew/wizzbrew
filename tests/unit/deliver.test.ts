@@ -51,12 +51,53 @@ describe("deliver", () => {
     expect(bodyOf<{ flags?: number }>(1).flags).toBeUndefined();
   });
 
-  it("puts a private answer behind a public deferral", async () => {
+  it("sends a private answer to a public deferral as followups, then deletes the original", async () => {
     await deliver(ix(false), priv, { threadId: "t1" });
-    expect(api.calls[0]?.method).toBe("editOriginal");
-    expect(bodyOf<{ content: string }>(0).content).toBe("I sent you the answer privately.");
-    expect(api.calls[1]?.method).toBe("followup");
-    expect(bodyOf<{ flags: number }>(1).flags).toBe(64);
+    expect(api.calls.map((c) => c.method)).toEqual(["followup", "deleteOriginal"]);
+    expect(api.calls[0]?.token).toBe("tok");
+    expect(bodyOf<{ content: string; flags: number }>(0)).toMatchObject({
+      content: "Just for you",
+      flags: 64,
+    });
+    expect(api.calls[1]?.token).toBe("tok");
+  });
+
+  it("sends every chunk of a long private answer before it deletes the original", async () => {
+    const long: Answer = { text: `${"a".repeat(1500)}\n\n${"b".repeat(1500)}`, ephemeral: true };
+    await deliver(ix(false), long, { threadId: "t1" });
+    const methods = api.calls.map((c) => c.method);
+    expect(methods.length).toBeGreaterThan(2);
+    expect(methods.at(-1)).toBe("deleteOriginal");
+    expect(methods.slice(0, -1).every((m) => m === "followup")).toBe(true);
+    for (const c of api.calls.slice(0, -1)) {
+      expect((c.body as { flags: number }).flags).toBe(64);
+    }
+  });
+
+  it("puts the follow-up button on the private followup", async () => {
+    await deliver(ix(false), priv, { threadId: "t1" });
+    expect(JSON.stringify(bodyOf(0))).toContain("wb:followup:t1");
+  });
+
+  it("falls back to the private notice when deleting the original fails", async () => {
+    const recordDelete = api.deleteOriginal.bind(api);
+    api.deleteOriginal = async (token) => {
+      await recordDelete(token);
+      throw new Error("Unknown Webhook");
+    };
+    await deliver(ix(false), priv, { threadId: "t1" });
+    expect(api.calls.map((c) => c.method)).toEqual(["followup", "deleteOriginal", "editOriginal"]);
+    expect(bodyOf<{ content: string; components: unknown[] }>(2)).toMatchObject({
+      content: "I sent you the answer privately.",
+      components: [],
+      allowed_mentions: { parse: [] },
+    });
+  });
+
+  it("never deletes the original for a public answer or a private deferral", async () => {
+    await deliver(ix(false), pub, { threadId: "t1" });
+    await deliver(ix(true), priv, { threadId: "t1" });
+    expect(api.calls.map((c) => c.method)).toEqual(["editOriginal", "editOriginal"]);
   });
 
   it("replies to a message publicly with a reference", async () => {

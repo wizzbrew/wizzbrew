@@ -108,7 +108,9 @@ function buildComponents(
         return rows;
       }
     }
-    rows.push(followupRow(ids.threadId));
+    // A public answer takes replies, so only a private one, which cannot be replied to, needs the
+    // button. An old public message may still carry one, and pressing it keeps working.
+    if (a.ephemeral) rows.push(followupRow(ids.threadId));
   }
   return rows;
 }

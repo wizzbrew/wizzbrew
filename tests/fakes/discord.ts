@@ -1,6 +1,6 @@
 import type { DiscordApi } from "../../src/discord/api.js";
 
-type Method = "editOriginal" | "followup" | "registerCommands" | "postMessage";
+type Method = "editOriginal" | "deleteOriginal" | "followup" | "registerCommands" | "postMessage";
 
 export class FakeDiscordApi implements DiscordApi {
   readonly calls: {
@@ -28,6 +28,10 @@ export class FakeDiscordApi implements DiscordApi {
 
   async editOriginal(token: string, body: unknown): Promise<void> {
     this.record("editOriginal", token, body);
+  }
+
+  async deleteOriginal(token: string): Promise<void> {
+    this.record("deleteOriginal", token, null);
   }
 
   async followup(token: string, body: unknown): Promise<void> {

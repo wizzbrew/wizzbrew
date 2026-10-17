@@ -376,6 +376,11 @@ export function sent(world: World, method: "editOriginal" | "followup", token?: 
     .map((c) => c.body as Payload);
 }
 
+// The interaction tokens whose original (deferred) response was deleted, in call order.
+export function deletedOriginals(world: World): (string | null)[] {
+  return world.discord.calls.filter((c) => c.method === "deleteOriginal").map((c) => c.token);
+}
+
 export function buttons(p: Payload): { label: string; custom_id: string }[] {
   return (p.components ?? []).flatMap((row) => row.components);
 }
