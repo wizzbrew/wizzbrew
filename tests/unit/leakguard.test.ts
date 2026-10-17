@@ -7,8 +7,12 @@ import {
   PROTECTED_TEXTS,
 } from "../../src/discord/leakguard.js";
 import { ALTTP_KNOWLEDGE } from "../../src/personality/knowledge.js";
-import { CORE } from "../../src/personality/voice.js";
-import { KNOWLEDGE_FRAMING, PROPOSE_ACTION_DESCRIPTION } from "../../src/responders/fixedtext.js";
+import { CHAT_BLOCK, CORE, DATA_BLOCK, HELP_BLOCK } from "../../src/personality/voice.js";
+import {
+  KNOWLEDGE_FRAMING,
+  OFFER_CHOICES_DESCRIPTION,
+  PROPOSE_ACTION_DESCRIPTION,
+} from "../../src/responders/fixedtext.js";
 import { SHARED_RULES, SPECS } from "../../src/responders/specs.js";
 import { ROUTER_PROMPT } from "../../src/router/prompt.js";
 
@@ -75,14 +79,68 @@ describe("isPromptLeak", () => {
 
   it("protects every kind of fixed prompt text", () => {
     const probes: [string, string][] = [
+      ["voice register block", CHAT_BLOCK],
       ["shared rules", SHARED_RULES.slice(300, 400)],
-      ["spec instructions", SPECS.crew.instructions.slice(100, 200)],
       ["router prompt", ROUTER_PROMPT.slice(500, 600)],
       ["knowledge framing", KNOWLEDGE_FRAMING],
       ["tool description", PROPOSE_ACTION_DESCRIPTION],
     ];
     for (const [name, text] of probes) {
       expect(isPromptLeak(text), name).toBe(true);
+    }
+  });
+
+  it("catches a chunk of every text in the protected set", () => {
+    for (const [i, text] of PROTECTED_TEXTS.entries()) {
+      const collapsed = text.replace(/\s+/g, " ");
+      // Too short to hold a window: the client tool one-liners.
+      if (collapsed.length < 60) continue;
+      const start = Math.max(0, Math.floor((collapsed.length - 100) / 2));
+      const chunk = collapsed.slice(start, start + 100);
+      expect(isPromptLeak(chunk), `text ${i}: ${collapsed.slice(0, 40)}`).toBe(true);
+    }
+  });
+
+  it("protects the voice, the rules, the router prompt, the framing and the tools only", () => {
+    const set = new Set(PROTECTED_TEXTS);
+    for (const text of [
+      CORE,
+      DATA_BLOCK,
+      HELP_BLOCK,
+      CHAT_BLOCK,
+      SHARED_RULES,
+      ROUTER_PROMPT,
+      KNOWLEDGE_FRAMING,
+      OFFER_CHOICES_DESCRIPTION,
+      PROPOSE_ACTION_DESCRIPTION,
+    ]) {
+      expect(set.has(text), text.slice(0, 40)).toBe(true);
+    }
+    for (const spec of Object.values(SPECS)) {
+      expect(set.has(spec.instructions), spec.route).toBe(false);
+    }
+    expect(set.has(ALTTP_KNOWLEDGE)).toBe(false);
+  });
+
+  it("allows a verbatim chunk of a route spec, which carries public facts", () => {
+    const streams = SPECS.streams.instructions;
+    const chunk = streams.slice(
+      streams.indexOf("The four stages"),
+      streams.indexOf("Prefer the link"),
+    );
+    expect(chunk.length).toBeGreaterThan(80);
+    expect(isPromptLeak(chunk)).toBe(false);
+    expect(isPromptLeak(streams.slice(200, 280))).toBe(false);
+
+    const help = SPECS.help.instructions;
+    const pages = help.slice(help.indexOf("https://onsite"), help.indexOf("Link only these"));
+    expect(pages.length).toBeGreaterThan(80);
+    expect(isPromptLeak(pages)).toBe(false);
+
+    for (const spec of Object.values(SPECS)) {
+      const text = spec.instructions.replace(/\s+/g, " ");
+      if (text.length < 100) continue;
+      expect(isPromptLeak(text.slice(10, 100)), spec.route).toBe(false);
     }
   });
 

@@ -5,7 +5,7 @@ import {
   OFFER_CHOICES_DESCRIPTION,
   PROPOSE_ACTION_DESCRIPTION,
 } from "../responders/fixedtext.js";
-import { SHARED_RULES, SPECS } from "../responders/specs.js";
+import { SHARED_RULES } from "../responders/specs.js";
 import { ROUTER_PROMPT } from "../router/prompt.js";
 import { ROUTES } from "../router/routes.js";
 
@@ -88,16 +88,17 @@ export function buildLeakGuard(protectedTexts: readonly string[]): (answer: stri
 
 const clientTools = [...new Set(Object.values(ROUTES).flatMap((r) => r.clientTools))];
 
-// ALTTP_KNOWLEDGE is left out on purpose: public game facts are fine to quote. The per-request
-// context block (tenant, ids, link status) varies, so it cannot be matched here; the Not disclosed
-// rule covers it.
+// Left out on purpose: ALTTP_KNOWLEDGE, because public game facts are fine to quote, and the
+// route specs' instructions, because they carry public facts (stage channels, help pages) that a
+// correct answer may repeat verbatim; a false refusal costs more than an uncaught job
+// description. The per-request context block (tenant, ids, link status) varies, so it cannot be
+// matched here; the Not disclosed rule covers it.
 export const PROTECTED_TEXTS: readonly string[] = [
   CORE,
   DATA_BLOCK,
   HELP_BLOCK,
   CHAT_BLOCK,
   SHARED_RULES,
-  ...Object.values(SPECS).map((s) => s.instructions),
   ROUTER_PROMPT,
   KNOWLEDGE_FRAMING,
   OFFER_CHOICES_DESCRIPTION,
