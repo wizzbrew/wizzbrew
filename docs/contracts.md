@@ -521,6 +521,8 @@ export const SHARED_RULES: string;
 
 // responders/base.ts
 export function runResponder(route: Route, decision: RoutingDecision, ctx: AskContext): Promise<Answer>;
+// Every model-written answer passes the prompt leak guard: on a hit the text becomes LEAK_REFUSAL, choices
+// and any proposed action are dropped, and guard.prompt_leak is logged (ids only).
 
 // actions/pending.ts
 export function createPending(a: ProposedAction, discordUserId: string, now: Date): Promise<PendingAction>;
@@ -743,3 +745,10 @@ export function readDmLog(day: string): Promise<DmLogView>;              // per-
 // handlers/dmlog.ts
 export function runDmLogCommand(i: APIChatInputApplicationCommandInteraction, target: ReplyTarget, now: Date): Promise<void>;
 // owner only (dispatch refuses others before any Redis read); defer ephemeral, then edit the reply; under 2000 chars
+
+// discord/leakguard.ts (added 2026-10-17): verbatim-run check of answers against the fixed prompt texts
+export const LEAK_REFUSAL: string;                                  // "I can't share how I'm set up."
+export const PROTECTED_TEXTS: readonly string[];                    // CORE, register blocks, SHARED_RULES, ROUTER_PROMPT, KNOWLEDGE_FRAMING, tool descriptions; never spec instructions or ALTTP_KNOWLEDGE
+export function buildLeakGuard(protectedTexts: readonly string[]): (answer: string) => boolean;   // 60-char windows, stride 20, normalized
+export function isPromptLeak(answer: string): boolean;              // built once from PROTECTED_TEXTS
+// responders/fixedtext.ts: leaf module holding KNOWLEDGE_FRAMING, OFFER_CHOICES_DESCRIPTION, PROPOSE_ACTION_DESCRIPTION (base.ts re-exports KNOWLEDGE_FRAMING)

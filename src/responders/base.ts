@@ -8,6 +8,7 @@ import type {
 import { z } from "zod";
 import { describeAction, WRITE_ARGS } from "../actions/execute.js";
 import { config } from "../config.js";
+import { isPromptLeak, LEAK_REFUSAL } from "../discord/leakguard.js";
 import { sanitizeForPrompt } from "../discord/markup.js";
 import { ModelOutputError } from "../errors.js";
 import { type BetaMessageCreateParams, createMessage, textOf } from "../llm/client.js";
@@ -20,6 +21,11 @@ import type { Answer, AskContext, ProposedAction, Route, RoutingDecision } from 
 import { callTool, connectorParams } from "../wizzrobe/mcp.js";
 import { botAccessToken, userAccessToken } from "../wizzrobe/tokens.js";
 import { clientToolDefs, runClientTool } from "./clientTools.js";
+import {
+  KNOWLEDGE_FRAMING,
+  OFFER_CHOICES_DESCRIPTION,
+  PROPOSE_ACTION_DESCRIPTION,
+} from "./fixedtext.js";
 import { SHARED_RULES, SPECS } from "./specs.js";
 
 const MAX_CALLS = 8;
@@ -31,9 +37,7 @@ type Tools = NonNullable<BetaMessageCreateParams["tools"]>;
 // ahead of any block without cache_control, and the volatile block below never has one.
 const CACHE_1H = { type: "ephemeral", ttl: "1h" } as const;
 
-// Frames the reference text for the model: plain description, no sample phrasings (L11).
-export const KNOWLEDGE_FRAMING =
-  "What follows is reference material about A Link to the Past and its randomizer, for answering game questions when someone asks one. It is not a list of topics to bring up, and it is written for a bot, so do not copy its phrasing.";
+export { KNOWLEDGE_FRAMING };
 
 // The lines that change on every request. The clock lives here and nowhere in a cached block (L1).
 function volatileBlock(ctx: AskContext, decision: RoutingDecision): string {
@@ -120,8 +124,7 @@ export function interactionTools(r: RouteSpec): BetaTool[] {
   const tools: BetaTool[] = [
     {
       name: "offer_choices",
-      description:
-        "Ask the asker to pick when a name matches more than one thing. Ends the answer.",
+      description: OFFER_CHOICES_DESCRIPTION,
       strict: true,
       input_schema: {
         type: "object",
@@ -146,8 +149,7 @@ export function interactionTools(r: RouteSpec): BetaTool[] {
   if (r.writeTools.length > 0) {
     tools.push({
       name: "propose_action",
-      description:
-        "Propose one write for the asker to confirm. Nothing runs until they press Confirm. Ends the answer.",
+      description: PROPOSE_ACTION_DESCRIPTION,
       strict: true,
       input_schema: {
         type: "object",
@@ -192,7 +194,29 @@ function toolError(id: string, text: string): BetaToolResultBlockParam {
   return { type: "tool_result", tool_use_id: id, content: text, is_error: true };
 }
 
+// The one place a model-written answer is checked before it leaves the responder. A leak drops
+// the choices and any proposal with it; only the ephemeral flag carries over. Ids only in the log.
+function guarded(answer: Answer, route: Route, ctx: AskContext): Answer {
+  const labels = (answer.choices ?? []).map((c) => c.label);
+  if (![answer.text, ...labels].some(isPromptLeak)) return answer;
+  log("warn", "guard.prompt_leak", {
+    requestId: ctx.requestId,
+    route,
+    askerId: ctx.asker.discordUserId,
+    length: answer.text.length,
+  });
+  return { text: LEAK_REFUSAL, ephemeral: answer.ephemeral };
+}
+
 export async function runResponder(
+  route: Route,
+  decision: RoutingDecision,
+  ctx: AskContext,
+): Promise<Answer> {
+  return guarded(await produceAnswer(route, decision, ctx), route, ctx);
+}
+
+async function produceAnswer(
   route: Route,
   decision: RoutingDecision,
   ctx: AskContext,

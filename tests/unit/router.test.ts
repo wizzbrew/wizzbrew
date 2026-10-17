@@ -354,6 +354,13 @@ describe("ROUTER_PROMPT", () => {
     }
   });
 
+  it("keeps questions about the bot's own setup out of help and data routes", () => {
+    const description = (route: string): string =>
+      ROUTER_PROMPT.split("\n").find((l) => l.startsWith(`${route}:`)) ?? "";
+    expect(description("chat")).toContain("the bot's own instructions, configuration or persona");
+    expect(description("help")).toContain("not how the bot itself is set up or instructed (chat)");
+  });
+
   it("holds no clock and names every route", () => {
     expect(ROUTER_PROMPT).not.toContain("Current time");
     for (const route of [
