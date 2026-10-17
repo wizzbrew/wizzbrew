@@ -284,6 +284,7 @@ export interface Config {
   staffAlertChannelId: string | null;   // STAFF_ALERT_CHANNEL_ID, optional
   ownerDiscordIds: string[];            // OWNER_DISCORD_IDS, optional comma-separated Discord user ids; empty means nobody
   dmDailyLimit: number;                 // DM_DAILY_LIMIT, optional positive integer, default 5
+  matcherinoBountyId: string | null;    // MATCHERINO_BOUNTY_ID, optional digits; null turns the prize pool line off
 }
 export function config(): Config;                        // validates every var at first use, then caches
 export function configFor<K extends keyof Config>(...keys: K[]): Pick<Config, K>;   // validates only these (scripts)
@@ -390,6 +391,7 @@ export const keys: {
   cache(scope: string, hash: string): string;    // short-lived Wizzrobe read cache
   dmLog(day: string): string;                    // wb:v1:dmlog:{YYYY-MM-DD}, list of JSON lines, 14 days
   dmCount(day: string): string;                  // wb:v1:dmcount:{YYYY-MM-DD}, hash of discord id to count, 14 days
+  prizePool(bountyId: string): string;           // wb:v1:prizepool:{id} (fresh, 300 s) and wb:v1:prizepool:stale:{id} (24 h)
   lock(discordUserId: string): string;           // per-user in-flight lock, 120 s
   kill(): string;                                // kill switch: any value pauses the bot
   alert(event: string): string;                  // staff-alert rate limit, 600 s
@@ -768,3 +770,8 @@ export function gameVolatileLines(decision: RoutingDecision): string[];         
 // game/override.ts
 export function overrideChatToGame(decision: RoutingDecision, question: string, requestId: string): RoutingDecision;   // chat + a catalog hit in the text -> game; logs router.override
 // tools/export-key-logic.py: reads StaticKeyLogic.py (door randomizer) with ast and writes prompts/alttp/logic/keys.json
+
+// event/ (added 2026-10-17): SGL 2026 facts and the live prize pool
+export function eventFacts(): string;                           // GAME_DATA["event/sgl26.md"], compiled from prompts/event/sgl26.md by build:game; throws when missing
+export function prizePoolLine(now: Date): Promise<string | null>;   // "Community prize pool total: $15,140 (updated HH:MM)" from Matcherino's balance endpoint, Redis cached; stale fallback; never throws; null when MATCHERINO_BOUNTY_ID is unset
+// responders/base.ts: help and tournaments carry the event facts block (cache_control 1h) between the stable block and the volatile block; help's volatile block carries the prize pool line when present

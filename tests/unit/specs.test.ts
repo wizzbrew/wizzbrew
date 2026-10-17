@@ -65,6 +65,18 @@ describe("specs", () => {
     }
   });
 
+  it("the help spec points at the event facts block and does not let a time of day be guessed", () => {
+    const help = SPECS.help.instructions;
+    for (const s of [
+      "event facts block",
+      "on-site dates, venue, hotel, tickets, prize pool and links",
+      "live prize pool total",
+      "a time of day that is not in them is not guessed",
+    ]) {
+      expect(help, s).toContain(s);
+    }
+  });
+
   it("SHARED_RULES covers epoch fields and degraded standings", () => {
     expect(SHARED_RULES).toContain("_epoch");
     expect(SHARED_RULES).toContain("degraded");
