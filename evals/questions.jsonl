@@ -96,3 +96,6 @@
 {"q": "what does the gravity suit do in the randomizer", "route": "game", "routine": "items", "game": "sm", "linked": false, "note": "what a Super Metroid item does"}
 {"q": "what does the energy tank in the wrecked ship need on tournament logic", "route": "game", "routine": "logic", "game": "sm", "linked": false, "note": "per-location logic rule for a named Super Metroid location"}
 {"q": "why does the baby metroid matter at the end of super metroid", "route": "game", "routine": "general", "game": "sm", "linked": false, "note": "Super Metroid story and lore, no area or item named"}
+{"q": "is pixelfox going to sgl this year", "route": "players", "linked": false, "note": "attendance of a named person"}
+{"q": "is nimbus here at the event", "route": "players", "linked": false, "note": "attendance, here at the event"}
+{"q": "is quillian playing anything this year", "route": "players", "linked": false, "note": "attendance, entered in anything"}

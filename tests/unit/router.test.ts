@@ -478,6 +478,13 @@ describe("ROUTER_PROMPT", () => {
     expect(new RegExp(`[${dashes}]`).test(ROUTER_PROMPT)).toBe(false);
   });
 
+  it("sends attendance questions about a named person to players", () => {
+    const players = ROUTER_PROMPT.split("\n").find((l) => l.startsWith("players:")) ?? "";
+    expect(players).toContain(
+      "whether a named person is at the event, attending or entered in anything",
+    );
+  });
+
   it("sends game mechanics and item logic to game and keeps data routes and chat out of them", () => {
     const description = (route: string): string => {
       const line = ROUTER_PROMPT.split("\n").find((l) => l.startsWith(`${route}:`));

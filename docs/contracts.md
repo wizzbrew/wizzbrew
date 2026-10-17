@@ -392,6 +392,7 @@ export const keys: {
   dmLog(day: string): string;                    // wb:v1:dmlog:{YYYY-MM-DD}, list of JSON lines, 14 days
   dmCount(day: string): string;                  // wb:v1:dmcount:{YYYY-MM-DD}, hash of discord id to count, 14 days
   prizePool(bountyId: string): string;           // wb:v1:prizepool:{id} (fresh, 300 s) and wb:v1:prizepool:stale:{id} (24 h)
+  participants(bountyId: string): string;        // wb:v1:participants:{id} (fresh, 1200 s) and wb:v1:participants:stale:{id} (24 h); display names and join times only
   lock(discordUserId: string): string;           // per-user in-flight lock, 120 s
   kill(): string;                                // kill switch: any value pauses the bot
   alert(event: string): string;                  // staff-alert rate limit, 600 s
@@ -776,3 +777,8 @@ export function overrideChatToGame(decision: RoutingDecision, question: string, 
 export function eventFacts(): string;                           // GAME_DATA["event/sgl26.md"], compiled from prompts/event/sgl26.md by build:game; throws when missing
 export function prizePoolLine(now: Date): Promise<string | null>;   // "Community prize pool total: $15,140 (updated HH:MM)" from Matcherino's balance endpoint, Redis cached; stale fallback; never throws; null when MATCHERINO_BOUNTY_ID is unset
 // responders/base.ts: help and tournaments carry the event facts block (cache_control 1h) between the stable block and the volatile block; help's volatile block carries the prize pool line when present
+
+// event/participants.ts (added 2026-10-17): the SGL26 attendee list on Matcherino (people who joined the event page)
+export function eventParticipants(): Promise<{ names: { displayName: string; addedAt: string }[]; count: number; fetchedAt: number } | null>;   // null when MATCHERINO_BOUNTY_ID is unset; never throws; keeps only display name and join time
+export function findParticipants(list, name: string): { displayName: string; addedAt: string }[];   // exact case-insensitive first, then whole-word, at most 5
+// responders/clientTools.ts: client tool event_participants({ name }) on the players route -> { matches: [{ displayName, joined }], total, note }
