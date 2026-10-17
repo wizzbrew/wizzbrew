@@ -759,6 +759,7 @@ export function isPromptLeak(answer: string): boolean;              // built onc
 // `npm run build:game` (scripts/build-game.ts) into src/game/data.ts; a test fails when they drift.
 // Route "game" (no tools, register help, public) with params routine, subjects (at most 4, truncated, never rejected) and game.
 export const GAME_DATA: Readonly<Record<string, string>>;          // keys like "alttp/dungeons/ip.md", "alttp/logic/ip.md" (rendered from logic/keys.json), "alttp/overworld.md"
+// Games: alttp (13 dungeons, logic rendered from keys.json) and sm (7 areas, hand-written logic/<area>.md with Casual and Tournament rules). Shared aliases (bombs) resolve per game; inferGame prefers an area or boss hit, then the game owning more unshared item hits, then alttp.
 // game/catalog.ts
 export function resolveSubjects(names: readonly string[], game?: GameId): { dungeons: Hit[]; items: Hit[]; unresolved: string[] };
 export function findSubjectsInText(text: string): TextHit[];      // whole-word names and multi-letter nicknames only; never 2-letter codes or everyday words
