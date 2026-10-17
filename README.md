@@ -40,7 +40,10 @@ text.
 - **The router picks.** For a game question it returns a `routine` (`dungeon`, `logic`,
   `overworld`, `items` or `general`), the `subjects` the asker named (up to four) and the `game`
   (`alttp` or `sm`). With no `game`, it is read from what the subjects resolve to, then defaults
-  to `alttp`. `src/game/catalog.ts` holds the areas, bosses and items of each game with their
+  to `alttp`. A `subjects` value that is malformed is dropped, never fatal; only the first four
+  valid names are kept. When the router sends a question to `chat` but the text names a dungeon,
+  boss or item (whole words; the two letter codes are ignored), `src/game/override.ts` moves it
+  to `game` and logs `router.override`. `src/game/catalog.ts` holds the areas, bosses and items of each game with their
   aliases and resolves written names (case, punctuation, plurals and possessives ignored).
 - **The prompt.** `src/game/slices.ts` builds the system blocks: the routine's instructions
   (`src/game/routines.ts`, protected by the prompt leak guard), then at most two subject blocks

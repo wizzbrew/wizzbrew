@@ -399,14 +399,8 @@ describe("game params", () => {
     expect(decision.params).toEqual({});
   });
 
-  it("sends a game decision with an unknown routine, game or bad subjects to chat", async () => {
-    const bad: Record<string, unknown>[] = [
-      { routine: "walkthrough" },
-      { game: "nes" },
-      { subjects: "Ice Palace" },
-      { subjects: [1, 2] },
-      { subjects: ["a", "b", "c", "d", "e"] },
-    ];
+  it("sends a game decision with an unknown routine or game to chat", async () => {
+    const bad: Record<string, unknown>[] = [{ routine: "walkthrough" }, { game: "nes" }];
     for (const params of bad) {
       reply(decide({ route: "game" }, params));
       const decision = await routeQuestion(ctx());
@@ -419,6 +413,51 @@ describe("game params", () => {
   it("accepts four subjects", async () => {
     reply(decide({ route: "game" }, { subjects: ["a", "b", "c", "d"] }));
     expect((await routeQuestion(ctx())).params.subjects).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("keeps the first four of a longer list instead of rejecting the decision", async () => {
+    reply(
+      decide({ route: "game" }, { routine: "dungeon", subjects: ["a", "b", "c", "d", "e", "f"] }),
+    );
+    const decision = await routeQuestion(ctx());
+    expect(decision.route).toBe("game");
+    expect(decision.params.routine).toBe("dungeon");
+    expect(decision.params.subjects).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("drops entries that are not names, then keeps the first four of what is left", async () => {
+    reply(
+      decide(
+        { route: "game" },
+        { subjects: [1, null, "a", "", "  ", { x: 1 }, "b", "c", ["d"], "d", "e"] },
+      ),
+    );
+    const decision = await routeQuestion(ctx());
+    expect(decision.route).toBe("game");
+    expect(decision.params.subjects).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("accepts a decision whose params leave the game keys out altogether", async () => {
+    reply(
+      JSON.stringify({
+        route: "game",
+        confidence: 0.9,
+        reason: "asks about the game",
+        params: { day: null, tournament: null, player: null, stage: null, matchId: null },
+      }),
+    );
+    const decision = await routeQuestion(ctx());
+    expect(decision.route).toBe("game");
+    expect(decision.params).toEqual({});
+  });
+
+  it("ignores a subjects value that is not a list and keeps the decision", async () => {
+    for (const subjects of ["Ice Palace", 4, { a: 1 }, true]) {
+      reply(decide({ route: "game" }, { routine: "items", subjects }));
+      const decision = await routeQuestion(ctx());
+      expect(decision.route, JSON.stringify(subjects)).toBe("game");
+      expect(decision.params).toEqual({ routine: "items" });
+    }
   });
 });
 

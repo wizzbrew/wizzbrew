@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AREAS,
   BOSSES,
+  findSubjectsInText,
   GAME_IDS,
   GAME_NAMES,
   type GameId,
@@ -186,5 +187,55 @@ describe("catalog", () => {
     for (const b of BOSSES)
       for (const t of [b.name, ...b.aliases]) check(b.game, t, "dungeons", b.area);
     for (const i of ITEMS) for (const t of [i.name, ...i.aliases]) check(i.game, t, "items", i.key);
+  });
+});
+
+describe("findSubjectsInText", () => {
+  const found = (text: string): string[] => findSubjectsInText(text).map((h) => h.key);
+
+  it("finds a dungeon nickname, a boss name and an item name inside a sentence", () => {
+    expect(findSubjectsInText("anyone know how hard mire is?")).toEqual([
+      { game: "alttp", key: "mm", kind: "area", name: "Misery Mire" },
+    ]);
+    expect(findSubjectsInText("kholdstare keeps killing me")).toEqual([
+      { game: "alttp", key: "ip", kind: "area", name: "Kholdstare" },
+    ]);
+    expect(findSubjectsInText("is the hookshot worth it")).toEqual([
+      { game: "alttp", key: "hookshot", kind: "item", name: "Hookshot" },
+    ]);
+  });
+
+  it("matches whole words in any case, with plurals and possessives", () => {
+    expect(found("GANON'S TOWER is next")).toEqual(["gt"]);
+    expect(found("Thieves' Town and the Pegasus Boots")).toEqual(["tt", "boots"]);
+    expect(found("my bombs ran out")).toEqual(["bombs"]);
+    expect(found("the swampy road")).toEqual([]);
+    expect(found("meretriceps")).toEqual([]);
+  });
+
+  it("takes the longest phrase and lists each hit once, in order", () => {
+    expect(found("the mirror shield, then the magic mirror, then mirror shield again")).toEqual([
+      "shield",
+      "mirror",
+    ]);
+    expect(found("ice palace and ice rod")).toEqual(["ip", "ice_rod"]);
+    expect(found("kholdstare is in the ice palace")).toEqual(["ip"]);
+  });
+
+  it("never reads the two letter codes", () => {
+    expect(found("tt mm ip hc ct ep dp sp sw tr gt")).toEqual([]);
+    expect(found("how do i do it in tr")).toEqual([]);
+  });
+
+  it("leaves everyday words alone but keeps their full names", () => {
+    expect(found("i need to book a flight and check my mail on the net, then bow out")).toEqual([]);
+    expect(found("the Book of Mudora")).toEqual(["book"]);
+    expect(found("a Bug Net")).toEqual(["net"]);
+    expect(found("blind the thief")).toEqual(["tt"]);
+  });
+
+  it("finds nothing in a greeting or plain chatter", () => {
+    expect(found("hey wizzbrew, thanks for the help!")).toEqual([]);
+    expect(found("")).toEqual([]);
   });
 });

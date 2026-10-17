@@ -93,12 +93,14 @@ describe("specs", () => {
     expect(SPECS.schedule.instructions).toContain("matches_for_me");
   });
 
-  it("chat holds no game reference, says so in one line and never answers from memory", () => {
+  it("chat answers a stray game question briefly from what is loaded, without refusing", () => {
     const chat = SPECS.chat.instructions;
     expect(chat).not.toContain("reference material in the system prompt");
-    expect(chat).toContain("you hold no game reference here");
-    expect(chat).toContain("say in one line");
-    expect(chat).toContain("Never answer it from memory");
+    expect(chat).toContain("answer it briefly from what is loaded here");
+    expect(chat).toContain("say in one line that naming the dungeon, boss or item gets the notes");
+    expect(chat).toContain("Do not guess");
+    expect(chat.toLowerCase()).not.toContain("cannot look");
+    expect(chat.toLowerCase()).not.toContain("refuse");
   });
 
   it("avoids sample phrasing, trailing question marks and dashes", () => {

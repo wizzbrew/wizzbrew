@@ -52,13 +52,27 @@ export const ROUTER_SCHEMA = {
           anyOf: [{ type: "string", enum: ["link", "unlink"] }, { type: "null" }],
         },
         routine: { anyOf: [{ type: "string", enum: ROUTINE_NAMES }, { type: "null" }] },
-        // The schema cannot cap the length (structured output allows no maxItems); zod does.
+        // The schema cannot cap the length (structured output allows no maxItems); zod keeps four.
         subjects: { anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }] },
         game: { anyOf: [{ type: "string", enum: GAME_IDS }, { type: "null" }] },
       },
     },
   },
 };
+
+const MAX_SUBJECTS = 4;
+
+// Never rejects a decision: anything that is not a list is ignored, entries that are not
+// non-empty strings are dropped, and only the first four names are kept.
+const Subjects = z
+  .unknown()
+  .transform((value): string[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    return value
+      .filter((s): s is string => typeof s === "string" && s.trim() !== "")
+      .slice(0, MAX_SUBJECTS);
+  })
+  .optional();
 
 const RouterOutput = z.object({
   route: z.enum(ROUTE_NAMES),
@@ -72,7 +86,7 @@ const RouterOutput = z.object({
     matchId: z.number().int().nullish(),
     accountAction: z.enum(["link", "unlink"]).nullish(),
     routine: z.enum(ROUTINE_NAMES).nullish(),
-    subjects: z.array(z.string()).max(4).nullish(),
+    subjects: Subjects,
     game: z.enum(GAME_IDS).nullish(),
   }),
 });
@@ -177,8 +191,9 @@ export async function routeQuestion(ctx: AskContext): Promise<RoutingDecision> {
   // decision, so no other responder's context block carries them.
   if (out.route === "game") {
     if (out.params.routine) params.routine = out.params.routine;
-    const subjects = (out.params.subjects ?? []).filter((s) => s.trim() !== "");
-    if (subjects.length > 0) params.subjects = subjects;
+    if (out.params.subjects && out.params.subjects.length > 0) {
+      params.subjects = out.params.subjects;
+    }
     if (out.params.game) params.game = out.params.game;
   }
 

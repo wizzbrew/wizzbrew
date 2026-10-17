@@ -7,6 +7,7 @@ import {
   userMessageFor,
   WizzrobeError,
 } from "../errors.js";
+import { overrideChatToGame } from "../game/override.js";
 import { assertUnderBudget } from "../llm/budget.js";
 import { clip, log } from "../log.js";
 import { alertStaff, isPaused } from "../ops/alerts.js";
@@ -110,14 +111,18 @@ export async function runAskPipeline(req: PipelineRequest): Promise<AskResult | 
 
     const decision =
       forced ??
-      (await routeQuestion({
-        requestId,
-        asker,
+      overrideChatToGame(
+        await routeQuestion({
+          requestId,
+          asker,
+          question,
+          now,
+          ephemeral: reply.kind === "interaction" && reply.ephemeral,
+          history,
+        }),
         question,
-        now,
-        ephemeral: reply.kind === "interaction" && reply.ephemeral,
-        history,
-      }));
+        requestId,
+      );
     route = decision.route;
     checkAuth(asker, decision);
 

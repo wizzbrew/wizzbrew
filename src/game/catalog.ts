@@ -202,6 +202,7 @@ interface Target {
   kind: "area" | "item";
   game: GameId;
   key: string;
+  name: string; // the name of the entry the phrase belongs to; a boss keeps its own
 }
 
 let indexCache: { byPhrase: Map<string, Target[]>; longest: number } | undefined;
@@ -225,11 +226,15 @@ function index(): { byPhrase: Map<string, Target[]>; longest: number } {
       byPhrase.set(phrase, list);
     }
   };
-  for (const a of AREAS) add([a.name, ...a.aliases], { kind: "area", game: a.game, key: a.key });
-  for (const b of BOSSES) {
-    add([b.name, ...b.aliases], { kind: "area", game: b.game, key: b.area });
+  for (const a of AREAS) {
+    add([a.name, ...a.aliases], { kind: "area", game: a.game, key: a.key, name: a.name });
   }
-  for (const i of ITEMS) add([i.name, ...i.aliases], { kind: "item", game: i.game, key: i.key });
+  for (const b of BOSSES) {
+    add([b.name, ...b.aliases], { kind: "area", game: b.game, key: b.area, name: b.name });
+  }
+  for (const i of ITEMS) {
+    add([i.name, ...i.aliases], { kind: "item", game: i.game, key: i.key, name: i.name });
+  }
   indexCache = { byPhrase, longest };
   return indexCache;
 }
@@ -282,4 +287,53 @@ export function inferGame(chosen: GameId | undefined, names: readonly string[]):
   if (chosen) return chosen;
   const found = resolveSubjects(names);
   return found.dungeons[0]?.game ?? found.items[0]?.game ?? "alttp";
+}
+
+// A hit found in free text: the catalog hit, whether it is an area (or a boss, which names its
+// area) or an item, and the name of the entry that matched.
+export interface TextHit extends Hit {
+  kind: "area" | "item";
+  name: string;
+}
+
+// One word nicknames that are also everyday words. Inside a sentence they say nothing about the
+// game, so the text scan ignores them; the router still reads them in a name list.
+const EVERYDAY_WORDS: ReadonlySet<string> = new Set([
+  "net",
+  "bow",
+  "book",
+  "mail",
+  "lamp",
+  "pod",
+  "blind",
+]);
+
+// Scans a question for game names the router did not pick up. Whole words only, any case, and
+// the longest phrase wins at each position. Full area, boss and item names and nicknames of three
+// letters or more count; the two letter codes never do, because they collide with ordinary
+// words, and neither do the everyday words above. Hits come back in the order found, once each.
+export function findSubjectsInText(text: string): TextHit[] {
+  const { byPhrase, longest } = index();
+  const words = tokens(text);
+  const out: TextHit[] = [];
+  for (let at = 0; at < words.length; ) {
+    let advanced = 0;
+    for (let len = Math.min(longest, words.length - at); len >= 1 && advanced === 0; len--) {
+      const slice = words.slice(at, at + len);
+      const [only] = slice;
+      if (len === 1 && only !== undefined && (only.length <= 2 || EVERYDAY_WORDS.has(only))) {
+        continue;
+      }
+      const targets = byPhrase.get(slice.join(" ")) ?? [];
+      if (targets.length === 0) continue;
+      for (const t of targets) {
+        if (!out.some((h) => h.kind === t.kind && h.game === t.game && h.key === t.key)) {
+          out.push({ game: t.game, key: t.key, kind: t.kind, name: t.name });
+        }
+      }
+      advanced = len;
+    }
+    at += advanced === 0 ? 1 : advanced;
+  }
+  return out;
 }
