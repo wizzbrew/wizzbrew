@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Build complete on fakes. Waves 0 to 4, review (3 reviewers) and fixes R1 to R4c, F1 to F6 merged. Final gate: typecheck, lint, 761 tests (3 consecutive green runs), rules ok (131 files), relay 11 tests. main fast-forwarded and tagged v0.1.0 (06220cf), local only. Next: the live phase, starting at docs/handoff-deploy.md. Challonge API work parked in docs/backlog.md (2026-10-16): deploy without CHALLONGE_API_KEY, brackets answer link-only until Wizzrobe's brackets feature is on.
+Live phase. Production is v0.1.12 (2026-10-17) on Vercel and Railway from `release/v0.1`; twelve tagged releases shipped on 2026-10-17 (live fixes F7 to F19, the game silo G1 to G3 with the dungeon logic exporter L1, the DM log, `/help`, event facts E1, attendance P1 and P2). Gate on `main`: 1,391 tests, rules ok, relay tests. Status, open items and the SGL rollout list live in docs/handoff-deploy.md. Challonge stays parked in docs/backlog.md.
 
 ## Tasks
 

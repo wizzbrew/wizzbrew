@@ -7,24 +7,41 @@ out.
 
 ## Where it stands
 
-- The repo is `wizzbrew/wizzbrew` on GitHub, public. Production is live at
-  `https://wizzbrew.vercel.app` from `release/v0.1` (Vercel project `wizzbrew`), the relay runs on
-  Railway (project `wizzbrew`, service `relay`, US East), and the slash commands are registered
-  to the test server only. v0.1.0 shipped untagged fixes on 2026-10-17; v0.1.1 is the first
-  release with a version bump and a tag.
-- Everything is built and tested against fakes: 761 tests (three consecutive green runs), the
-  rules gate, and 11 relay tests. Nothing has touched a real Discord app, Anthropic key, Redis or
-  the Wizzrobe bot account.
-- Three pieces go live:
+- Production is **v0.1.12** (tag `v0.1.12`, 2026-10-17), live at `https://wizzbrew.vercel.app`
+  from `release/v0.1` (Vercel project `wizzbrew`), with the relay on Railway (project `wizzbrew`,
+  service `relay`, US East, rebuilt from every release push). The repo is `wizzbrew/wizzbrew` on
+  GitHub, public. Every release since v0.1.1 bumped both package versions and carries a tag.
+- The bot is installed in two servers, the test server and Vince's own, with the 10 slash
+  commands registered to each (guild commands) and the relay allowlisted to one channel in each.
+  It is not in the SGL server yet.
+- Gate on `main`: 1,391 tests, the rules script and the relay's tests, all run locally before
+  every merge. No CI by decision.
+- Three pieces are live:
   - **Vercel:** slash commands, buttons, modals, OAuth callbacks and `/api/message`
     (`api/*.ts`, 300 s max duration in `vercel.json`).
-  - **Railway:** the gateway relay in `relay/`, which forwards @mentions, DMs and replies to
-    `/api/message`.
-  - **Upstash Redis:** links, threads, pending actions, locks, rate limits, spend and the kill
-    switch.
-- Brackets ship link-only. The Challonge client is parked ([backlog.md](backlog.md)); leave
-  `CHALLONGE_API_KEY` empty. Bracket questions get the bracket and rules links and say live
-  standings aren't available.
+  - **Railway:** the gateway relay in `relay/`, which forwards @mentions (user or role pings),
+    DMs and replies to `/api/message`, and logs why it ignores a message that looked aimed at it.
+  - **Upstash Redis:** one database: links, threads, pending actions, locks, spend, the kill
+    switch, the DM log and counts, the prize pool and attendee caches.
+- What it answers, beyond the schedule, live view, players, `/me`, crew and match actions:
+  - **Game knowledge** (`src/game/`, `prompts/<game>/`): A Link to the Past (dungeons, overworld,
+    items, the door randomizer's static key logic and the full per-location logic exported from
+    the engine for no-glitch and HMG), Super Metroid (areas, bosses, items, Casual and Tournament
+    rules per area) and the Zelda 1 Randomizer (levels, bosses, items, gate logic). A `game`
+    route picks a routine (dungeon, logic, overworld, items, general) and loads only the slices a
+    question needs, cached in layers for an hour. Rebuild with `npm run build:game`; re-export
+    with the two Python tools under `tools/`.
+  - **Event facts** (`prompts/event/sgl26.md`): dates, venue, hotel, tickets, links, on the help
+    and tournaments routes; the Matcherino prize pool total live on help (5 minute cache); the
+    Matcherino attendee list for "is X going" on the players route (20 minute cache, display
+    names only).
+  - **Trolling:** the voice's posture paragraph, the "not disclosed" rule, a code guard that
+    replaces any answer quoting the instructions, and the bartender treatment for obvious trolls.
+  - **DMs:** logged in Redis with a per-user daily cap (default 5); `/dmlog` for the owner.
+- Brackets are still link-only. The Challonge client is parked ([backlog.md](backlog.md)); leave
+  `CHALLONGE_API_KEY` empty.
+- Unverified against real data until the tenant has matches: `list_matches`, `get_match` and
+  `get_schedule` shapes, and therefore scheduling, crew slots and attendance-from-matches.
 
 ## Settle before starting
 
@@ -133,6 +150,15 @@ Follow [deploy-checklist.md](deploy-checklist.md) steps 1 to 11. These notes go 
   sync).
 - **SG staff:** the `sgl26` community, the bot account, server and channel choices.
 
-## After v0.1
+## Open as of v0.1.12
 
-[backlog.md](backlog.md): brackets from Wizzrobe, the match webhook relay, the staff route.
+- **Before the SGL server:** SG staff pick the channel and a staff alert channel id
+  (`STAFF_ALERT_CHANNEL_ID`), and decide whether the bot keeps reading Wizzrobe as Vince's account
+  or gets a dedicated plain-member account. Synack: brackets on for `sgl26`, delete the orphaned
+  OAuth client `8dd2c541...`, confirm `discord_id` is a string. Then checklist step 11 (install,
+  restrict, register, pinned intro), and try the kill switch once.
+- **First real match:** re-record the three match shapes from live responses and run the
+  scheduling, crew and attendance paths once.
+- **Optional:** `npm run eval` against the live router (needs a key in `.env.local`); the match
+  procedure doc for the help route; HMG and Z1R logic beyond what is exported; a Wizzrobe match
+  webhook relay for proactive channel posts; [backlog.md](backlog.md).
