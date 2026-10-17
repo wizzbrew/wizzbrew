@@ -55,8 +55,13 @@ describe("ROUTINE_PROMPTS", () => {
     }
   });
 
-  it("points the logic routine at the key door table and the others at their material", () => {
-    expect(ROUTINE_PROMPTS.logic).toContain("key door table");
+  it("points the logic routine at a key door table or at location rules, and the others at their material", () => {
+    expect(ROUTINE_PROMPTS.logic).toContain("When the loaded notes include a key door table");
+    expect(ROUTINE_PROMPTS.logic).toContain("how it changes when the table says so");
+    expect(ROUTINE_PROMPTS.logic).toContain("When they hold location rules instead");
+    expect(ROUTINE_PROMPTS.logic).toContain(
+      "naming which logic, Casual or Tournament, when they differ",
+    );
     expect(ROUTINE_PROMPTS.logic).toContain("no preamble");
     expect(ROUTINE_PROMPTS.dungeon).toContain("layout, boss, keys and enemies");
     expect(ROUTINE_PROMPTS.overworld).toContain("entrance lines");

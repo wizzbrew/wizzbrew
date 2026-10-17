@@ -91,3 +91,8 @@
 {"q": "what do i need to get in the front door of turtle rock", "route": "game", "routine": "overworld", "game": "alttp", "linked": false, "note": "what reaching a dungeon entrance needs"}
 {"q": "what does the magic cape actually do", "route": "game", "routine": "items", "game": "alttp", "linked": false, "note": "what an item does"}
 {"q": "what does it mean when a location is out of logic", "route": "game", "routine": "general", "game": "alttp", "linked": false, "note": "randomizer logic terms, no named dungeon or item"}
+{"q": "what lives in maridia and how is it laid out", "route": "game", "routine": "dungeon", "game": "sm", "linked": false, "note": "Super Metroid area, not a stage or race name"}
+{"q": "how do i beat phantoon", "route": "game", "routine": "dungeon", "game": "sm", "linked": false, "note": "Super Metroid boss, which settles the game"}
+{"q": "what does the gravity suit do in the randomizer", "route": "game", "routine": "items", "game": "sm", "linked": false, "note": "what a Super Metroid item does"}
+{"q": "what does the energy tank in the wrecked ship need on tournament logic", "route": "game", "routine": "logic", "game": "sm", "linked": false, "note": "per-location logic rule for a named Super Metroid location"}
+{"q": "why does the baby metroid matter at the end of super metroid", "route": "game", "routine": "general", "game": "sm", "linked": false, "note": "Super Metroid story and lore, no area or item named"}

@@ -38,6 +38,11 @@ const alttp = <T extends Omit<CatalogEntry, "game">>(entry: T): T & { game: "alt
   game: "alttp",
 });
 
+const sm = <T extends Omit<CatalogEntry, "game">>(entry: T): T & { game: "sm" } => ({
+  ...entry,
+  game: "sm",
+});
+
 const ALTTP_AREAS: readonly Area[] = [
   alttp({
     key: "hc",
@@ -180,9 +185,137 @@ const ALTTP_ITEMS: readonly Item[] = [
   alttp({ key: "flute", name: "Flute", aliases: ["flute", "ocarina"] }),
 ];
 
-export const AREAS: readonly Area[] = [...ALTTP_AREAS];
-export const BOSSES: readonly Boss[] = [...ALTTP_BOSSES];
-export const ITEMS: readonly Item[] = [...ALTTP_ITEMS];
+// Super Metroid. The seven keys are the files under prompts/sm/dungeons and prompts/sm/logic.
+// "norfair" alone is written by people who mean either half, so it names both. The two letter
+// names (hj, sj, pb, mb, g4) work in a name list and are ignored inside a sentence.
+const SM_AREAS: readonly Area[] = [
+  sm({ key: "crateria", name: "Crateria", aliases: ["crateria"] }),
+  sm({
+    key: "brinstar",
+    name: "Brinstar",
+    aliases: [
+      "brinstar",
+      "green brinstar",
+      "pink brinstar",
+      "red brinstar",
+      "blue brinstar",
+      "red tower",
+    ],
+  }),
+  sm({
+    key: "norfair_upper",
+    name: "Upper Norfair",
+    aliases: ["upper norfair", "norfair upper", "bubble norfair", "norfair"],
+  }),
+  sm({
+    key: "norfair_lower",
+    name: "Lower Norfair",
+    aliases: ["lower norfair", "norfair lower", "norfair"],
+  }),
+  sm({ key: "wrecked_ship", name: "Wrecked Ship", aliases: ["wrecked ship", "the ship"] }),
+  sm({ key: "maridia", name: "Maridia", aliases: ["maridia"] }),
+  sm({ key: "tourian", name: "Tourian", aliases: ["tourian"] }),
+];
+
+const SM_BOSSES: readonly Boss[] = [
+  sm({ key: "bomb_torizo", name: "Bomb Torizo", area: "crateria", aliases: ["bomb torizo"] }),
+  sm({
+    key: "golden_four",
+    name: "Golden Four",
+    area: "crateria",
+    aliases: ["golden four", "golden 4", "g4"],
+  }),
+  sm({
+    key: "spore_spawn",
+    name: "Spore Spawn",
+    area: "brinstar",
+    aliases: ["spore spawn", "sporespawn"],
+  }),
+  sm({ key: "kraid", name: "Kraid", area: "brinstar", aliases: ["kraid", "kraid's lair"] }),
+  sm({ key: "crocomire", name: "Crocomire", area: "norfair_upper", aliases: ["crocomire"] }),
+  sm({
+    key: "golden_torizo",
+    name: "Golden Torizo",
+    area: "norfair_lower",
+    aliases: ["golden torizo", "gold torizo"],
+  }),
+  sm({ key: "ridley", name: "Ridley", area: "norfair_lower", aliases: ["ridley"] }),
+  sm({ key: "phantoon", name: "Phantoon", area: "wrecked_ship", aliases: ["phantoon"] }),
+  sm({ key: "botwoon", name: "Botwoon", area: "maridia", aliases: ["botwoon"] }),
+  sm({ key: "draygon", name: "Draygon", area: "maridia", aliases: ["draygon"] }),
+  sm({
+    key: "mother_brain",
+    name: "Mother Brain",
+    area: "tourian",
+    aliases: ["mother brain", "mb"],
+  }),
+];
+
+const SM_ITEMS: readonly Item[] = [
+  sm({
+    key: "morph",
+    name: "Morph Ball",
+    aliases: ["morph ball", "morph", "morphing ball", "morphball"],
+  }),
+  sm({ key: "bombs", name: "Bombs", aliases: ["bombs", "bomb", "morph ball bombs"] }),
+  sm({ key: "charge", name: "Charge Beam", aliases: ["charge beam", "charge"] }),
+  sm({ key: "ice", name: "Ice Beam", aliases: ["ice beam", "ice"] }),
+  sm({ key: "wave", name: "Wave Beam", aliases: ["wave beam", "wave"] }),
+  sm({ key: "spazer", name: "Spazer", aliases: ["spazer", "spazer beam"] }),
+  sm({ key: "plasma", name: "Plasma Beam", aliases: ["plasma beam", "plasma"] }),
+  sm({ key: "varia", name: "Varia Suit", aliases: ["varia suit", "varia"] }),
+  sm({ key: "gravity", name: "Gravity Suit", aliases: ["gravity suit", "gravity"] }),
+  sm({
+    key: "hi_jump",
+    name: "Hi-Jump Boots",
+    aliases: ["hi-jump boots", "hi-jump", "hijump", "high jump boots", "high jump", "hj"],
+  }),
+  sm({ key: "space_jump", name: "Space Jump", aliases: ["space jump", "spacejump", "sj"] }),
+  sm({
+    key: "speed",
+    name: "Speed Booster",
+    aliases: ["speed booster", "speedbooster", "speed"],
+  }),
+  sm({ key: "spring_ball", name: "Spring Ball", aliases: ["spring ball", "springball"] }),
+  sm({ key: "screw", name: "Screw Attack", aliases: ["screw attack", "screw"] }),
+  sm({
+    key: "grapple",
+    name: "Grappling Beam",
+    aliases: ["grappling beam", "grapple beam", "grapple"],
+  }),
+  sm({ key: "xray", name: "X-Ray Scope", aliases: ["x-ray scope", "x-ray", "xray"] }),
+  sm({ key: "power_beam", name: "Power Beam", aliases: ["power beam"] }),
+  sm({ key: "hyper_beam", name: "Hyper Beam", aliases: ["hyper beam"] }),
+  sm({
+    key: "missiles",
+    name: "Missiles",
+    aliases: ["missiles", "missile", "missile pack", "missile packs"],
+  }),
+  sm({
+    key: "super_missiles",
+    name: "Super Missiles",
+    aliases: ["super missiles", "super missile", "super missile pack", "supers", "super"],
+  }),
+  sm({
+    key: "power_bombs",
+    name: "Power Bombs",
+    aliases: ["power bombs", "power bomb", "power bomb pack", "pbs", "pb"],
+  }),
+  sm({
+    key: "energy_tank",
+    name: "Energy Tank",
+    aliases: ["energy tank", "energy tanks", "e-tank", "e-tanks", "etank", "etanks"],
+  }),
+  sm({
+    key: "reserve_tank",
+    name: "Reserve Tank",
+    aliases: ["reserve tank", "reserve tanks", "reserves", "reserve"],
+  }),
+];
+
+export const AREAS: readonly Area[] = [...ALTTP_AREAS, ...SM_AREAS];
+export const BOSSES: readonly Boss[] = [...ALTTP_BOSSES, ...SM_BOSSES];
+export const ITEMS: readonly Item[] = [...ALTTP_ITEMS, ...SM_ITEMS];
 
 // Lowercase, apostrophes dropped (so a possessive joins its word), every other mark a space,
 // and a plural s taken off words longer than three letters. Applied to aliases and to what a
@@ -239,6 +372,67 @@ function index(): { byPhrase: Map<string, Target[]>; longest: number } {
   return indexCache;
 }
 
+// One matched phrase: every entry it names, in every game. A phrase two games share (bombs)
+// names both. With a game filter a phrase only another game knows still counts as matched, with
+// nothing left in it, so its words are not read again as something shorter (Ice Palace is not
+// an Ice Beam). Callers skip the empty ones.
+type Match = Target[];
+
+// Scans words for the longest known phrase at every position. With a game given, only that
+// game's entries are kept. With text set, the single words that say nothing in a sentence are
+// stepped over: the two letter codes and the everyday words.
+function scan(words: readonly string[], game: GameId | undefined, text: boolean): Match[] {
+  const { byPhrase, longest } = index();
+  const out: Match[] = [];
+  for (let at = 0; at < words.length; ) {
+    let advanced = 0;
+    for (let len = Math.min(longest, words.length - at); len >= 1 && advanced === 0; len--) {
+      const slice = words.slice(at, at + len);
+      const [only] = slice;
+      if (
+        text &&
+        len === 1 &&
+        only !== undefined &&
+        (only.length <= 2 || EVERYDAY_WORDS.has(only))
+      ) {
+        continue;
+      }
+      const targets = byPhrase.get(slice.join(" "));
+      if (targets === undefined) continue;
+      out.push(game === undefined ? targets : targets.filter((t) => t.game === game));
+      advanced = len;
+    }
+    at += advanced === 0 ? 1 : advanced;
+  }
+  return out;
+}
+
+// The game a set of matches points at. The first area or boss settles it. With none, the game
+// with the most items that only it has; an item both games have (bombs) votes for neither. With
+// no vote, A Link to the Past.
+function pickGame(matches: readonly Match[]): GameId {
+  for (const targets of matches) {
+    const area = targets.find((t) => t.kind === "area");
+    if (area !== undefined) return area.game;
+  }
+  const votes = new Map<GameId, number>();
+  for (const targets of matches) {
+    const games = new Set(targets.map((t) => t.game));
+    const [only] = [...games];
+    if (games.size === 1 && only !== undefined) votes.set(only, (votes.get(only) ?? 0) + 1);
+  }
+  let best: GameId = GAME_IDS[0];
+  let most = 0;
+  for (const id of GAME_IDS) {
+    const n = votes.get(id) ?? 0;
+    if (n > most) {
+      best = id;
+      most = n;
+    }
+  }
+  return best;
+}
+
 export interface Resolved {
   dungeons: Hit[]; // areas named directly or through their boss, in the order found, no repeats
   items: Hit[];
@@ -248,30 +442,20 @@ export interface Resolved {
 // Finds the areas, bosses and items a list of names refers to. Each name is scanned for the
 // longest known phrase at every position, so a name with extra words around a known one still
 // resolves, and "mirror shield" is the shield, not the mirror. With a game given, only that
-// game's entries count; a name that only another game knows comes back unresolved.
+// game's entries count; a name that only another game knows comes back unresolved. Without one,
+// a name two games share (bombs) resolves in both.
 export function resolveSubjects(names: readonly string[], game?: GameId): Resolved {
-  const { byPhrase, longest } = index();
   const out: Resolved = { dungeons: [], items: [], unresolved: [] };
   const push = (list: Hit[], hit: Hit): void => {
     if (!list.some((h) => h.game === hit.game && h.key === hit.key)) list.push(hit);
   };
   for (const name of names) {
-    const words = tokens(name);
     let found = false;
-    for (let at = 0; at < words.length; ) {
-      let advanced = 0;
-      for (let len = Math.min(longest, words.length - at); len >= 1 && advanced === 0; len--) {
-        const targets = (byPhrase.get(words.slice(at, at + len).join(" ")) ?? []).filter(
-          (t) => game === undefined || t.game === game,
-        );
-        if (targets.length === 0) continue;
-        for (const t of targets) {
-          push(t.kind === "area" ? out.dungeons : out.items, { game: t.game, key: t.key });
-        }
+    for (const targets of scan(tokens(name), game, false)) {
+      for (const t of targets) {
+        push(t.kind === "area" ? out.dungeons : out.items, { game: t.game, key: t.key });
         found = true;
-        advanced = len;
       }
-      at += advanced === 0 ? 1 : advanced;
     }
     if (!found) {
       const trimmed = name.trim();
@@ -281,12 +465,11 @@ export function resolveSubjects(names: readonly string[], game?: GameId): Resolv
   return out;
 }
 
-// The game a request is about: the router's choice, else the game of the first thing the names
-// resolved to, else A Link to the Past.
+// The game a request is about: the router's choice, else the game the names point at (the first
+// area or boss, then the items only one game has), else A Link to the Past.
 export function inferGame(chosen: GameId | undefined, names: readonly string[]): GameId {
   if (chosen) return chosen;
-  const found = resolveSubjects(names);
-  return found.dungeons[0]?.game ?? found.items[0]?.game ?? "alttp";
+  return pickGame(names.flatMap((name) => scan(tokens(name), undefined, false)));
 }
 
 // A hit found in free text: the catalog hit, whether it is an area (or a boss, which names its
@@ -306,34 +489,34 @@ const EVERYDAY_WORDS: ReadonlySet<string> = new Set([
   "lamp",
   "pod",
   "blind",
+  "ice",
+  "wave",
+  "charge",
+  "speed",
+  "screw",
+  "super",
+  "gravity",
+  "reserve",
+  "plasma",
 ]);
 
 // Scans a question for game names the router did not pick up. Whole words only, any case, and
 // the longest phrase wins at each position. Full area, boss and item names and nicknames of three
 // letters or more count; the two letter codes never do, because they collide with ordinary
 // words, and neither do the everyday words above. Hits come back in the order found, once each.
+// A question that names things from both games is read as the one game pickGame chooses, and
+// only that game's hits come back, so what follows never looks for a name in the wrong game.
 export function findSubjectsInText(text: string): TextHit[] {
-  const { byPhrase, longest } = index();
-  const words = tokens(text);
+  const matches = scan(tokens(text), undefined, true);
+  const game = pickGame(matches);
   const out: TextHit[] = [];
-  for (let at = 0; at < words.length; ) {
-    let advanced = 0;
-    for (let len = Math.min(longest, words.length - at); len >= 1 && advanced === 0; len--) {
-      const slice = words.slice(at, at + len);
-      const [only] = slice;
-      if (len === 1 && only !== undefined && (only.length <= 2 || EVERYDAY_WORDS.has(only))) {
-        continue;
+  for (const targets of matches) {
+    for (const t of targets) {
+      if (t.game !== game) continue;
+      if (!out.some((h) => h.kind === t.kind && h.game === t.game && h.key === t.key)) {
+        out.push({ game: t.game, key: t.key, kind: t.kind, name: t.name });
       }
-      const targets = byPhrase.get(slice.join(" ")) ?? [];
-      if (targets.length === 0) continue;
-      for (const t of targets) {
-        if (!out.some((h) => h.kind === t.kind && h.game === t.game && h.key === t.key)) {
-          out.push({ game: t.game, key: t.key, kind: t.kind, name: t.name });
-        }
-      }
-      advanced = len;
     }
-    at += advanced === 0 ? 1 : advanced;
   }
   return out;
 }

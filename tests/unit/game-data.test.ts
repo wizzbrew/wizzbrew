@@ -11,7 +11,7 @@ import {
   renderGameDataModule,
   renderLogic,
 } from "../../scripts/build-game.js";
-import { AREAS, GAME_IDS } from "../../src/game/catalog.js";
+import { AREAS, BOSSES, GAME_IDS } from "../../src/game/catalog.js";
 import { GAME_DATA } from "../../src/game/data.js";
 
 // Built from char codes so this file passes the dash scan.
@@ -286,5 +286,168 @@ describe("rendered key logic", () => {
       "GT_RANDOMIZER",
       "TR_EYE_BRIDGE",
     ]);
+  });
+});
+
+const SM_AREAS = [
+  "crateria",
+  "brinstar",
+  "norfair_upper",
+  "norfair_lower",
+  "wrecked_ship",
+  "maridia",
+  "tourian",
+];
+
+// Super Metroid has no keys.json: its logic/<key>.md files are written by hand and travel as
+// they are, so they are sources, not rendered output.
+describe("Super Metroid data", () => {
+  const sources = readGameSources();
+  const smPaths = Object.keys(GAME_DATA).filter((p) => p.startsWith("sm/"));
+  const sm = (path: string): string => GAME_DATA[`sm/${path}`] ?? "";
+
+  it("holds the orientation, the overworld, the items and every area's notes and rules", () => {
+    for (const path of ["general.md", "overworld.md", "items.md"]) {
+      expect(GAME_DATA[`sm/${path}`], path).toBeDefined();
+    }
+    for (const key of SM_AREAS) {
+      expect(GAME_DATA[`sm/dungeons/${key}.md`], key).toBeDefined();
+      expect(GAME_DATA[`sm/logic/${key}.md`], key).toBeDefined();
+    }
+    expect(smPaths).toHaveLength(3 + 2 * SM_AREAS.length);
+    expect(GAME_DATA["sm/logic/keys.json"]).toBeUndefined();
+    expect(
+      AREAS.filter((a) => a.game === "sm")
+        .map((a) => a.key)
+        .sort(),
+    ).toEqual([...SM_AREAS].sort());
+  });
+
+  it("carries the hand-written logic files exactly as they are on disk", () => {
+    for (const key of SM_AREAS) {
+      expect(GAME_DATA[`sm/logic/${key}.md`], key).toBe(sources[`sm/logic/${key}.md`]);
+    }
+  });
+
+  it("keeps the orientation under 8000 characters", () => {
+    expect(sm("general.md").length).toBeGreaterThan(3000);
+    expect(sm("general.md").length).toBeLessThan(8000);
+  });
+
+  it("tells the story, the two logics, the vocabulary, the routing arguments and ten fun facts", () => {
+    const general = sm("general.md");
+    for (const s of [
+      "## The story in brief",
+      "Casual",
+      "Tournament",
+      "**In logic**",
+      "**Placement.**",
+      "## Community vocabulary",
+      "## Routing arguments",
+      "## Ten fun facts",
+      "10. Draygon's corpse",
+      "samus.link",
+    ]) {
+      expect(general, s).toContain(s);
+    }
+    expect(general).toContain("do not mix their facts into these notes");
+  });
+
+  it("gives every area a heading with its code, its notes and the entry rule", () => {
+    for (const key of SM_AREAS) {
+      const notes = sm(`dungeons/${key}.md`);
+      expect(notes.startsWith("# "), key).toBe(true);
+      expect(notes.split("\n")[0], key).toContain(`(\`${key}\`)`);
+      expect(notes, key).toContain("- **Look and mood:**");
+      expect(notes, key).toContain("- **Vanilla items:**");
+      expect(notes, key).toContain("## Entry rule");
+      expect(notes, key).toContain("## Bosses and minibosses");
+    }
+  });
+
+  it("names every boss in the notes of the area the catalog sends it to", () => {
+    const bosses = BOSSES.filter((b) => b.game === "sm");
+    expect(bosses).toHaveLength(11);
+    for (const boss of bosses) {
+      expect(sm(`dungeons/${boss.area}.md`), boss.key).toContain(boss.name);
+    }
+    expect(sm("dungeons/brinstar.md")).toContain("960 HP");
+    expect(sm("dungeons/norfair_lower.md")).toContain("18,000 HP");
+    expect(sm("dungeons/crateria.md")).toContain("Kraid (green eyes)");
+  });
+
+  it("puts every area's entry rule in the overworld notes and the predicates legend in its logic notes", () => {
+    for (const key of SM_AREAS) expect(sm("overworld.md"), key).toContain(`(\`${key}\`)`);
+    expect(sm("overworld.md")).toContain("CanDefeatDraygon");
+    expect(sm("overworld.md")).toContain("| Infinite bomb jump (IBJ) |");
+    for (const key of SM_AREAS.filter((k) => k !== "tourian")) {
+      const rules = sm(`logic/${key}.md`);
+      expect(rules.split("\n")[0], key).toContain(`(\`${key}\`)`);
+      expect(rules, key).toContain("## Entry rule");
+      expect(rules, key).toContain("## Legend");
+      expect(rules, key).toContain("| CanUsePowerBombs |");
+      expect(rules, key).toContain("## Location rules");
+    }
+    expect(sm("logic/tourian.md")).toContain("not modeled");
+  });
+
+  it("keeps the location names and both logics of the rule document", () => {
+    expect(sm("logic/crateria.md")).toContain("- Energy Tank, Terminator: free");
+    expect(sm("logic/crateria.md")).toContain(
+      "- Bombs (Bomb Torizo): C: PASS and RED. T: Morph and RED",
+    );
+    expect(sm("logic/brinstar.md")).toContain("- Spazer: Morph and Super");
+    expect(sm("logic/norfair_upper.md")).toContain(
+      "- Grappling Beam: C: Morph and (FLY or (Spd and PB)). T: SJ or Morph or Grap or (HJ and Spd)",
+    );
+    expect(sm("logic/norfair_lower.md")).toContain("- Energy Tank, Ridley: PB and Super");
+    expect(sm("logic/norfair_lower.md")).toContain("- Missile (Gold Torizo): C: PB, SJ, Super.");
+    expect(sm("logic/wrecked_ship.md")).toContain(
+      "- Energy Tank, Wrecked Ship: C: HJ or SJ or Spd or Gr.",
+    );
+    expect(sm("logic/maridia.md")).toContain(
+      "- Space Jump: C: DRAY. T: DRAY and (FLY or (Spd and HJ))",
+    );
+    expect(sm("logic/maridia.md")).toContain("- Energy Tank, Botwoon: BOT and (Gr or Ice)");
+  });
+
+  it("holds the items table with what each item gives in logic, and the placement rules", () => {
+    const items = sm("items.md");
+    for (const s of [
+      "| Hyper Beam |",
+      "| Spazer |",
+      "## Tank and ammo totals",
+      "## Placement rules",
+      "## Base game changes that affect logic",
+      "14 Energy Tanks",
+      "Placement bans: Gravity not in Crateria or Brinstar",
+    ]) {
+      expect(items, s).toContain(s);
+    }
+    expect(items).toContain("Nothing; never referenced by any rule");
+  });
+
+  it("drops the verification markers and the sentence that was never confirmed", () => {
+    for (const path of smPaths) {
+      const text = GAME_DATA[path] ?? "";
+      for (const s of [
+        "(unverified)",
+        "unverified",
+        "(?)",
+        "Spring Ball dance",
+        "## Verification",
+        "## Sources",
+      ]) {
+        expect(text, `${path} ${s}`).not.toContain(s);
+      }
+    }
+  });
+
+  it("has no em or en dashes in any Super Metroid file", () => {
+    expect(smPaths.length).toBeGreaterThan(0);
+    for (const path of smPaths) {
+      expect(GAME_DATA[path], path).not.toContain(EM);
+      expect(GAME_DATA[path], path).not.toContain(EN);
+    }
   });
 });
