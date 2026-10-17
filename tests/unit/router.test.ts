@@ -336,6 +336,24 @@ describe("ROUTER_PROMPT", () => {
     expect(new RegExp(`[${dashes}]`).test(ROUTER_PROMPT)).toBe(false);
   });
 
+  it("sends game mechanics and item logic to chat and keeps data routes out of them", () => {
+    const description = (route: string): string => {
+      const line = ROUTER_PROMPT.split("\n").find((l) => l.startsWith(`${route}:`));
+      expect(line, route).toBeDefined();
+      return line ?? "";
+    };
+    const chat = description("chat");
+    for (const subject of ["items", "dungeons", "bosses", "mechanics", "randomizer logic"]) {
+      expect(chat, subject).toContain(subject);
+    }
+    expect(chat).toContain("game reference");
+    expect(chat).toContain("anything off topic");
+    expect(chat).toContain("too unclear to place");
+    for (const route of ["schedule", "streams", "players", "tournaments"]) {
+      expect(description(route), route).toContain("not game mechanics or item logic (chat)");
+    }
+  });
+
   it("holds no clock and names every route", () => {
     expect(ROUTER_PROMPT).not.toContain("Current time");
     for (const route of [
