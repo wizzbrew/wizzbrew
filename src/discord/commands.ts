@@ -8,7 +8,8 @@ export type CommandName =
   | "player"
   | "link"
   | "unlink"
-  | "me";
+  | "me"
+  | "help";
 
 // Slash command definitions. Numeric literals stand in for the discord-api-types enums so this
 // module has no runtime import from that package: type 1 is a chat input command, option type 3
@@ -92,5 +93,10 @@ export const COMMANDS: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
     ...base,
     name: "me",
     description: "See your own matches and crew shifts",
+  },
+  {
+    ...base,
+    name: "help",
+    description: "What Wizzbrew can do and how to ask",
   },
 ];

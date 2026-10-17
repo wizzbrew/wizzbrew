@@ -11,7 +11,7 @@ up as crew, acknowledge a match, offer a match for stream.
 - **Replies.** Reply to one of its messages to follow up. Anyone can follow up on a public answer.
 - **DMs.** Message it directly; it answers there.
 - **Slash commands.** `/ask`, `/schedule`, `/live`, `/standings`, `/player`, `/link`, `/unlink`,
-  `/me`.
+  `/me`, `/help`. `/help` is a static private overview; it makes no model or Wizzrobe call.
 - **Buttons.** Anything that changes your data shows a Confirm and Cancel button first. Only the
   person who asked can press them, and the action runs with their own Wizzrobe token. Answers can
   also offer choices (for example when a name matches several players) and "Change something".

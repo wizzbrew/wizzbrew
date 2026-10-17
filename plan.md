@@ -118,6 +118,7 @@ Slash commands, registered by `scripts/register-commands.ts`:
 | `/standings tournament:` | Standings from Challonge, with the bracket and rules links. |
 | `/player name:` | A player's tournaments, next match, bracket position. |
 | `/link`, `/unlink`, `/me` | Account linking; `/me` shows your matches, crew slots, shifts. |
+| `/help` | A static, private overview: the commands, @mention, reply and DM, linking. No model call. |
 
 - Answers about one person (`/me`, linked actions) are **ephemeral** (flag 64). Schedule and
   standings answers are public in the channel.
