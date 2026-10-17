@@ -150,9 +150,12 @@ as `/link`; "what's live" the same answer as `/live`.
 **Conversation.**
 - Mentions and replies: the reply chain is the conversation (as in beer-league). Each turn
   rebuilds context from the chain plus a fresh clock (L1).
-- Slash answers: an "Ask a follow-up" button opens a modal; the thread's last 6 turns live in
-  Redis with a 30-minute idle expiry (L15). Anyone may follow up on a public answer (their
-  follow-up forks a thread they own); a private thread stays with its owner.
+- Follow-ups: a public answer is followed up by replying to it (the relay); a private answer
+  cannot be replied to, so it carries an "Ask a follow-up" button that opens a modal. The
+  thread's last 6 turns live in Redis with a 30-minute idle expiry (L15). Anyone may follow up
+  on a public answer (their follow-up forks a thread they own); a private thread stays with its
+  owner. A private answer to a public slash command leaves no public message: the deferral is
+  deleted after the ephemeral answer is sent.
 - Responders and chat see the earlier turns, not only the router.
 - A proposed write shows Confirm, Cancel and "Change something" (cancels and asks what to fix).
 
