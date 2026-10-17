@@ -2,8 +2,11 @@ import "./harness.js"; // first: it installs the @vercel/functions mock before a
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../../api/message.js";
+import { resetConfigForTests } from "../../src/config.js";
 import { MODELS } from "../../src/llm/models.js";
+import { dmCount, readDmLog } from "../../src/store/dmlog.js";
 import { keys } from "../../src/store/keys.js";
+import { communityDate } from "../../src/time/time.js";
 import type { RelayMessage } from "../../src/types.js";
 import {
   buttonId,
@@ -300,5 +303,55 @@ describe("relay messages end to end", () => {
     expect(posted()).toHaveLength(1);
     expect(posted()[0]?.replyToMessageId).toBe("m9");
     expect(posted()[0]?.body.content).toBe("Anytime.");
+  });
+  it("10. a DM is answered, then logged with its question and answer for the day", async () => {
+    world.anthropic.queue(routerReply("chat"), textReply("Anytime."));
+    const res = await relay(
+      relayMessage(USER_B, "m10", "thanks wizzbrew!", { isDm: true, guildId: null }),
+    );
+    expect(res.status).toBe(202);
+    await settle();
+
+    expect(posted()).toHaveLength(1);
+    expect(posted()[0]?.body.content).toBe("Anytime.");
+    const view = await readDmLog(communityDate(new Date()));
+    expect(view.total).toBe(1);
+    expect(view.entries[0]).toMatchObject({
+      userId: USER_B,
+      question: "thanks wizzbrew!",
+      route: "chat",
+      response: "Anytime.",
+    });
+  });
+
+  it("11. past the daily DM limit the DM gets one plain line and no model call", async () => {
+    vi.stubEnv("DM_DAILY_LIMIT", "1");
+    resetConfigForTests();
+    world.anthropic.queue(routerReply("chat"), textReply("Anytime."));
+    await relay(relayMessage(USER_B, "m11a", "thanks wizzbrew!", { isDm: true, guildId: null }));
+    await settle();
+    expect(world.anthropic.requests).toHaveLength(2);
+
+    await relay(relayMessage(USER_B, "m11b", "and again", { isDm: true, guildId: null }));
+    await settle();
+    expect(world.anthropic.requests).toHaveLength(2);
+    const replies = posted().filter((p) => p.replyToMessageId === "m11b");
+    expect(replies).toHaveLength(1);
+    expect(replies[0]?.body.content).toBe(
+      "You've reached today's DM limit of 1. The channel is the normal place to ask, so ask there instead.",
+    );
+    expect(replies[0]?.body.allowed_mentions).toEqual({ parse: [] });
+    const day = communityDate(new Date());
+    expect(await dmCount(day, USER_B)).toBe(2);
+    const view = await readDmLog(day);
+    expect(view.entries.map((e) => e.route)).toEqual(["chat", "rate_limited"]);
+  });
+
+  it("12. a channel mention is never logged or counted as a DM", async () => {
+    world.anthropic.queue(routerReply("chat"), textReply("Anytime."));
+    await relay(relayMessage(USER_B, "m12", "thanks wizzbrew!"));
+    await settle();
+    expect(await dmCount(communityDate(new Date()), USER_B)).toBe(0);
+    expect(world.kv.keys().filter((k) => k.includes(":dm"))).toEqual([]);
   });
 });

@@ -39,7 +39,14 @@ export interface PipelineRequest {
   now: Date;
 }
 
+// What a delivered answer was, for the DM log. The text is the answer object's, never the prompt.
+export interface AskResult {
+  route: string;
+  text: string;
+}
+
 const LOCK_TTL_SEC = 300;
+const ACCOUNT_LINK_NOTE = "(sent a private account link)";
 const USER_FAULT_STATUSES = new Set([400, 401, 403, 404]);
 
 function isUserFault(err: unknown): boolean {
@@ -78,7 +85,8 @@ async function answerFor(req: PipelineRequest, decision: RoutingDecision): Promi
   return runResponder(decision.route, decision, ctx);
 }
 
-export async function runAskPipeline(req: PipelineRequest): Promise<void> {
+// Resolves to what was delivered, or null when the question was refused or failed.
+export async function runAskPipeline(req: PipelineRequest): Promise<AskResult | null> {
   const { requestId, asker, question, reply, history, forced, now } = req;
   const started = Date.now();
   const lockKey = keys.lock(asker.discordUserId);
@@ -87,16 +95,16 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
   try {
     if (!(await allowRequest(asker.discordUserId, now))) {
       await deliverError(reply, "You're asking faster than I can keep up. Give it a minute.");
-      return;
+      return null;
     }
     locked = await kv().setIfAbsent(lockKey, requestId, LOCK_TTL_SEC);
     if (!locked) {
       await deliverError(reply, "Still working on your last one. Ask again in a moment.");
-      return;
+      return null;
     }
     if (await isPaused()) {
       await deliverError(reply, "Wizzbrew is paused right now.");
-      return;
+      return null;
     }
     if (forced?.route !== "live") await assertUnderBudget(now);
 
@@ -114,6 +122,8 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
     checkAuth(asker, decision);
 
     const answer = await answerFor(req, decision);
+    // The account answer carries a one-time link, so neither the thread nor the DM log keeps it.
+    const answerText = decision.route === "account" ? ACCOUNT_LINK_NOTE : answer.text;
     const pending = answer.proposedAction
       ? await createPending(answer.proposedAction, asker.discordUserId, now)
       : undefined;
@@ -130,10 +140,7 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
         turns: [
           ...history,
           { role: "user", text: question },
-          {
-            role: "assistant",
-            text: decision.route === "account" ? "(sent a private account link)" : answer.text,
-          },
+          { role: "assistant", text: answerText },
         ],
         ...(held ? { held } : {}),
       },
@@ -141,7 +148,14 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
     );
 
     await deliver(reply, answer, { pendingId, threadId: thread.id });
-    log("info", "ask.done", { requestId, route, ms: Date.now() - started, path: reply.kind });
+    log("info", "ask.done", {
+      requestId,
+      route,
+      ms: Date.now() - started,
+      path: reply.kind,
+      askerId: asker.discordUserId,
+    });
+    return { route, text: answerText };
   } catch (err) {
     const name = err instanceof Error ? err.name : "Error";
     const status = err instanceof WizzrobeError ? err.status : undefined;
@@ -160,6 +174,7 @@ export async function runAskPipeline(req: PipelineRequest): Promise<void> {
       reply,
       userMessageFor(err, { public: reply.kind === "message" || !reply.ephemeral }),
     );
+    return null;
   } finally {
     if (locked) {
       try {

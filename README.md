@@ -9,7 +9,9 @@ up as crew, acknowledge a match, offer a match for stream.
 
 - **Mentions.** @mention the bot in an allowed channel and ask in plain words.
 - **Replies.** Reply to one of its messages to follow up. Anyone can follow up on a public answer.
-- **DMs.** Message it directly; it answers there.
+- **DMs.** Message it directly; it answers there. The channel is the normal place to ask, so each
+  person gets a few DM questions a day (`DM_DAILY_LIMIT`, default 5), then a line pointing back to
+  the channel.
 - **Slash commands.** `/ask`, `/schedule`, `/live`, `/standings`, `/player`, `/link`, `/unlink`,
   `/me`, `/help`. `/help` is a static private overview; it makes no model or Wizzrobe call.
 - **Buttons.** Anything that changes your data shows a Confirm and Cancel button first. Only the
@@ -23,6 +25,19 @@ up as crew, acknowledge a match, offer a match for stream.
 - **Casual chat.** Chat has A Link to the Past and randomizer reference knowledge from
   `prompts/alttp-game-knowledge.md`. After editing it, rebuild the prompt constant with
   `npm run build:knowledge`; the unit tests fail until you do.
+
+## Owner only
+
+`/dmlog [day]` shows who sent DMs on a day (default today, community timezone, or `YYYY-MM-DD`):
+the total, a count per person, and the latest questions with a clipped answer. It is private,
+needs no model call, and answers "That command is for the bot's owner." to anyone whose Discord id
+is not in `OWNER_DISCORD_IDS` (comma-separated; empty means nobody). `/help` does not list it.
+
+Every relayed DM is logged in Upstash Redis (`wb:v1:dmlog:{day}`, one JSON line each, and
+`wb:v1:dmcount:{day}`, a count per Discord id), with the question clipped to 300 characters and the
+answer to 500. Both keys expire after 14 days. The count is also the daily cap: at `DM_DAILY_LIMIT`
+the bot declines in the DM and logs the attempt as `rate_limited`. A failed log write only warns;
+the answer still goes out.
 
 ## Architecture
 

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { UserInputError, WizzrobeError } from "../../src/errors.js";
 import {
   communityDate,
+  communityHm,
   dayWindowUtc,
   discordTimestamp,
+  isYmd,
   nowBlock,
   parseUserDate,
   parseUserDateTime,
@@ -92,6 +94,26 @@ describe("communityDate", () => {
   it("uses the community calendar date across UTC midnight", () => {
     expect(communityDate(new Date("2026-10-16T02:00:00Z"))).toBe("2026-10-15");
     expect(communityDate(new Date("2026-10-16T04:00:00Z"))).toBe("2026-10-16");
+  });
+});
+
+describe("communityHm", () => {
+  it("is HH:MM on the community clock, on both sides of a DST change (L4)", () => {
+    expect(communityHm(new Date("2026-10-17T18:32:00Z"))).toBe("14:32"); // EDT, UTC-4
+    expect(communityHm(new Date("2026-11-02T18:32:00Z"))).toBe("13:32"); // EST, UTC-5
+    expect(communityHm(new Date("2026-10-16T04:05:00Z"))).toBe("00:05");
+  });
+});
+
+describe("isYmd", () => {
+  it("accepts real dates written YYYY-MM-DD only", () => {
+    expect(isYmd("2026-10-17")).toBe(true);
+    expect(isYmd("2028-02-29")).toBe(true);
+    expect(isYmd("2026-02-29")).toBe(false);
+    expect(isYmd("2026-13-01")).toBe(false);
+    expect(isYmd("2026-1-01")).toBe(false);
+    expect(isYmd("tomorrow")).toBe(false);
+    expect(isYmd("2026-10-17 ")).toBe(false);
   });
 });
 

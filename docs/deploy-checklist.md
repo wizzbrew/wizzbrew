@@ -79,6 +79,8 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 | `CHALLONGE_API_KEY` | Leave empty (parked, see [backlog.md](backlog.md)) |
 | `RELAY_SECRET` | `openssl rand -base64 32` (at least 32 characters); same value on Railway |
 | `STAFF_ALERT_CHANNEL_ID` | A staff channel id, optional (step 10) |
+| `OWNER_DISCORD_IDS` | Comma-separated Discord user ids allowed to run `/dmlog`, optional (empty means nobody) |
+| `DM_DAILY_LIMIT` | DM questions one person may send per community day, optional (default `5`) |
 
 - Verify: the Vercel env list has no empty required name, and every name is scoped to Production
   only.

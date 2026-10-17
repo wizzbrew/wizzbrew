@@ -179,5 +179,28 @@ exports[`COMMANDS > matches the snapshot 1`] = `
     "name": "help",
     "type": 1,
   },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "Owner only: who sent DMs, and what was asked",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "dmlog",
+    "options": [
+      {
+        "description": "Which day to show, year then month then day; default today",
+        "max_length": 10,
+        "name": "day",
+        "required": false,
+        "type": 3,
+      },
+    ],
+    "type": 1,
+  },
 ]
 `;

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/wizzrobe/identity.js", () => ({ loadAsker: vi.fn() }));
 vi.mock("../../src/actions/pending.js", () => ({
@@ -23,7 +23,11 @@ import { handleInteraction } from "../../src/handlers/dispatch.js";
 import { isPaused } from "../../src/ops/alerts.js";
 import { allowRequest } from "../../src/ops/rate.js";
 import { scheduleAnswer } from "../../src/responders/direct.js";
+import { recordDm } from "../../src/store/dmlog.js";
+import { setKvForTests } from "../../src/store/kv.js";
+import { communityDate } from "../../src/time/time.js";
 import { loadAsker } from "../../src/wizzrobe/identity.js";
+import { FakeKv } from "../fakes/kv.js";
 
 const asker = {
   discordUserId: "u1",
@@ -101,7 +105,7 @@ beforeEach(() => {
   vi.mocked(isPaused).mockResolvedValue(false);
   vi.mocked(allowRequest).mockResolvedValue(true);
   vi.mocked(loadAsker).mockResolvedValue(asker);
-  vi.mocked(runAskPipeline).mockResolvedValue(undefined);
+  vi.mocked(runAskPipeline).mockResolvedValue(null);
   vi.mocked(runComponent).mockResolvedValue(undefined);
   vi.mocked(deliver).mockResolvedValue(undefined);
   vi.mocked(deliverError).mockResolvedValue(undefined);
@@ -258,6 +262,123 @@ describe("handleInteraction", () => {
   it("/live forces the live route", async () => {
     await run(command("live"));
     expect(vi.mocked(runAskPipeline).mock.calls[0]?.[0].forced?.route).toBe("live");
+  });
+
+  describe("/dmlog", () => {
+    const OWNER = "100000000000000001"; // in OWNER_DISCORD_IDS from tests/setup.ts
+    const DAY = "2026-10-15";
+    let store: FakeKv;
+    let reads: ReturnType<typeof vi.spyOn>[];
+
+    function ownerCommand(options: unknown[] = []) {
+      return {
+        ...command("dmlog", options),
+        member: { user: { id: OWNER, username: "owner" } },
+      };
+    }
+    function textSent(): string {
+      return String(vi.mocked(deliver).mock.calls[0]?.[1].text);
+    }
+
+    beforeEach(() => {
+      store = new FakeKv();
+      setKvForTests(store);
+      reads = (["get", "hget", "hgetall", "lrange", "take"] as const).map((m) =>
+        vi.spyOn(store, m),
+      );
+    });
+    afterEach(() => {
+      setKvForTests(null);
+      vi.unstubAllEnvs();
+    });
+
+    it("refuses a non-owner at once, with no Redis read and no kill switch read", async () => {
+      const b = await body(await run(command("dmlog")));
+      expect(b.type).toBe(4);
+      expect(b.data.flags).toBe(64);
+      expect(b.data.content).toBe("That command is for the bot's owner.");
+      expect(b.data.allowed_mentions).toEqual({ parse: [] });
+      expect(isPaused).not.toHaveBeenCalled();
+      for (const read of reads) expect(read).not.toHaveBeenCalled();
+      expect(pending).toHaveLength(0);
+      expect(deliver).not.toHaveBeenCalled();
+      expect(loadAsker).not.toHaveBeenCalled();
+    });
+
+    it("refuses everyone when OWNER_DISCORD_IDS is empty", async () => {
+      vi.stubEnv("OWNER_DISCORD_IDS", "");
+      const b = await body(await run(ownerCommand()));
+      expect(b.data.content).toBe("That command is for the bot's owner.");
+      for (const read of reads) expect(read).not.toHaveBeenCalled();
+    });
+
+    it("matches the owner by id, not by name", async () => {
+      const impostor = { ...command("dmlog"), member: { user: { id: "999", username: "owner" } } };
+      const b = await body(await run(impostor));
+      expect(b.data.content).toBe("That command is for the bot's owner.");
+    });
+
+    it("defers privately for the owner and edits the reply with the day's log", async () => {
+      await recordDm({
+        day: DAY,
+        userId: "111111111111111111",
+        userName: "Ann",
+        question: "who streams tonight",
+        route: "schedule",
+        response: "Stage 1 does.",
+      });
+      const b = await body(await run(ownerCommand([{ name: "day", type: 3, value: DAY }])));
+      expect(b).toEqual({ type: 5, data: { flags: 64 } });
+      expect(deliver).toHaveBeenCalledOnce();
+      expect(vi.mocked(deliver).mock.calls[0]?.[0]).toEqual({
+        kind: "interaction",
+        token: "tok",
+        ephemeral: true,
+      });
+      expect(vi.mocked(deliver).mock.calls[0]?.[1].ephemeral).toBe(true);
+      const text = textSent();
+      expect(text.split("\n")[0]).toBe("DM log for 2026-10-15: 1 total from 1 person");
+      expect(text).toContain("Ann (`111111111111111111`): 1");
+      expect(text).toContain("who streams tonight");
+      expect(text).toContain("Stage 1 does.");
+      // A direct command: no router, no responder, no Wizzrobe lookup.
+      expect(runAskPipeline).not.toHaveBeenCalled();
+      expect(loadAsker).not.toHaveBeenCalled();
+    });
+
+    it("defaults to today on the community clock", async () => {
+      await run(ownerCommand());
+      expect(textSent()).toBe(`DM log for ${communityDate(new Date())}: no DMs.`);
+    });
+
+    it("refuses a day that is not a real YYYY-MM-DD, before any read", async () => {
+      await run(ownerCommand([{ name: "day", type: 3, value: "2026-13-40" }]));
+      expect(deliver).not.toHaveBeenCalled();
+      expect(deliverError).toHaveBeenCalledWith(
+        { kind: "interaction", token: "tok", ephemeral: true },
+        "Give the day as YYYY-MM-DD, for example 2026-10-17.",
+      );
+      for (const read of reads) expect(read).not.toHaveBeenCalled();
+    });
+
+    it("honors the kill switch for the owner", async () => {
+      vi.mocked(isPaused).mockResolvedValue(true);
+      const b = await body(await run(ownerCommand()));
+      expect(b.type).toBe(4);
+      expect(b.data.content).toBe("Wizzbrew is paused right now.");
+      for (const read of reads) expect(read).not.toHaveBeenCalled();
+      expect(deliver).not.toHaveBeenCalled();
+    });
+
+    it("reports a failed read as a private error", async () => {
+      vi.spyOn(store, "hgetall").mockRejectedValue(new Error("redis down"));
+      await run(ownerCommand());
+      expect(deliver).not.toHaveBeenCalled();
+      expect(deliverError).toHaveBeenCalledWith(
+        { kind: "interaction", token: "tok", ephemeral: true },
+        "Something went wrong on my side. Try again in a minute.",
+      );
+    });
   });
 
   it("unknown command answers immediately", async () => {

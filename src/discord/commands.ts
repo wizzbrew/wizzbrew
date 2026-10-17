@@ -9,7 +9,12 @@ export type CommandName =
   | "link"
   | "unlink"
   | "me"
-  | "help";
+  | "help"
+  | "dmlog";
+
+// Commands only the bot's owner may run (OWNER_DISCORD_IDS). They are registered like any other,
+// but /help does not list them and the dispatcher refuses everyone else before any lookup.
+export const OWNER_COMMANDS: ReadonlySet<string> = new Set<CommandName>(["dmlog"]);
 
 // Slash command definitions. Numeric literals stand in for the discord-api-types enums so this
 // module has no runtime import from that package: type 1 is a chat input command, option type 3
@@ -98,5 +103,19 @@ export const COMMANDS: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
     ...base,
     name: "help",
     description: "What Wizzbrew can do and how to ask",
+  },
+  {
+    ...base,
+    name: "dmlog",
+    description: "Owner only: who sent DMs, and what was asked",
+    options: [
+      {
+        type: 3,
+        name: "day",
+        description: "Which day to show, year then month then day; default today",
+        required: false,
+        max_length: 10,
+      },
+    ],
   },
 ];
