@@ -75,6 +75,62 @@ export class FakeKv implements Kv {
     return true;
   }
 
+  async rpush(key: string, value: string, ttlSec?: number): Promise<number> {
+    const entry = this.live(key);
+    const list = Array.isArray(entry?.value) ? (entry.value as unknown[]) : [];
+    list.push(structuredClone(value));
+    const expiresAt = ttlSec === undefined ? (entry?.expiresAt ?? null) : this.expiryFor(ttlSec);
+    this.store.set(key, { value: list, expiresAt });
+    return list.length;
+  }
+
+  // Same index rules as Redis: negative counts from the end, stop is inclusive.
+  async lrange(key: string, start: number, stop: number): Promise<unknown[]> {
+    const entry = this.live(key);
+    if (!Array.isArray(entry?.value)) return [];
+    const list = entry.value as unknown[];
+    const from = Math.max(start < 0 ? list.length + start : start, 0);
+    const to = Math.min(stop < 0 ? list.length + stop : stop, list.length - 1);
+    return structuredClone(list.slice(from, to + 1));
+  }
+
+  async hincrby(key: string, field: string, by: number, ttlSec?: number): Promise<number> {
+    const entry = this.live(key);
+    const hash: Record<string, number> =
+      entry?.value !== null && typeof entry?.value === "object" && !Array.isArray(entry.value)
+        ? (entry.value as Record<string, number>)
+        : {};
+    const next = (hash[field] ?? 0) + by;
+    hash[field] = next;
+    const expiresAt = ttlSec === undefined ? (entry?.expiresAt ?? null) : this.expiryFor(ttlSec);
+    this.store.set(key, { value: hash, expiresAt });
+    return next;
+  }
+
+  async hget(key: string, field: string): Promise<unknown> {
+    const entry = this.live(key);
+    if (entry?.value === null || typeof entry?.value !== "object" || Array.isArray(entry.value)) {
+      return null;
+    }
+    const hash = entry.value as Record<string, unknown>;
+    return field in hash ? structuredClone(hash[field]) : null;
+  }
+
+  async hgetall(key: string): Promise<Record<string, unknown>> {
+    const entry = this.live(key);
+    if (entry?.value === null || typeof entry?.value !== "object" || Array.isArray(entry.value)) {
+      return {};
+    }
+    return structuredClone(entry.value) as Record<string, unknown>;
+  }
+
+  // The seconds left before key expires, or null when it has no expiry or is gone. For tests.
+  ttlSec(key: string): number | null {
+    const entry = this.live(key);
+    if (!entry || entry.expiresAt === null) return null;
+    return Math.round((entry.expiresAt - this.clock()) / 1000);
+  }
+
   // present and not expired
   has(key: string): boolean {
     return this.live(key) !== undefined;

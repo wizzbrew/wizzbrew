@@ -182,6 +182,16 @@ export function communityDate(d: Date): string {
   return formatYmd(wallOf(d.getTime()));
 }
 
+// HH:MM on the community clock at an instant.
+export function communityHm(d: Date): string {
+  return formatHm(wallOf(d.getTime()));
+}
+
+// True for a real calendar date written YYYY-MM-DD.
+export function isYmd(text: string): boolean {
+  return parseYmd(text) !== null;
+}
+
 // ---- Wizzrobe times --------------------------------------------------------------------------
 
 const ISO_INSTANT =
