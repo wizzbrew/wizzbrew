@@ -30,7 +30,7 @@ export interface RoutingDecision {
     accountAction?: "link" | "unlink"; // route "account" only
     routine?: "dungeon" | "logic" | "overworld" | "items" | "general"; // route "game" only
     subjects?: string[]; // route "game" only: area, boss and item names as written, at most 4
-    game?: "alttp" | "sm"; // route "game" only: A Link to the Past or Super Metroid
+    game?: "alttp" | "sm" | "z1r"; // route "game" only: A Link to the Past, Super Metroid or Zelda 1 Randomizer
   };
   reason: string; // one short line, logged (L24)
 }

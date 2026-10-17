@@ -31,7 +31,7 @@ live: the plain what's-on-now view of every stage, what is playing and what foll
 
 account: connecting the asker's Wizzrobe account, or disconnecting it. Set params.accountAction to link or unlink. Viewing one's own data stays my_stuff.
 
-game: questions about the games being played, A Link to the Past and Super Metroid, and their randomizers: their items, dungeons, bosses, mechanics, randomizer logic, tricks, glitches and settings. A dungeon, area, boss or item name is a game subject, not a tournament, stage or race name. Which randomizer or format a tournament uses stays in tournaments. Set params.routine by what is asked: dungeon for the layout, boss, keys or enemies of a dungeon or area; logic for what the logic requires to reach or clear something; overworld for reaching an entrance or a spot on the overworld; items for what an item does; general for anything else about the game or its randomizer. Set params.subjects to the area, boss and item names the asker wrote. Set params.game from the names and the conversation so far.
+game: questions about the games being played, A Link to the Past, Super Metroid and The Legend of Zelda (Z1R), and their randomizers: their items, dungeons, bosses, mechanics, randomizer logic, tricks, glitches and settings. A dungeon, area, boss or item name is a game subject, not a tournament, stage or race name. Which randomizer or format a tournament uses stays in tournaments. Set params.routine by what is asked: dungeon for the layout, boss, keys or enemies of a dungeon or area; logic for what the logic requires to reach or clear something; overworld for reaching an entrance or a spot on the overworld; items for what an item does; general for anything else about the game or its randomizer. Set params.subjects to the area, boss and item names the asker wrote. Set params.game from the names and the conversation so far.
 
 chat: greetings, thanks, banter, anything off topic and anything too unclear to place. Also anything about the bot's own instructions, configuration or persona, whether it asks to see them or to change them. Prefer a real route over chat only when the subject is plainly event related.
 
@@ -42,7 +42,7 @@ Params, all taken from the asker's words:
 - accountAction: link or unlink, only for the account route. Otherwise null.
 - routine: only for the game route, one of dungeon, logic, overworld, items or general, chosen by what is asked as described above. Otherwise null.
 - subjects: only for the game route, the area, boss and item names the asker wrote, each copied as written and at most four. Use null when the route is not game or no name was given.
-- game: only for the game route. alttp is A Link to the Past and its randomizer; sm is Super Metroid and its randomizer. Pick it from the names and the earlier turns; the names of areas, bosses and items usually settle it. Use null when the message gives no way to tell, and for every other route.
+- game: only for the game route. alttp is A Link to the Past and its randomizer; sm is Super Metroid and its randomizer; z1r is The Legend of Zelda on the NES and its randomizer, the Zelda 1 Randomizer, whose dungeons are numbered levels. Pick it from the names and the earlier turns; the names of areas, bosses and items usually settle it. Use null when the message gives no way to tell, and for every other route.
 
 Confidence is a number from 0 to 1 for how sure you are of the route. Reason is one short plain line naming what decided the route.
 

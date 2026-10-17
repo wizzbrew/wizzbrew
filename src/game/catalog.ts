@@ -9,6 +9,7 @@ export type GameId = NonNullable<RoutingDecision["params"]["game"]>;
 export const GAME_NAMES: Record<GameId, string> = {
   alttp: "A Link to the Past",
   sm: "Super Metroid",
+  z1r: "Zelda 1 Randomizer",
 };
 
 export const GAME_IDS = Object.keys(GAME_NAMES) as [GameId, ...GameId[]];
@@ -41,6 +42,11 @@ const alttp = <T extends Omit<CatalogEntry, "game">>(entry: T): T & { game: "alt
 const sm = <T extends Omit<CatalogEntry, "game">>(entry: T): T & { game: "sm" } => ({
   ...entry,
   game: "sm",
+});
+
+const z1r = <T extends Omit<CatalogEntry, "game">>(entry: T): T & { game: "z1r" } => ({
+  ...entry,
+  game: "z1r",
 });
 
 const ALTTP_AREAS: readonly Area[] = [
@@ -313,9 +319,132 @@ const SM_ITEMS: readonly Item[] = [
   }),
 ];
 
-export const AREAS: readonly Area[] = [...ALTTP_AREAS, ...SM_AREAS];
-export const BOSSES: readonly Boss[] = [...ALTTP_BOSSES, ...SM_BOSSES];
-export const ITEMS: readonly Item[] = [...ALTTP_ITEMS, ...SM_ITEMS];
+// The Legend of Zelda on the NES and its randomizer (Z1R). The nine keys are the files under
+// prompts/z1r/dungeons and prompts/z1r/logic. Each level has a first quest shape name that
+// people use for it. The two letter names (l1 to l9) work in a name list and are ignored inside a
+// sentence. A boss points at its vanilla level: Aquamentus and Gleeok each appear twice in the
+// first quest, and the catalog keeps their first level.
+const Z1R_LEVELS: readonly [string, string, string, string][] = [
+  ["level1", "1", "one", "Eagle"],
+  ["level2", "2", "two", "Moon"],
+  ["level3", "3", "three", "Manji"],
+  ["level4", "4", "four", "Snake"],
+  ["level5", "5", "five", "Lizard"],
+  ["level6", "6", "six", "Dragon"],
+  ["level7", "7", "seven", "Demon"],
+  ["level8", "8", "eight", "Lion"],
+  ["level9", "9", "nine", "Death Mountain"],
+];
+
+const Z1R_AREAS: readonly Area[] = Z1R_LEVELS.map(([key, digit, word, shape]) =>
+  z1r({
+    key,
+    name: `Level ${digit} (${shape})`,
+    aliases: [
+      `level ${digit}`,
+      `level ${word}`,
+      `l${digit}`,
+      `lvl ${digit}`,
+      `dungeon ${digit}`,
+      `dungeon ${word}`,
+      shape.toLowerCase(),
+      ...(shape === "Death Mountain" ? [] : [`${shape.toLowerCase()} dungeon`]),
+      ...(shape === "Manji" ? ["kanji"] : []),
+    ],
+  }),
+);
+
+const Z1R_BOSSES: readonly Boss[] = [
+  z1r({ key: "aquamentus", name: "Aquamentus", area: "level1", aliases: ["aquamentus"] }),
+  z1r({ key: "dodongo", name: "Dodongo", area: "level2", aliases: ["dodongo"] }),
+  z1r({ key: "manhandla", name: "Manhandla", area: "level3", aliases: ["manhandla"] }),
+  z1r({ key: "gleeok", name: "Gleeok", area: "level4", aliases: ["gleeok"] }),
+  z1r({ key: "digdogger", name: "Digdogger", area: "level5", aliases: ["digdogger"] }),
+  z1r({ key: "gohma", name: "Gohma", area: "level6", aliases: ["gohma"] }),
+  z1r({
+    key: "hungry_goriya",
+    name: "Hungry Goriya",
+    area: "level7",
+    aliases: ["hungry goriya"],
+  }),
+  z1r({ key: "patra", name: "Patra", area: "level9", aliases: ["patra"] }),
+  z1r({ key: "ganon", name: "Ganon", area: "level9", aliases: ["ganon", "gannon"] }),
+];
+
+const Z1R_ITEMS: readonly Item[] = [
+  z1r({ key: "raft", name: "Raft", aliases: ["raft"] }),
+  z1r({
+    key: "stepladder",
+    name: "Stepladder",
+    aliases: ["stepladder", "step ladder", "ladder"],
+  }),
+  z1r({ key: "recorder", name: "Recorder", aliases: ["recorder", "whistle"] }),
+  z1r({
+    key: "power_bracelet",
+    name: "Power Bracelet",
+    aliases: ["power bracelet", "bracelet"],
+  }),
+  z1r({ key: "bow", name: "Bow", aliases: ["bow"] }),
+  z1r({ key: "arrows", name: "Arrows", aliases: ["arrows", "arrow"] }),
+  z1r({
+    key: "silver_arrows",
+    name: "Silver Arrows",
+    aliases: ["silver arrows", "silver arrow"],
+  }),
+  z1r({ key: "bombs", name: "Bombs", aliases: ["bombs", "bomb"] }),
+  z1r({ key: "blue_candle", name: "Blue Candle", aliases: ["blue candle"] }),
+  z1r({ key: "red_candle", name: "Red Candle", aliases: ["red candle"] }),
+  z1r({ key: "candle", name: "Candle", aliases: ["candle"] }),
+  z1r({ key: "magic_key", name: "Magic Key", aliases: ["magic key", "magical key", "key"] }),
+  z1r({ key: "bait", name: "Bait", aliases: ["bait"] }),
+  z1r({ key: "letter", name: "Letter", aliases: ["letter"] }),
+  z1r({
+    key: "magic_wand",
+    name: "Magic Wand",
+    aliases: ["magic wand", "wand", "magical rod", "magic rod"],
+  }),
+  z1r({
+    key: "magic_book",
+    name: "Magic Book",
+    aliases: ["magic book", "magical book", "book of magic", "book"],
+  }),
+  z1r({ key: "blue_ring", name: "Blue Ring", aliases: ["blue ring"] }),
+  z1r({ key: "red_ring", name: "Red Ring", aliases: ["red ring"] }),
+  z1r({ key: "ring", name: "Ring", aliases: ["ring"] }),
+  z1r({
+    key: "boomerang",
+    name: "Boomerang",
+    aliases: ["boomerang", "wooden boomerang", "wood boomerang"],
+  }),
+  z1r({
+    key: "magical_boomerang",
+    name: "Magical Boomerang",
+    aliases: ["magical boomerang", "magic boomerang"],
+  }),
+  z1r({ key: "wood_sword", name: "Wood Sword", aliases: ["wood sword", "wooden sword"] }),
+  z1r({ key: "white_sword", name: "White Sword", aliases: ["white sword"] }),
+  z1r({
+    key: "magical_sword",
+    name: "Magical Sword",
+    aliases: ["magical sword", "magic sword"],
+  }),
+  z1r({ key: "sword", name: "Sword", aliases: ["sword"] }),
+  z1r({
+    key: "magic_shield",
+    name: "Magic Shield",
+    aliases: ["magic shield", "magical shield", "shield"],
+  }),
+  z1r({ key: "heart_container", name: "Heart Container", aliases: ["heart container", "heart"] }),
+  z1r({
+    key: "triforce",
+    name: "Triforce",
+    aliases: ["triforce", "triforce piece", "triforce fragment", "tringle"],
+  }),
+];
+
+export const AREAS: readonly Area[] = [...ALTTP_AREAS, ...SM_AREAS, ...Z1R_AREAS];
+export const BOSSES: readonly Boss[] = [...ALTTP_BOSSES, ...SM_BOSSES, ...Z1R_BOSSES];
+export const ITEMS: readonly Item[] = [...ALTTP_ITEMS, ...SM_ITEMS, ...Z1R_ITEMS];
 
 // Lowercase, apostrophes dropped (so a possessive joins its word), every other mark a space,
 // and a plural s taken off words longer than three letters. Applied to aliases and to what a
@@ -372,8 +501,8 @@ function index(): { byPhrase: Map<string, Target[]>; longest: number } {
   return indexCache;
 }
 
-// One matched phrase: every entry it names, in every game. A phrase two games share (bombs)
-// names both. With a game filter a phrase only another game knows still counts as matched, with
+// One matched phrase: every entry it names, in every game. A phrase several games share (bombs)
+// names each. With a game filter a phrase only another game knows still counts as matched, with
 // nothing left in it, so its words are not read again as something shorter (Ice Palace is not
 // an Ice Beam). Callers skip the empty ones.
 type Match = Target[];
@@ -397,8 +526,13 @@ function scan(words: readonly string[], game: GameId | undefined, text: boolean)
       ) {
         continue;
       }
-      const targets = byPhrase.get(slice.join(" "));
-      if (targets === undefined) continue;
+      const phrase = slice.join(" ");
+      const named = byPhrase.get(phrase);
+      if (named === undefined) continue;
+      // In a sentence, a game's own skipped phrases drop out; what is left is what the phrase
+      // still names in the other games, and a phrase with nothing left is stepped over.
+      const targets = text ? named.filter((t) => !SKIPPED_IN_TEXT[t.game]?.has(phrase)) : named;
+      if (targets.length === 0) continue;
       out.push(game === undefined ? targets : targets.filter((t) => t.game === game));
       advanced = len;
     }
@@ -408,7 +542,7 @@ function scan(words: readonly string[], game: GameId | undefined, text: boolean)
 }
 
 // The game a set of matches points at. The first area or boss settles it. With none, the game
-// with the most items that only it has; an item both games have (bombs) votes for neither. With
+// with the most items that only it has; an item several games have (bombs) votes for none. With
 // no vote, A Link to the Past.
 function pickGame(matches: readonly Match[]): GameId {
   for (const targets of matches) {
@@ -443,7 +577,7 @@ export interface Resolved {
 // longest known phrase at every position, so a name with extra words around a known one still
 // resolves, and "mirror shield" is the shield, not the mirror. With a game given, only that
 // game's entries count; a name that only another game knows comes back unresolved. Without one,
-// a name two games share (bombs) resolves in both.
+// a name several games share (bombs) resolves in each.
 export function resolveSubjects(names: readonly string[], game?: GameId): Resolved {
   const out: Resolved = { dungeons: [], items: [], unresolved: [] };
   const push = (list: Hit[], hit: Hit): void => {
@@ -500,12 +634,52 @@ const EVERYDAY_WORDS: ReadonlySet<string> = new Set([
   "plasma",
 ]);
 
+// Phrases one game's catalog uses that say nothing about the game inside a sentence, because
+// they are everyday words or names other Zelda games share. They are kept per game, so the same
+// word still counts for the games that do not list it (bombs, sword and shield stay A Link to the
+// Past, bombs also Super Metroid). Written as people write them; matched in the form tokens()
+// gives. The router still reads them in a name list.
+const SKIPPED_IN_TEXT: Partial<Record<GameId, ReadonlySet<string>>> = {
+  z1r: new Set(
+    [
+      "raft",
+      "ladder",
+      "stepladder",
+      "candle",
+      "bait",
+      "letter",
+      "key",
+      "ring",
+      "wand",
+      "book",
+      "bow",
+      "arrows",
+      "bombs",
+      "shield",
+      "sword",
+      "heart",
+      "triforce",
+      "recorder",
+      "whistle",
+      "eagle",
+      "moon",
+      "snake",
+      "lizard",
+      "dragon",
+      "demon",
+      "lion",
+      "death mountain",
+    ].map((phrase) => tokens(phrase).join(" ")),
+  ),
+};
+
 // Scans a question for game names the router did not pick up. Whole words only, any case, and
 // the longest phrase wins at each position. Full area, boss and item names and nicknames of three
 // letters or more count; the two letter codes never do, because they collide with ordinary
-// words, and neither do the everyday words above. Hits come back in the order found, once each.
-// A question that names things from both games is read as the one game pickGame chooses, and
-// only that game's hits come back, so what follows never looks for a name in the wrong game.
+// words, and neither do the everyday words above or a game's own skipped phrases. Hits come back
+// in the order found, once each. A question that names things from several games is read as the
+// one game pickGame chooses, and only that game's hits come back, so what follows never looks
+// for a name in the wrong game.
 export function findSubjectsInText(text: string): TextHit[] {
   const matches = scan(tokens(text), undefined, true);
   const game = pickGame(matches);

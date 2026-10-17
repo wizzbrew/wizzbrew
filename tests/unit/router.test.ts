@@ -350,7 +350,32 @@ describe("game params", () => {
       "logic",
       "overworld",
     ]);
-    expect([...GAME_IDS].sort()).toEqual(["alttp", "sm"]);
+    expect([...GAME_IDS].sort()).toEqual(["alttp", "sm", "z1r"]);
+    expect(params.properties.game.anyOf[0]).toEqual({
+      type: "string",
+      enum: ["alttp", "sm", "z1r"],
+    });
+  });
+
+  it("accepts z1r with its subjects on the game route", async () => {
+    reply(
+      decide(
+        { route: "game", confidence: 0.9 },
+        { routine: "dungeon", subjects: ["Gohma", "Level 6"], game: "z1r" },
+      ),
+    );
+    const decision = await routeQuestion(ctx());
+    expect(decision.route).toBe("game");
+    expect(decision.params).toEqual({
+      routine: "dungeon",
+      subjects: ["Gohma", "Level 6"],
+      game: "z1r",
+    });
+  });
+
+  it("names The Legend of Zelda (Z1R) in the game paragraph and the game param", () => {
+    expect(ROUTER_PROMPT).toContain("The Legend of Zelda (Z1R)");
+    expect(ROUTER_PROMPT).toContain("z1r is The Legend of Zelda on the NES");
   });
 
   it("passes routine, subjects and game through on the game route", async () => {
