@@ -1,6 +1,6 @@
 {
   "name": "wizzbrew",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,7 +12,7 @@
     "test": "vitest run --passWithNoTests",
     "test:e2e": "vitest run --passWithNoTests tests/e2e",
     "rules": "tsx scripts/check-rules.ts",
-    "build:knowledge": "tsx scripts/build-knowledge.ts",
+    "build:game": "tsx scripts/build-game.ts",
     "check": "npm run typecheck && npm run lint && npm run test && npm run rules",
     "register": "tsx scripts/register-commands.ts",
     "eval": "tsx evals/run.ts"

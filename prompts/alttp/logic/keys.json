@@ -1,0 +1,158 @@
+{
+  "source": "StaticKeyLogic.py",
+  "dungeons": {
+    "hc": {
+      "Sewers Secret Room Key Door S": 1,
+      "Sewers Key Rat NE": 1,
+      "Sewers Dark Cross Key Door N": 0,
+      "Hyrule Dungeon Map Room Key Door S": 0,
+      "Hyrule Dungeon Armory Interior Key Door N": 0
+    },
+    "ep": {
+      "Eastern Dark Square Key Door WN": 0,
+      "Eastern Darkness Up Stairs": 0
+    },
+    "dp": {
+      "Desert East Wing Key Door EN": 1,
+      "Desert Tiles 1 Up Stairs": 0,
+      "Desert Beamos Hall NE": 0,
+      "Desert Tiles 2 NE": 0
+    },
+    "toh": {
+      "Hera Lobby Key Stairs": {
+        "keys": 1,
+        "small_key_in": "Tower of Hera - Big Key Chest",
+        "with_small_key": 0
+      }
+    },
+    "ct": {
+      "Tower Room 03 Up Stairs": 1,
+      "Tower Dark Maze ES": 2,
+      "Tower Dark Archers Up Stairs": 2,
+      "Tower Circle of Pots ES": 2
+    },
+    "pod": {
+      "PoD Middle Cage N": 1,
+      "PoD Arena Main NW": 4,
+      "PoD Falling Bridge WN": 6,
+      "PoD Basement Ledge Up Stairs": {
+        "keys": 6,
+        "small_key_in": "Palace of Darkness - Big Key Chest",
+        "with_small_key": 3
+      },
+      "PoD Compass Room SE": {
+        "keys": 6,
+        "small_key_in": "Palace of Darkness - Harmless Hellway",
+        "with_small_key": 4
+      },
+      "PoD Dark Pegs WN": 6
+    },
+    "sp": {
+      "Swamp Entrance Down Stairs": 1,
+      "Swamp Pot Row WS": 0,
+      "Swamp Trench 1 Key Ledge NW": 0,
+      "Swamp Hub WN": 0,
+      "Swamp Hub North Ledge N": 0,
+      "Swamp Waterway NW": 0
+    },
+    "sw": {
+      "Skull Map Room SE": 1,
+      "Skull Pinball NE": 1,
+      "Skull 1 Lobby WS": 2,
+      "Skull 2 West Lobby NW": 0,
+      "Skull 3 Lobby NW": 3,
+      "Skull Spike Corner ES": 3
+    },
+    "tt": {
+      "Thieves Hallway WS": 0,
+      "Thieves Spike Switch Up Stairs": 1,
+      "Thieves Conveyor Bridge WS": {
+        "keys": 1,
+        "small_key_in": "Thieves' Town - Big Chest",
+        "with_small_key": 0
+      }
+    },
+    "ip": {
+      "Ice Jelly Key Down Stairs": 0,
+      "Ice Conveyor SW": 0,
+      "Ice Spike Cross ES": {
+        "keys": 3,
+        "big_key_in": [
+          "Ice Palace - Spike Room",
+          "Ice Palace - Big Key Chest",
+          "Ice Palace - Map Chest"
+        ],
+        "with_big_key": 1
+      },
+      "Ice Tall Hint SE": 0,
+      "Ice Backwards Room Down Stairs": 2,
+      "Ice Switch Room ES": 2
+    },
+    "mm": {
+      "Mire Hub WS": {
+        "keys": 3,
+        "big_key_in": [
+          "Misery Mire - Compass Chest",
+          "Misery Mire - Big Key Chest"
+        ],
+        "with_big_key": 2
+      },
+      "Mire Conveyor Crystal WS": {
+        "keys": 3,
+        "big_key_in": [
+          "Misery Mire - Compass Chest",
+          "Misery Mire - Big Key Chest"
+        ],
+        "with_big_key": 2
+      },
+      "Mire Hub Right EN": 1,
+      "Mire Spikes NW": 1,
+      "Mire Fishbone SE": 0,
+      "Mire Dark Shooters SE": 0
+    },
+    "tr": {
+      "TR Hub NW": 4,
+      "TR Pokey 1 NW": 4,
+      "TR Chain Chomps Down Stairs": 4,
+      "TR Pokey 2 ES": 4,
+      "TR Crystaroller Down Stairs": 3,
+      "TR Dash Bridge WS": 4
+    },
+    "gt": {
+      "GT Torch EN": 0,
+      "GT Tile Room EN": 3,
+      "GT Hookshot ES": {
+        "keys": 4,
+        "big_key_in": "Ganons Tower - Map Chest",
+        "with_big_key": 3,
+        "small_key_in": "Ganons Tower - Map Chest",
+        "with_small_key": 3
+      },
+      "GT Double Switch EN": 2,
+      "GT Firesnake Room SW": 3,
+      "GT Conveyor Star Pits EN": 3,
+      "GT Mini Helmasaur Room WN": 3,
+      "GT Crystal Circles SW": 4
+    }
+  },
+  "constants": {
+    "GT_RANDOMIZER": [
+      "Ganons Tower - Randomizer Room - Top Left",
+      "Ganons Tower - Randomizer Room - Top Right",
+      "Ganons Tower - Randomizer Room - Bottom Left",
+      "Ganons Tower - Randomizer Room - Bottom Right"
+    ],
+    "GT_COMPASS": [
+      "Ganons Tower - Compass Room - Top Left",
+      "Ganons Tower - Compass Room - Top Right",
+      "Ganons Tower - Compass Room - Bottom Left",
+      "Ganons Tower - Compass Room - Bottom Right"
+    ],
+    "TR_EYE_BRIDGE": [
+      "Turtle Rock - Eye Bridge - Bottom Left",
+      "Turtle Rock - Eye Bridge - Bottom Right",
+      "Turtle Rock - Eye Bridge - Top Left",
+      "Turtle Rock - Eye Bridge - Top Right"
+    ]
+  }
+}

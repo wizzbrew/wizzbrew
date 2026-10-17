@@ -24,7 +24,7 @@ describe("specs", () => {
   it("has a spec for every route with the right register", () => {
     for (const r of routes) {
       expect(SPECS[r].route).toBe(r);
-      const want = r === "help" ? "help" : r === "chat" ? "chat" : "data";
+      const want = r === "help" || r === "game" ? "help" : r === "chat" ? "chat" : "data";
       expect(SPECS[r].register).toBe(want);
       expect(SPECS[r].instructions.length).toBeGreaterThan(0);
     }
@@ -93,11 +93,14 @@ describe("specs", () => {
     expect(SPECS.schedule.instructions).toContain("matches_for_me");
   });
 
-  it("chat answers game questions from the reference and admits a gap in one line", () => {
+  it("chat answers a stray game question briefly from what is loaded, without refusing", () => {
     const chat = SPECS.chat.instructions;
-    expect(chat).toContain("reference material in the system prompt");
-    expect(chat).toContain("citing the dungeon, boss or item requirement");
-    expect(chat).toContain("say so in one line rather than guessing");
+    expect(chat).not.toContain("reference material in the system prompt");
+    expect(chat).toContain("answer it briefly from what is loaded here");
+    expect(chat).toContain("say in one line that naming the dungeon, boss or item gets the notes");
+    expect(chat).toContain("Do not guess");
+    expect(chat.toLowerCase()).not.toContain("cannot look");
+    expect(chat.toLowerCase()).not.toContain("refuse");
   });
 
   it("avoids sample phrasing, trailing question marks and dashes", () => {

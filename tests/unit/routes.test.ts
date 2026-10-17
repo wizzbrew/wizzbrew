@@ -30,6 +30,7 @@ const ALL_ROUTES: Record<Route, true> = {
   help: true,
   staff: true,
   chat: true,
+  game: true,
   live: true,
   account: true,
 };
@@ -134,6 +135,7 @@ const TABLE: Record<Route, Row> = {
   help: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: false },
   staff: { auth: "staff", readTools: [], clientTools: [], writeTools: [], ephemeral: true },
   chat: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: false },
+  game: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: false },
   live: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: false },
   account: { auth: "public", readTools: [], clientTools: [], writeTools: [], ephemeral: true },
 };

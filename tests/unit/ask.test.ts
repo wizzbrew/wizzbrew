@@ -166,6 +166,28 @@ describe("runAskPipeline", () => {
     expect(sentText()).toContain("The answer");
   });
 
+  it("answers a chat decision that names a game subject on the game route", async () => {
+    vi.mocked(routeQuestion).mockResolvedValue(decision("chat"));
+    const result = await run({ reply: msg, question: "how hard is mire" });
+    expect(result?.route).toBe("game");
+    const [route, used] = vi.mocked(runResponder).mock.calls[0] ?? [];
+    expect(route).toBe("game");
+    expect(used?.route).toBe("game");
+    expect(used?.params).toEqual({
+      routine: "dungeon",
+      subjects: ["Misery Mire"],
+      game: "alttp",
+    });
+  });
+
+  it("leaves a plain chat decision and a forced decision alone", async () => {
+    vi.mocked(routeQuestion).mockResolvedValue(decision("chat"));
+    expect((await run({ question: "thanks!" }))?.route).toBe("chat");
+    vi.mocked(runResponder).mockClear();
+    await run({ question: "the hookshot", forced: decision("schedule") });
+    expect(vi.mocked(runResponder).mock.calls[0]?.[0]).toBe("schedule");
+  });
+
   it("skips the budget and router for a forced live route", async () => {
     vi.mocked(liveAnswer).mockResolvedValue(answer);
     await run({ forced: decision("live") });
