@@ -1,42 +1,48 @@
-{
-  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
-  "result": [
-    {
-      "stage": "Fire",
-      "matches": [
-        {
-          "id": 1,
-          "tournament": "A Link to the Past Randomizer",
-          "scheduled_at": "2026-10-16T17:00:00Z",
-          "status": "scheduled",
-          "players": ["Player One", "Player Two"],
-          "stage": "Fire",
-          "restream_url": "https://twitch.tv/SpeedGaming2"
-        },
-        {
-          "id": 2,
-          "tournament": "A Link to the Past Randomizer",
-          "scheduled_at": "2026-10-16T18:30:00Z",
-          "status": "scheduled",
-          "players": ["Player Three", "Player Four"],
-          "stage": "Fire",
-          "restream_url": "https://twitch.tv/SpeedGaming2"
-        }
-      ]
-    },
-    {
-      "stage": "Water",
-      "matches": [
-        {
-          "id": 3,
-          "tournament": "Super Metroid Any%",
-          "scheduled_at": "2026-10-16T19:00:00Z",
-          "status": "scheduled",
-          "players": ["Player Five", "Player Six"],
-          "stage": "Water",
-          "restream_url": "https://twitch.tv/SpeedGaming3"
-        }
-      ]
-    }
-  ]
-}
+[
+  {
+    "stage": "Fire",
+    "matches": [
+      {
+        "id": 1,
+        "tournament": "A Link to the Past Randomizer",
+        "scheduled_at": "2026-10-16T17:00:00Z",
+        "status": "scheduled",
+        "players": [
+          "Player One",
+          "Player Two"
+        ],
+        "stage": "Fire",
+        "restream_url": "https://twitch.tv/SpeedGaming2"
+      },
+      {
+        "id": 2,
+        "tournament": "A Link to the Past Randomizer",
+        "scheduled_at": "2026-10-16T18:30:00Z",
+        "status": "scheduled",
+        "players": [
+          "Player Three",
+          "Player Four"
+        ],
+        "stage": "Fire",
+        "restream_url": "https://twitch.tv/SpeedGaming2"
+      }
+    ]
+  },
+  {
+    "stage": "Water",
+    "matches": [
+      {
+        "id": 3,
+        "tournament": "Super Metroid Any%",
+        "scheduled_at": "2026-10-16T19:00:00Z",
+        "status": "scheduled",
+        "players": [
+          "Player Five",
+          "Player Six"
+        ],
+        "stage": "Water",
+        "restream_url": "https://twitch.tv/SpeedGaming3"
+      }
+    ]
+  }
+]

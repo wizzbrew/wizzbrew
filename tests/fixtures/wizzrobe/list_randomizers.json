@@ -1,8 +1,14 @@
-{
-  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
-  "result": [
-    { "randomizer": "alttpr", "supports_triforce_texts": true },
-    { "randomizer": "smz3", "supports_triforce_texts": false },
-    { "randomizer": "sm", "supports_triforce_texts": false }
-  ]
-}
+[
+  {
+    "randomizer": "alttpr",
+    "supports_triforce_texts": true
+  },
+  {
+    "randomizer": "smz3",
+    "supports_triforce_texts": false
+  },
+  {
+    "randomizer": "sm",
+    "supports_triforce_texts": false
+  }
+]

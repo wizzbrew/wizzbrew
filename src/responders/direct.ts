@@ -4,15 +4,14 @@ import { communityDate, dayWindowUtc, parseUserDate, parseWizzrobeTime } from ".
 import type { Answer } from "../types.js";
 import { callTool } from "../wizzrobe/mcp.js";
 import { resolveByName } from "../wizzrobe/resolve.js";
+import { listOf } from "../wizzrobe/shapes.js";
 import { botAccessToken } from "../wizzrobe/tokens.js";
 
 // Answers that need no model: what is live, and a plain schedule request, straight from Wizzrobe.
 
-const StageList = z.object({
-  result: z.array(z.object({ name: z.string(), stream_url: z.string().nullish() })),
-});
+const StageList = listOf(z.object({ name: z.string(), stream_url: z.string().nullish() }));
 
-const TournamentList = z.object({ result: z.array(z.object({ name: z.string() })) });
+const TournamentList = listOf(z.object({ name: z.string() }));
 
 const Match = z.object({
   tournament: z.string().nullish(),
@@ -22,9 +21,7 @@ const Match = z.object({
   stage: z.string().nullish(),
 });
 
-const Schedule = z.object({
-  result: z.array(z.object({ stage: z.string(), matches: z.array(Match) })),
-});
+const Schedule = listOf(z.object({ stage: z.string(), matches: z.array(Match) }));
 
 type ScheduledMatch = z.infer<typeof Match> & { stageName: string; at: Date };
 
@@ -43,7 +40,7 @@ async function read<S extends z.ZodTypeAny>(
 async function loadMatches(date: string): Promise<ScheduledMatch[]> {
   const schedule = await read(Schedule, "get_schedule", { date });
   const out: ScheduledMatch[] = [];
-  for (const group of schedule.result) {
+  for (const group of schedule) {
     for (const m of group.matches) {
       out.push({ ...m, stageName: m.stage ?? group.stage, at: parseWizzrobeTime(m.scheduled_at) });
     }
@@ -64,7 +61,7 @@ const isUpcoming = (m: ScheduledMatch, now: Date): boolean =>
   m.at.getTime() > now.getTime() && NEXT_STATUSES.has(m.status);
 
 export async function liveAnswer(now: Date): Promise<Answer> {
-  const stages = (await read(StageList, "list_stages", { active_only: true })).result;
+  const stages = await read(StageList, "list_stages", { active_only: true });
   let matches = await loadMatches(communityDate(now));
   if (matches.filter((m) => isUpcoming(m, now)).length < 2) {
     matches = matches.concat(await loadMatches(parseUserDate("tomorrow", now)));
@@ -127,14 +124,14 @@ export async function scheduleAnswer(
 
   let stageName: string | undefined;
   if (params.stage !== undefined) {
-    const stages = (await read(StageList, "list_stages", { active_only: true })).result;
+    const stages = await read(StageList, "list_stages", { active_only: true });
     const p = pick(params.stage, stages, "stage");
     if (p.kind === "answer") return p.answer;
     stageName = p.name;
   }
   let tournamentName: string | undefined;
   if (params.tournament !== undefined) {
-    const list = (await read(TournamentList, "list_tournaments", { active_only: true })).result;
+    const list = await read(TournamentList, "list_tournaments", { active_only: true });
     const p = pick(params.tournament, list, "tournament");
     if (p.kind === "answer") return p.answer;
     tournamentName = p.name;

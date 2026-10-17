@@ -1,41 +1,50 @@
-{
-  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
-  "result": [
-    {
-      "id": 1,
-      "tournament": "A Link to the Past Randomizer",
-      "scheduled_at": "2026-10-16T17:00:00Z",
-      "status": "scheduled",
-      "players": ["Player One", "Player Two"],
-      "stage": "Fire",
-      "restream_url": "https://twitch.tv/SpeedGaming2"
-    },
-    {
-      "id": 2,
-      "tournament": "A Link to the Past Randomizer",
-      "scheduled_at": "2026-10-16T18:30:00Z",
-      "status": "scheduled",
-      "players": ["Player Three", "Player Four"],
-      "stage": "Fire",
-      "restream_url": "https://twitch.tv/SpeedGaming2"
-    },
-    {
-      "id": 3,
-      "tournament": "Super Metroid Any%",
-      "scheduled_at": "2026-10-17T15:00:00Z",
-      "status": "scheduled",
-      "players": ["Player Five", "Player Six"],
-      "stage": null,
-      "restream_url": null
-    },
-    {
-      "id": 4,
-      "tournament": "Super Mario World",
-      "scheduled_at": "2026-10-17T20:00:00Z",
-      "status": "scheduled",
-      "players": ["Player One", "Player Seven"],
-      "stage": "Earth",
-      "restream_url": "https://twitch.tv/SpeedGaming"
-    }
-  ]
-}
+[
+  {
+    "id": 1,
+    "tournament": "A Link to the Past Randomizer",
+    "scheduled_at": "2026-10-16T17:00:00Z",
+    "status": "scheduled",
+    "players": [
+      "Player One",
+      "Player Two"
+    ],
+    "stage": "Fire",
+    "restream_url": "https://twitch.tv/SpeedGaming2"
+  },
+  {
+    "id": 2,
+    "tournament": "A Link to the Past Randomizer",
+    "scheduled_at": "2026-10-16T18:30:00Z",
+    "status": "scheduled",
+    "players": [
+      "Player Three",
+      "Player Four"
+    ],
+    "stage": "Fire",
+    "restream_url": "https://twitch.tv/SpeedGaming2"
+  },
+  {
+    "id": 3,
+    "tournament": "Super Metroid Any%",
+    "scheduled_at": "2026-10-17T15:00:00Z",
+    "status": "scheduled",
+    "players": [
+      "Player Five",
+      "Player Six"
+    ],
+    "stage": null,
+    "restream_url": null
+  },
+  {
+    "id": 4,
+    "tournament": "Super Mario World",
+    "scheduled_at": "2026-10-17T20:00:00Z",
+    "status": "scheduled",
+    "players": [
+      "Player One",
+      "Player Seven"
+    ],
+    "stage": "Earth",
+    "restream_url": "https://twitch.tv/SpeedGaming"
+  }
+]
