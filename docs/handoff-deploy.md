@@ -7,9 +7,11 @@ out.
 
 ## Where it stands
 
-- The repo is `wizzbrew/wizzbrew` on GitHub, public. `main` and `release/v0.1` are at `v0.1.0`
-  (commit `06220cf`). Vercel project `wizzbrew` is connected, with `release/v0.1` as its
-  production branch. Nothing is deployed yet.
+- The repo is `wizzbrew/wizzbrew` on GitHub, public. Production is live at
+  `https://wizzbrew.vercel.app` from `release/v0.1` (Vercel project `wizzbrew`), the relay runs on
+  Railway (project `wizzbrew`, service `relay`, US East), and the slash commands are registered
+  to the test server only. v0.1.0 shipped untagged fixes on 2026-10-17; v0.1.1 is the first
+  release with a version bump and a tag.
 - Everything is built and tested against fakes: 761 tests (three consecutive green runs), the
   rules gate, and 11 relay tests. Nothing has touched a real Discord app, Anthropic key, Redis or
   the Wizzrobe bot account.
@@ -42,7 +44,8 @@ These need other people. Ask early; none of them are code.
 
 - **GitHub:** the repo is public in the `wizzbrew` org (Vercel Hobby can't connect a private org
   repo). Give collaborators the **Write** role, not Admin. `main` and `release/v0.1` are protected:
-  pull request with one approval, no force-push, no deletion. The CI job `check`
+  pull request required (zero approvals while Vince is the only developer; set it back to one
+  when a collaborator joins), no force-push, no deletion. The CI job `check`
   (`.github/workflows/check.yml`) is the required status check on both: it runs `npm run check`,
   then the relay build and tests, and must pass before any merge. The release branch deploys to
   production, so its PR gate is what keeps unreviewed code away from production secrets.
