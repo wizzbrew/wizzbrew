@@ -168,8 +168,11 @@ describe("renderAnswer", () => {
     }
   });
 
-  it("adds the follow-up button only without choices and without pendingId", () => {
-    const plain = rowsOf(renderAnswer({ text: "Hi.", ephemeral: false }, { threadId: "t1" })[0]);
+  it("adds the follow-up button only to a private answer without choices and without pendingId", () => {
+    expect(rowsOf(renderAnswer({ text: "Hi.", ephemeral: false }, { threadId: "t1" })[0])).toEqual(
+      [],
+    );
+    const plain = rowsOf(renderAnswer({ text: "Hi.", ephemeral: true }, { threadId: "t1" })[0]);
     expect(plain).toHaveLength(1);
     expect(plain[0]?.components).toEqual([
       { type: 2, style: 2, label: "Ask a follow-up", custom_id: "wb:followup:t1" },

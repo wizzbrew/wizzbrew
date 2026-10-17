@@ -16,6 +16,7 @@ up as crew, acknowledge a match, offer a match for stream.
   person who asked can press them, and the action runs with their own Wizzrobe token. Answers can
   also offer choices (for example when a name matches several players) and "Change something".
 - **Follow-ups.** The responder sees the earlier turns, so you can keep going in a reply chain.
+  Private answers cannot be replied to, so they carry an "Ask a follow-up" button instead.
 - **Private answers.** Anything about one person (`/me`, linked actions) is ephemeral. On the
   message path, "Show me privately" moves a personal answer out of the channel. Only schedule,
   stream and standings answers post publicly.
