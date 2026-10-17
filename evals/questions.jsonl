@@ -99,3 +99,8 @@
 {"q": "is pixelfox going to sgl this year", "route": "players", "linked": false, "note": "attendance of a named person"}
 {"q": "is nimbus here at the event", "route": "players", "linked": false, "note": "attendance, here at the event"}
 {"q": "is quillian playing anything this year", "route": "players", "linked": false, "note": "attendance, entered in anything"}
+{"q": "what is in level 7 of the zelda 1 randomizer", "route": "game", "routine": "dungeon", "game": "z1r", "linked": false, "note": "a numbered Zelda 1 level, which settles the game"}
+{"q": "how do i beat gohma in z1r", "route": "game", "routine": "dungeon", "game": "z1r", "linked": false, "note": "Zelda 1 boss, sent to its level"}
+{"q": "what does the raft let you reach in zelda 1 rando", "route": "game", "routine": "items", "game": "z1r", "linked": false, "note": "what an item opens in Zelda 1, the item gate"}
+{"q": "can z1r put the ladder somewhere that needs the ladder", "route": "game", "routine": "logic", "game": "z1r", "linked": false, "note": "randomizer guarantee about item placement in Zelda 1"}
+{"q": "why does link need all eight triforce pieces in the first zelda", "route": "game", "routine": "general", "game": "z1r", "linked": false, "note": "Zelda 1 story and lore, no level or item asked about"}

@@ -31,12 +31,13 @@ Game questions (items, dungeons and areas, bosses, mechanics, randomizer logic, 
 `game` route. Its reference is siloed so a question loads only what it needs, never the whole
 text.
 
-- **Where it lives.** `prompts/<game>/` holds one folder per game: `prompts/alttp/` and
-  `prompts/sm/`. In a game folder: `general.md` (orientation), `overworld.md` (reaching each
+- **Where it lives.** `prompts/<game>/` holds one folder per game: `prompts/alttp/`,
+  `prompts/sm/` and `prompts/z1r/`. In a game folder: `general.md` (orientation), `overworld.md` (reaching each
   entrance or area, plus locations and caves), `items.md` (items and glossary),
   `dungeons/<key>.md` (one per dungeon or area: boss, layout, enemies, keys, its overview row,
   boss row and enemy notes) and `logic/` (A Link to the Past: `keys.json`, the key door table;
-  Super Metroid: one hand-written `logic/<key>.md` per area). No dashes; `scripts/check-rules.ts`
+  Super Metroid and Zelda 1: one hand-written `logic/<key>.md` per area or level). No dashes;
+  `scripts/check-rules.ts`
   scans them.
 - **Super Metroid.** `prompts/sm/` covers the story, the seven areas of Zebes (Crateria,
   Brinstar, Upper and Lower Norfair, the Wrecked Ship, Maridia, Tourian), the bosses and
@@ -49,18 +50,34 @@ text.
   legend, every location's rule in both logics). The keys are `crateria`, `brinstar`,
   `norfair_upper`, `norfair_lower`, `wrecked_ship`, `maridia` and `tourian`; a boss resolves to
   its area, and "norfair" on its own loads both halves.
+- **Zelda 1 Randomizer.** `prompts/z1r/` covers The Legend of Zelda (NES) and Z1R, the
+  randomizer by Fred Coughlin: the story and the second quest, the nine levels (keys `level1` to
+  `level9`, also called by their first quest shapes Eagle, Moon, Manji, Snake, Lizard, Dragon,
+  Demon, Lion and Death Mountain), the bosses, the items and what each one gates, the hint
+  phrases that work as logic clues, the guarantees the generator keeps, the flags and where the
+  community races. A boss resolves to its vanilla level (Aquamentus to `level1`, Ganon to
+  `level9`). Each level has `dungeons/<key>.md` (shape, boss, vanilla items, access gate, boss
+  requirement, hint phrases) and `logic/<key>.md` (entry rule, what the level needs inside, and
+  the guarantees that name it). Sources are the Z1R wiki (z1r.wiki) and the original Z1R site;
+  the program is closed source and its rules are documented only in pieces (the Guarantees page,
+  the FAQ, the flag pages and the in-game hint phrases), so there is no formal spec to read.
+  Nothing about the SpeedGaming Live 2026 Z1R flags is loaded yet.
 - **The router picks.** For a game question it returns a `routine` (`dungeon`, `logic`,
   `overworld`, `items` or `general`), the `subjects` the asker named (up to four) and the `game`
-  (`alttp` or `sm`). With no `game`, it is read from what the subjects resolve to, then defaults
+  (`alttp`, `sm` or `z1r`). With no `game`, it is read from what the subjects resolve to, then defaults
   to `alttp`. A `subjects` value that is malformed is dropped, never fatal; only the first four
   valid names are kept. When the router sends a question to `chat` but the text names a dungeon,
   boss or item (whole words; the two letter codes are ignored), `src/game/override.ts` moves it
   to `game` and logs `router.override`. `src/game/catalog.ts` holds the areas, bosses and items of each game with their
   aliases and resolves written names (case, punctuation, plurals and possessives ignored). A name
-  both games have (bombs) keeps one entry per game: with a game given only that game's entry
-  counts, and with none an area or boss decides the game, then the items only one game has,
-  then `alttp`. Short names that are also everyday words (ice, speed, wave) and the two letter
-  names (HJ, SJ, PB, G4) are read in a name list but never inside a sentence.
+  several games have (bombs, bow, book, boomerang, silver arrows, Ganon) keeps one entry per game:
+  with a game given only that game's entry counts, and with none an area or boss decides the game,
+  then the items only one game has, then `alttp`. Short names that are also everyday words (ice,
+  speed, wave) and the two letter names (HJ, SJ, PB, G4, L1 to L9) are read in a name list but
+  never inside a sentence. Zelda 1 keeps its own list of such words (raft, ladder, candle, bait,
+  letter, key, ring, wand, book, bow, arrows, bombs, shield, sword, heart, and the first quest
+  shape names) that the sentence scan skips for that game only, so only its multi-word and
+  unambiguous names (Magic Key, Level 7, Gohma) send a chat question to the game route.
 - **The prompt.** `src/game/slices.ts` builds the system blocks: the routine's instructions
   (`src/game/routines.ts`, protected by the prompt leak guard), then at most two subject blocks
   (sorted by key, extras merged into the second; the `logic` routine adds the rendered key door
