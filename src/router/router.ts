@@ -18,7 +18,7 @@ const nullableString = { anyOf: [{ type: "string" }, { type: "null" }] };
 
 // The JSON schema the model must follow (structured output). The zod schema below checks the
 // same shape again in code, because the output is still untrusted text (L10).
-const ROUTER_SCHEMA = {
+export const ROUTER_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["route", "confidence", "params", "reason"],

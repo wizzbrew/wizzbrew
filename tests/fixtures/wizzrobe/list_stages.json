@@ -1,9 +1,26 @@
-{
-  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
-  "result": [
-    { "id": 1, "name": "Earth", "is_active": true, "stream_url": "https://twitch.tv/SpeedGaming" },
-    { "id": 2, "name": "Fire", "is_active": true, "stream_url": "https://twitch.tv/SpeedGaming2" },
-    { "id": 3, "name": "Water", "is_active": true, "stream_url": "https://twitch.tv/SpeedGaming3" },
-    { "id": 4, "name": "Air", "is_active": true, "stream_url": "https://twitch.tv/SpeedGaming4" }
-  ]
-}
+[
+  {
+    "id": 1,
+    "name": "Earth",
+    "is_active": true,
+    "stream_url": "https://twitch.tv/SpeedGaming"
+  },
+  {
+    "id": 2,
+    "name": "Fire",
+    "is_active": true,
+    "stream_url": "https://twitch.tv/SpeedGaming2"
+  },
+  {
+    "id": 3,
+    "name": "Water",
+    "is_active": true,
+    "stream_url": "https://twitch.tv/SpeedGaming3"
+  },
+  {
+    "id": 4,
+    "name": "Air",
+    "is_active": true,
+    "stream_url": "https://twitch.tv/SpeedGaming4"
+  }
+]

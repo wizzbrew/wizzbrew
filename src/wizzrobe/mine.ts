@@ -4,6 +4,7 @@ import { kv } from "../store/kv.js";
 import { parseWizzrobeTime } from "../time/time.js";
 import type { Asker } from "../types.js";
 import { callTool } from "./mcp.js";
+import { listOf } from "./shapes.js";
 import { botAccessToken } from "./tokens.js";
 
 export interface MyMatch {
@@ -25,20 +26,18 @@ const ROSTER_TTL_SEC = 21600;
 const MAX_UNCACHED_FETCHES = 20;
 const DROPPED_STATUSES = new Set(["cancelled", "canceled", "complete", "completed"]);
 
-const listSchema = z.object({
-  result: z.array(
-    z.object({
-      id: z.number(),
-      tournament: z.string(),
-      scheduled_at: z.string(),
-      status: z.string(),
-      players: z.array(z.string()),
-      stage: z.string().nullable().optional(),
-      restream_url: z.string().nullable().optional(),
-    }),
-  ),
-});
-type Listed = z.infer<typeof listSchema>["result"][number];
+const listSchema = listOf(
+  z.object({
+    id: z.number(),
+    tournament: z.string(),
+    scheduled_at: z.string(),
+    status: z.string(),
+    players: z.array(z.string()),
+    stage: z.string().nullable().optional(),
+    restream_url: z.string().nullable().optional(),
+  }),
+);
+type Listed = z.infer<typeof listSchema>[number];
 
 const getMatchSchema = z.object({
   players: z.array(
@@ -109,7 +108,7 @@ export async function matchesForAsker(
       limit: 200,
     }),
   );
-  const open = listed.result
+  const open = listed
     .filter((m) => !DROPPED_STATUSES.has(m.status.toLowerCase()))
     .map((m) => ({ m, at: parseWizzrobeTime(m.scheduled_at) }))
     .sort((a, b) => a.at.getTime() - b.at.getTime());

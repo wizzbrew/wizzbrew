@@ -1,5 +1,5 @@
 {
-  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
+  "_note": "recorded from sgl26 on 2026-10-17; user_id and username replaced with fake values",
   "user_id": 206,
   "username": "player_one",
   "display_name": null,
@@ -10,7 +10,19 @@
       "slug": "sgl26",
       "name": "SpeedGaming Live 2026",
       "roles": [],
-      "features": ["challonge", "volunteers", "signups"]
+      "features": [
+        "ada_accommodations",
+        "challonge",
+        "community_events",
+        "emergency_contacts",
+        "equipment",
+        "event_check_in",
+        "event_info",
+        "feedback",
+        "payouts",
+        "startgg",
+        "volunteers"
+      ]
     }
   ]
 }

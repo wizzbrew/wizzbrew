@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 
 describe("clientToolDefs", () => {
-  it("returns strict schemas with bounds", () => {
+  it("returns strict schemas, bounds live in the description and zod", () => {
     const defs = clientToolDefs(["matches_for_me", "challonge_bracket"]);
     expect(defs).toHaveLength(2);
     for (const d of defs) {
@@ -33,7 +33,10 @@ describe("clientToolDefs", () => {
       expect(d.input_schema.additionalProperties).toBe(false);
     }
     expect(defs[0]?.input_schema.properties).toEqual({
-      days_ahead: { type: "integer", minimum: 1, maximum: 14 },
+      days_ahead: {
+        type: "integer",
+        description: "How many days ahead to look, a whole number from 1 to 14",
+      },
     });
     expect(defs[0]?.input_schema.required).toEqual(["days_ahead"]);
     expect(defs[1]?.input_schema.required).toEqual(["tournament_id"]);

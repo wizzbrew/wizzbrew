@@ -1,27 +1,24 @@
-{
-  "_note": "shape recorded from sgl26 on 2026-10-15, values fake",
-  "result": [
-    {
-      "id": 9,
-      "name": "A Link to the Past Randomizer",
-      "window": "open",
-      "enrolled": false,
-      "entrant_count": 35,
-      "can_sign_up": false,
-      "can_withdraw": false,
-      "signups_open_at": null,
-      "signups_close_at": "2026-10-21T03:59:00Z"
-    },
-    {
-      "id": 4,
-      "name": "Super Metroid Any%",
-      "window": "open",
-      "enrolled": true,
-      "entrant_count": 16,
-      "can_sign_up": false,
-      "can_withdraw": true,
-      "signups_open_at": null,
-      "signups_close_at": "2026-10-21T03:59:00Z"
-    }
-  ]
-}
+[
+  {
+    "id": 9,
+    "name": "A Link to the Past Randomizer",
+    "window": "open",
+    "enrolled": false,
+    "entrant_count": 35,
+    "can_sign_up": false,
+    "can_withdraw": false,
+    "signups_open_at": null,
+    "signups_close_at": "2026-10-21T03:59:00Z"
+  },
+  {
+    "id": 4,
+    "name": "Super Metroid Any%",
+    "window": "open",
+    "enrolled": true,
+    "entrant_count": 16,
+    "can_sign_up": false,
+    "can_withdraw": true,
+    "signups_open_at": null,
+    "signups_close_at": "2026-10-21T03:59:00Z"
+  }
+]
