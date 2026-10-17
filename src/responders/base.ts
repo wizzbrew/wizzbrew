@@ -1,6 +1,7 @@
 import type {
   BetaContentBlock,
   BetaMessageParam,
+  BetaTextBlockParam,
   BetaTool,
   BetaToolResultBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/messages/messages";
@@ -11,6 +12,7 @@ import { sanitizeForPrompt } from "../discord/markup.js";
 import { ModelOutputError } from "../errors.js";
 import { type BetaMessageCreateParams, createMessage, textOf } from "../llm/client.js";
 import { log } from "../log.js";
+import { ALTTP_KNOWLEDGE } from "../personality/knowledge.js";
 import { voice } from "../personality/voice.js";
 import { ROUTES, type RouteSpec } from "../router/routes.js";
 import { nowBlock } from "../time/time.js";
@@ -23,10 +25,18 @@ import { SHARED_RULES, SPECS } from "./specs.js";
 const MAX_CALLS = 8;
 const MAX_MS = 200_000;
 
-type SystemBlocks = NonNullable<BetaMessageCreateParams["system"]>;
 type Tools = NonNullable<BetaMessageCreateParams["tools"]>;
 
-function volatileBlock(ctx: AskContext, decision: RoutingDecision, extra: string[]): string {
+// One hour, so a quiet channel still hits the cache. The API wants every one-hour breakpoint
+// ahead of any block without cache_control, and the volatile block below never has one.
+const CACHE_1H = { type: "ephemeral", ttl: "1h" } as const;
+
+// Frames the reference text for the model: plain description, no sample phrasings (L11).
+export const KNOWLEDGE_FRAMING =
+  "What follows is reference material about A Link to the Past and its randomizer, for answering game questions when someone asks one. It is not a list of topics to bring up, and it is written for a bot, so do not copy its phrasing.";
+
+// The lines that change on every request. The clock lives here and nowhere in a cached block (L1).
+function volatileBlock(ctx: AskContext, decision: RoutingDecision): string {
   const cfg = config();
   const linked = ctx.asker.linked;
   const lines = [
@@ -40,7 +50,6 @@ function volatileBlock(ctx: AskContext, decision: RoutingDecision, extra: string
         }`
       : "Not linked to Wizzrobe",
     `Params: ${JSON.stringify(decision.params)}`,
-    ...extra,
   ];
   return lines.join("\n");
 }
@@ -200,15 +209,27 @@ export async function runResponder(
   const r = ROUTES[route];
   const ephemeral = r.ephemeral || ctx.ephemeral;
 
-  const extra = route === "chat" ? await eventBlock() : [];
-  const system = [
+  // Stable first, volatile last: A (all routes), B and C (chat only) are cached for an hour; D
+  // carries the clock and the asker and is never cached.
+  const system: BetaTextBlockParam[] = [
     {
       type: "text",
       text: `${voice(spec.register)}\n\n${SHARED_RULES}\n\n${spec.instructions}`,
-      cache_control: { type: "ephemeral" },
+      cache_control: CACHE_1H,
     },
-    { type: "text", text: volatileBlock(ctx, decision, extra) },
-  ] as SystemBlocks;
+  ];
+  if (route === "chat") {
+    system.push({
+      type: "text",
+      text: `${KNOWLEDGE_FRAMING}\n\n${ALTTP_KNOWLEDGE}`,
+      cache_control: CACHE_1H,
+    });
+    const events = await eventBlock();
+    if (events.length > 0) {
+      system.push({ type: "text", text: events.join("\n"), cache_control: CACHE_1H });
+    }
+  }
+  system.push({ type: "text", text: volatileBlock(ctx, decision) });
   const messages: BetaMessageParam[] = [
     { role: "user", content: [{ type: "text", text: userText(ctx) }] },
   ];

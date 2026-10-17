@@ -287,7 +287,10 @@ describe("relay messages end to end", () => {
     expect(request(1).model).toBe(MODELS.chat);
     const system = request(1).system ?? [];
     const all = system.map((s) => s.text).join("\n");
-    expect(system[system.length - 1]?.text).toContain("Tournaments:");
+    expect(system).toHaveLength(4);
+    expect(system[2]?.text).toContain("Tournaments:");
+    expect(system[3]?.text).toContain("Current time:");
+    expect(system[3]?.text).not.toContain("Tournaments:");
     expect(all).toContain("Never describe yourself or list what you can do");
     const withoutProhibition = all.replace(
       /Never (answer casual talk|describe yourself)[^.]*\./g,

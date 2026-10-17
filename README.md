@@ -20,6 +20,9 @@ up as crew, acknowledge a match, offer a match for stream.
 - **Private answers.** Anything about one person (`/me`, linked actions) is ephemeral. On the
   message path, "Show me privately" moves a personal answer out of the channel. Only schedule,
   stream and standings answers post publicly.
+- **Casual chat.** Chat has A Link to the Past and randomizer reference knowledge from
+  `prompts/alttp-game-knowledge.md`. After editing it, rebuild the prompt constant with
+  `npm run build:knowledge`; the unit tests fail until you do.
 
 ## Architecture
 

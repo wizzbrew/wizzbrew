@@ -229,7 +229,10 @@ describe("routeQuestion request", () => {
     const system = params.system;
     if (!Array.isArray(system)) throw new Error("system must be a block array");
     expect(system).toHaveLength(1);
-    expect(system[0]).toMatchObject({ type: "text", cache_control: { type: "ephemeral" } });
+    expect(system[0]).toMatchObject({
+      type: "text",
+      cache_control: { type: "ephemeral", ttl: "1h" },
+    });
     expect(system[0]?.text).toBe(ROUTER_PROMPT);
     expect(system[0]?.text).not.toContain("Current time");
 
