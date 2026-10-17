@@ -83,11 +83,18 @@ responder.
 
 ## Branch workflow
 
-- Work on feature branches, PR into `main`. Production deploys from a versioned release branch
-  (`release/v0.1` now), never from `main`: shipping is a PR from `main` into the release branch.
-  A new minor version gets a new `release/vX.Y` branch, set as Vercel's production branch. Never
-  push to `main` or a release branch directly, never force-push.
-- Preview deployments use a separate Discord app or guild-scoped commands, never the live server.
+- Work on feature branches, PR into `main`. Feature PRs squash-merge into `main`. Production
+  deploys from a versioned release branch (`release/v0.1` now), never from `main`. A new minor
+  version gets a new `release/vX.Y` branch, set as Vercel's production branch. Never push to
+  `main` or a release branch directly, never force-push.
+- A release is a PR from `main` into the current `release/vX.Y` branch, merged with a merge commit
+  (never squash, or the branches diverge). Every release bumps the patch version in
+  `package.json` and `relay/package.json` on `main` first. The merged release commit is tagged
+  `vX.Y.Z` and the tag is pushed.
+- No CI and no GitHub Actions. The gate is `npm run check` (and the relay's build and tests when
+  `relay/` changed), run locally before every merge, and the PR says so.
+- Preview deployments get no env vars at all, so branch code fails at startup instead of touching
+  production.
 
 ## Posting to Discord
 
