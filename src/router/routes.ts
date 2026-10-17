@@ -1,6 +1,6 @@
 import type { AuthLevel, Route, WriteTool } from "../types.js";
 
-export type ClientTool = "challonge_bracket" | "matches_for_me";
+export type ClientTool = "challonge_bracket" | "matches_for_me" | "event_participants";
 
 export interface RouteSpec {
   route: Route;
@@ -54,7 +54,7 @@ export const ROUTES: Record<Route, RouteSpec> = {
     route: "players",
     auth: "public",
     readTools: ["list_matches", "get_match", "get_schedule", "list_tournaments"],
-    clientTools: ["challonge_bracket"],
+    clientTools: ["challonge_bracket", "event_participants"],
     writeTools: [],
     description: "A named player: their matches, opponents, results and where they play next.",
     ephemeral: false,

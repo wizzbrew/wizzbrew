@@ -75,7 +75,7 @@ const TABLE: Record<Route, Row> = {
   players: {
     auth: "public",
     readTools: ["list_matches", "get_match", "get_schedule", "list_tournaments"],
-    clientTools: ["challonge_bracket"],
+    clientTools: ["challonge_bracket", "event_participants"],
     writeTools: [],
     ephemeral: false,
   },

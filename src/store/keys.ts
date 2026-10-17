@@ -28,6 +28,8 @@ export const keys: {
   dmCount(day: string): string; // hash of discord id to DM questions that day, 14 days
   prizePool(bountyId: string): string; // {balance, fetchedAt} of the Matcherino prize pool, fresh copy, 300 s
   prizePoolStale(bountyId: string): string; // same record, kept as the fallback when a fetch fails, 24 hours
+  participants(bountyId: string): string; // {names: [{displayName, addedAt}], count, fetchedAt} of the Matcherino attendee list, fresh copy, 1200 s
+  participantsStale(bountyId: string): string; // same record, kept as the fallback when a fetch fails, 24 hours
 } = {
   link(discordUserId: string): string {
     return `${PREFIX}:link:${part(discordUserId, DISCORD_ID, "discord id")}`;
@@ -81,5 +83,11 @@ export const keys: {
   },
   prizePoolStale(bountyId: string): string {
     return `${PREFIX}:prizepool:stale:${part(bountyId, BOUNTY_ID, "bounty id")}`;
+  },
+  participants(bountyId: string): string {
+    return `${PREFIX}:participants:${part(bountyId, BOUNTY_ID, "bounty id")}`;
+  },
+  participantsStale(bountyId: string): string {
+    return `${PREFIX}:participants:stale:${part(bountyId, BOUNTY_ID, "bounty id")}`;
   },
 };
