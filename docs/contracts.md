@@ -748,7 +748,23 @@ export function runDmLogCommand(i: APIChatInputApplicationCommandInteraction, ta
 
 // discord/leakguard.ts (added 2026-10-17): verbatim-run check of answers against the fixed prompt texts
 export const LEAK_REFUSAL: string;                                  // "I can't share how I'm set up."
-export const PROTECTED_TEXTS: readonly string[];                    // CORE, register blocks, SHARED_RULES, ROUTER_PROMPT, KNOWLEDGE_FRAMING, tool descriptions; never spec instructions or ALTTP_KNOWLEDGE
+export const PROTECTED_TEXTS: readonly string[];                    // CORE, register blocks, SHARED_RULES, ROUTER_PROMPT, KNOWLEDGE_FRAMING, the game routine prompts, tool descriptions; never spec instructions or game data
 export function buildLeakGuard(protectedTexts: readonly string[]): (answer: string) => boolean;   // 60-char windows, stride 20, normalized
 export function isPromptLeak(answer: string): boolean;              // built once from PROTECTED_TEXTS
-// responders/fixedtext.ts: leaf module holding KNOWLEDGE_FRAMING, OFFER_CHOICES_DESCRIPTION, PROPOSE_ACTION_DESCRIPTION (base.ts re-exports KNOWLEDGE_FRAMING)
+// responders/fixedtext.ts: leaf module holding KNOWLEDGE_FRAMING (game-neutral), OFFER_CHOICES_DESCRIPTION, PROPOSE_ACTION_DESCRIPTION
+
+// game/ (added 2026-10-17): the siloed game knowledge module. Data under prompts/<game>/ is compiled by
+// `npm run build:game` (scripts/build-game.ts) into src/game/data.ts; a test fails when they drift.
+// Route "game" (no tools, register help, public) with params routine, subjects (at most 4, truncated, never rejected) and game.
+export const GAME_DATA: Readonly<Record<string, string>>;          // keys like "alttp/dungeons/ip.md", "alttp/logic/ip.md" (rendered from logic/keys.json), "alttp/overworld.md"
+// game/catalog.ts
+export function resolveSubjects(names: readonly string[], game?: GameId): { dungeons: Hit[]; items: Hit[]; unresolved: string[] };
+export function findSubjectsInText(text: string): TextHit[];      // whole-word names and multi-letter nicknames only; never 2-letter codes or everyday words
+export function inferGame(chosen: GameId | undefined, names: readonly string[]): GameId;   // chosen, else first hit, else "alttp"
+// game/slices.ts
+export function gameSystemBlocks(decision: RoutingDecision): BetaTextBlockParam[];   // instructions block (voice help + SHARED_RULES + routine prompt + framing), then at most two subject blocks, all cache_control 1h
+export function gameVolatileLines(decision: RoutingDecision): string[];             // unresolved names, or "no reference material loaded" for a game without data
+// game/routines.ts: ROUTINES, one descriptive prompt per routine (dungeon, logic, overworld, items, general), no caveats, each ending with the not-covered line
+// game/override.ts
+export function overrideChatToGame(decision: RoutingDecision, question: string, requestId: string): RoutingDecision;   // chat + a catalog hit in the text -> game; logs router.override
+// tools/export-key-logic.py: reads StaticKeyLogic.py (door randomizer) with ast and writes prompts/alttp/logic/keys.json

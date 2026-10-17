@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!tests/fixtures", "!docs"]
+    "includes": ["**", "!tests/fixtures", "!docs", "!**/logic/keys.json"]
   },
   "formatter": {
     "enabled": true,

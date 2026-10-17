@@ -1,3 +1,4 @@
+import { ROUTINE_PROMPTS } from "../game/routines.js";
 import { CHAT_BLOCK, CORE, DATA_BLOCK, HELP_BLOCK } from "../personality/voice.js";
 import { clientToolDefs } from "../responders/clientTools.js";
 import {
@@ -88,11 +89,12 @@ export function buildLeakGuard(protectedTexts: readonly string[]): (answer: stri
 
 const clientTools = [...new Set(Object.values(ROUTES).flatMap((r) => r.clientTools))];
 
-// Left out on purpose: ALTTP_KNOWLEDGE, because public game facts are fine to quote, and the
-// route specs' instructions, because they carry public facts (stage channels, help pages) that a
-// correct answer may repeat verbatim; a false refusal costs more than an uncaught job
-// description. The per-request context block (tenant, ids, link status) varies, so it cannot be
-// matched here; the Not disclosed rule covers it.
+// Left out on purpose: the game notes in src/game/data.ts, because public game facts are fine to
+// quote, and the route specs' instructions, because they carry public facts (stage channels, help
+// pages) that a correct answer may repeat verbatim; a false refusal costs more than an uncaught
+// job description. The game routine prompts are in: they only say how to answer. The per-request
+// context block (tenant, ids, link status) varies, so it cannot be matched here; the Not
+// disclosed rule covers it.
 export const PROTECTED_TEXTS: readonly string[] = [
   CORE,
   DATA_BLOCK,
@@ -101,6 +103,7 @@ export const PROTECTED_TEXTS: readonly string[] = [
   SHARED_RULES,
   ROUTER_PROMPT,
   KNOWLEDGE_FRAMING,
+  ...Object.values(ROUTINE_PROMPTS),
   OFFER_CHOICES_DESCRIPTION,
   PROPOSE_ACTION_DESCRIPTION,
   ...clientToolDefs(clientTools).flatMap((t) => (t.description ? [t.description] : [])),

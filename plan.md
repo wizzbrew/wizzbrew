@@ -49,7 +49,7 @@ All model ids live in one `MODELS` map, which is where to swap them.
 |---|---|---|
 | router | `claude-haiku-5-5`, effort `low` | Classification. JSON via structured outputs (`output_config.format`). |
 | responders | `claude-sonnet-5-5`, effort `medium` | Multi-step tool use, the same tier beer-league uses for agents. `claude-opus-5-5` is a one-line swap if answers are weak. |
-| chat / help | `claude-sonnet-5-5` | Short answers from the help summary, no tools. Chat moved from Haiku on 2026-10-17: it was not holding the voice. |
+| chat / help / game | `claude-sonnet-5-5` | Short answers from the help summary or the loaded game notes, no tools. Chat moved from Haiku on 2026-10-17: it was not holding the voice. |
 
 Every call goes through one `createMessage(purpose, ...)` wrapper, as in beer-league. The wrapper:
 
@@ -202,7 +202,8 @@ runs on the bot's read-only account.
 | `player_actions` | acknowledge, offer for stream, watch, enter a tournament, book a match, suggest a time | **`acknowledge_match`**, **`offer_match_for_stream`**, **`withdraw_stream_offer`**, **`watch_match`**, **`unwatch_match`**, **`sign_up_for_tournament`**, **`withdraw_from_tournament`**, **`submit_match_request`**, **`suggest_match_time`**, plus REST reschedule and bracket-booking tools later |
 | `help` | how acknowledging, check-in, crew approval, stations, seeds and reschedule requests work | no tools; a short summary of the in-app help, linking `onsite.speedgaming.org/help/<topic>` |
 | `staff` (later) | reports, coverage, live board, for linked staff only | the admin read tools, gated on the user's role from `whoami` / `get_user` |
-| `chat` | anything else, or low confidence | none; a short answer plus a nudge to `/ask` something specific |
+| `game` | the games being played and their randomizers: items, areas, bosses, mechanics, logic, tricks, settings | none; the router also returns `routine` (`dungeon`, `logic`, `overworld`, `items`, `general`), `subjects` (up to four area, boss or item names as written) and `game` (`alttp`, `sm`). The responder loads only the notes for those (see README, Game knowledge) |
+| `chat` | greetings, thanks, banter, off topic, unclear, and the bot's own setup or persona; low confidence also lands here | none; a short answer plus a nudge to `/ask` something specific |
 
 Permission gate, in code, after routing: linked routes without a link reply "run `/link` first".
 Staff routes check the user's roles.
@@ -257,7 +258,7 @@ Flavor by register:
 | Register | Used by | Flavor |
 |---|---|---|
 | `data` | schedule, streams, standings, players, tournaments, my_stuff, crew, player_actions | None. Just the answer, cleanly laid out. |
-| `help` | help | Plain and practical. At most one light, friendly closing line; none is fine. |
+| `help` | help, game | Plain and practical. At most one light, friendly closing line; none is fine. |
 | `chat` | chat | At most one homebrewing or taproom turn of phrase, only if it fits, never the same one twice in a conversation, never forced. Out-of-scope asks get a one-line "here's what I can help with". |
 
 The voice text lists no example idioms or phrasings: a listed example becomes the one the model

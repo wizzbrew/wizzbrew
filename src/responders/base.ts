@@ -11,9 +11,9 @@ import { config } from "../config.js";
 import { isPromptLeak, LEAK_REFUSAL } from "../discord/leakguard.js";
 import { sanitizeForPrompt } from "../discord/markup.js";
 import { ModelOutputError } from "../errors.js";
+import { CACHE_1H, gameSystemBlocks, gameVolatileLines } from "../game/slices.js";
 import { type BetaMessageCreateParams, createMessage, textOf } from "../llm/client.js";
 import { log } from "../log.js";
-import { ALTTP_KNOWLEDGE } from "../personality/knowledge.js";
 import { voice } from "../personality/voice.js";
 import { ROUTES, type RouteSpec } from "../router/routes.js";
 import { nowBlock } from "../time/time.js";
@@ -21,23 +21,13 @@ import type { Answer, AskContext, ProposedAction, Route, RoutingDecision } from 
 import { callTool, connectorParams } from "../wizzrobe/mcp.js";
 import { botAccessToken, userAccessToken } from "../wizzrobe/tokens.js";
 import { clientToolDefs, runClientTool } from "./clientTools.js";
-import {
-  KNOWLEDGE_FRAMING,
-  OFFER_CHOICES_DESCRIPTION,
-  PROPOSE_ACTION_DESCRIPTION,
-} from "./fixedtext.js";
+import { OFFER_CHOICES_DESCRIPTION, PROPOSE_ACTION_DESCRIPTION } from "./fixedtext.js";
 import { SHARED_RULES, SPECS } from "./specs.js";
 
 const MAX_CALLS = 8;
 const MAX_MS = 200_000;
 
 type Tools = NonNullable<BetaMessageCreateParams["tools"]>;
-
-// One hour, so a quiet channel still hits the cache. The API wants every one-hour breakpoint
-// ahead of any block without cache_control, and the volatile block below never has one.
-const CACHE_1H = { type: "ephemeral", ttl: "1h" } as const;
-
-export { KNOWLEDGE_FRAMING };
 
 // The lines that change on every request. The clock lives here and nowhere in a cached block (L1).
 function volatileBlock(ctx: AskContext, decision: RoutingDecision): string {
@@ -54,6 +44,7 @@ function volatileBlock(ctx: AskContext, decision: RoutingDecision): string {
         }`
       : "Not linked to Wizzrobe",
     `Params: ${JSON.stringify(decision.params)}`,
+    ...(decision.route === "game" ? gameVolatileLines(decision) : []),
   ];
   return lines.join("\n");
 }
@@ -233,21 +224,20 @@ async function produceAnswer(
   const r = ROUTES[route];
   const ephemeral = r.ephemeral || ctx.ephemeral;
 
-  // Stable first, volatile last: A (all routes), B and C (chat only) are cached for an hour; D
-  // carries the clock and the asker and is never cached.
-  const system: BetaTextBlockParam[] = [
-    {
-      type: "text",
-      text: `${voice(spec.register)}\n\n${SHARED_RULES}\n\n${spec.instructions}`,
-      cache_control: CACHE_1H,
-    },
-  ];
+  // Stable first, volatile last. The game route caches its routine instructions and at most two
+  // subject blocks (src/game/slices.ts). Every other route caches the instructions block, and
+  // chat adds the event list; the last block carries the clock and the asker and is never cached.
+  const system: BetaTextBlockParam[] =
+    route === "game"
+      ? gameSystemBlocks(decision)
+      : [
+          {
+            type: "text",
+            text: `${voice(spec.register)}\n\n${SHARED_RULES}\n\n${spec.instructions}`,
+            cache_control: CACHE_1H,
+          },
+        ];
   if (route === "chat") {
-    system.push({
-      type: "text",
-      text: `${KNOWLEDGE_FRAMING}\n\n${ALTTP_KNOWLEDGE}`,
-      cache_control: CACHE_1H,
-    });
     const events = await eventBlock();
     if (events.length > 0) {
       system.push({ type: "text", text: events.join("\n"), cache_control: CACHE_1H });
