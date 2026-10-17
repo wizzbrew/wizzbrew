@@ -42,25 +42,27 @@ These need other people. Ask early; none of them are code.
 
 - **GitHub:** the repo is public in the `wizzbrew` org (Vercel Hobby can't connect a private org
   repo). Give collaborators the **Write** role, not Admin. `main` and `release/v0.1` are protected:
-  pull request with one approval, no force-push, no deletion. Add `npm run check` as a required
-  check once a CI workflow exists. The release branch deploys to production, so its PR gate is
-  what keeps unreviewed code away from production secrets.
+  pull request with one approval, no force-push, no deletion. The CI job `check`
+  (`.github/workflows/check.yml`) is the required status check on both: it runs `npm run check`,
+  then the relay build and tests, and must pass before any merge. The release branch deploys to
+  production, so its PR gate is what keeps unreviewed code away from production secrets.
+- **Releases:** feature PRs squash-merge into `main`. A release is a PR from `main` into
+  `release/v0.1`, merged with a merge commit (never squash, or the branches diverge). Every
+  release bumps the patch version in `package.json` and `relay/package.json` on `main` first, and
+  the merged release commit is tagged `vX.Y.Z` and the tag pushed.
 - The public-repo rules in CLAUDE.md still apply whether the repo is public or private: no secret
   in the tree, ever. `.env.example` holds names only; `src/config.ts` and `relay/src/config.ts`
   are the only readers of env.
 - **Secrets live only in Vercel and Railway env vars** (and each developer's own
   `.env.local`, which git ignores). Don't add collaborators to the Vercel or Railway teams; team
   members can read env values.
-- **Preview deploys run branch code with the Preview env vars**, so Preview gets its own
-  low-stakes values, never production's:
-  - its own Anthropic key, in a separate workspace with a small monthly limit;
-  - a separate test Discord app in the test server (CLAUDE.md: previews never touch the live
-    server);
-  - a separate Upstash database.
+- **Preview deploys have no secrets.** Preview gets no env vars at all, so branch code fails at
+  startup instead of touching production. Every variable is scoped to Production only, and there
+  is one Upstash database, the project's, connected to Production only.
 - Mark production values **Sensitive** in Vercel. Rotate any value that is ever pasted somewhere
   it shouldn't be.
-- If GitHub Actions are added later, keep production secrets out of Actions secrets: anyone with
-  Write can add a workflow that reads them.
+- The `check` workflow is the only Actions workflow and uses no secrets. Keep production secrets
+  out of Actions secrets: anyone with Write can add a workflow that reads them.
 
 ## Order
 
@@ -71,14 +73,20 @@ Follow [deploy-checklist.md](deploy-checklist.md) steps 1 to 11. These notes go 
 - **Step 3 (Wizzrobe):** `scripts/wizzrobe-login.ts` runs locally, signed in as the bot account,
   and needs `http://127.0.0.1:8976/callback` registered. It prints the refresh token once; paste
   it straight into Vercel.
-- **Step 5 (env):** production values go on Production only; Preview gets its own (above).
+- **Step 4 (Upstash):** one database, the project's, on Production only. No Preview database.
+- **Step 5 (env):** production values go on Production only; Preview gets nothing (above).
   `CHALLONGE_API_KEY` stays empty.
-- **Step 6:** Discord PINGs the Interactions Endpoint and rejects it on a bad signature check, so
-  an accepted URL proves `DISCORD_PUBLIC_KEY` and the deploy are right. `/api/health` should also
-  answer.
+- **Step 6 (release flow):** production builds from `release/v0.1`. Bump the patch version in
+  `package.json` and `relay/package.json` on `main` (squash PR), open a PR from `main` into
+  `release/v0.1`, wait for `check` to pass, merge with a merge commit, then tag the merged commit
+  `vX.Y.Z` and push the tag.
+- **Step 6 (endpoint):** Discord PINGs the Interactions Endpoint and rejects it on a bad signature
+  check, so an accepted URL proves `DISCORD_PUBLIC_KEY` and the deploy are right. `/api/health`
+  should also answer.
 - **Step 7:** register commands to the test guild first (`DISCORD_DEV_GUILD_ID` set). Go global
   only for the SGL server, in step 11.
-- **Step 8 (Railway):** root directory `relay`; `RELAY_SECRET` must match Vercel byte for byte.
+- **Step 8 (Railway):** root directory `relay`, set on the service (Railway rejects
+  `railway.json`); `RELAY_SECRET` must match Vercel byte for byte.
   A mismatch shows up as 401s on `/api/message` and the relay's "I can't answer right now" reply.
 - **Step 9:** run every smoke test, including the link-hijack refusal (open someone else's link
   from a second Discord account; it must refuse and link nothing).

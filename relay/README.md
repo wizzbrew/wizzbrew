@@ -22,6 +22,8 @@ or the relay cannot read what people write.
 
 1. Create a Railway project and a service from this repo, with the root directory set to `relay`.
 2. Set the four environment variables above.
-3. Railway reads `railway.json`: build `npm ci && npm run build`, start `npm start`, always restart.
+3. Set the service settings in Railway itself (it rejects `railway.json` and `railway.toml` as
+   deprecated config as code): build command `npm ci && npm run build`, start command
+   `npm start`, restart policy always, region US East (`us-east4`).
 4. Deploy and check the logs for `relay ready`.
 5. Invite the bot with read and send permissions, then @mention it in an allowed channel.

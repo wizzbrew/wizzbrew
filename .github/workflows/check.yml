@@ -1,0 +1,52 @@
+name: check
+
+# The required status check for every merge. It runs with no secrets and no env vars beyond CI
+# defaults: production secrets never go in Actions (docs/handoff-deploy.md).
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "release/**"
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 24 matches engines in both package.json files and the Vercel runtime.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            relay/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Check (typecheck, lint, tests, rules)
+        run: npm run check
+
+      - name: Relay install
+        working-directory: relay
+        run: npm ci
+
+      - name: Relay build
+        working-directory: relay
+        run: npm run build
+
+      - name: Relay tests
+        working-directory: relay
+        run: npm test
