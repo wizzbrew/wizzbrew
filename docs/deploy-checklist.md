@@ -2,6 +2,7 @@
 
 Do these in order. Each step says how to verify it. No value goes in the repo: every secret lives
 only in Vercel or Railway env vars. Use a test server first; the live server comes last.
+Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 
 ## 1. Anthropic
 
@@ -45,8 +46,11 @@ only in Vercel or Railway env vars. Use a test server first; the live server com
 
 ## 5. Vercel project and env vars
 
-- Push the repo to GitHub and import it in Vercel. Framework preset: Other.
-- Set every name from `.env.example` in Production and Preview:
+- Push the repo to GitHub and import it in Vercel. Framework preset: Other. Set the production
+  branch to `release/v0.1` (Settings, Environments, Production).
+- Set every name from `.env.example`. Production gets the real values. Preview gets its own test
+  values (a separate Anthropic key with a small limit, the test Discord app, a separate Upstash
+  database), so branch code never runs with production secrets:
 
 | Name | Source |
 |---|---|
@@ -70,7 +74,7 @@ only in Vercel or Railway env vars. Use a test server first; the live server com
 | `KV_REST_API_URL` | Step 4 |
 | `KV_REST_API_TOKEN` | Step 4 |
 | `COMMUNITY_TIMEZONE` | `America/New_York` |
-| `CHALLONGE_API_KEY` | Challonge account, read-only key, optional |
+| `CHALLONGE_API_KEY` | Leave empty (parked, see [backlog.md](backlog.md)) |
 | `RELAY_SECRET` | `openssl rand -base64 32` (at least 32 characters); same value on Railway |
 | `STAFF_ALERT_CHANNEL_ID` | A staff channel id, optional (step 10) |
 
@@ -78,7 +82,8 @@ only in Vercel or Railway env vars. Use a test server first; the live server com
 
 ## 6. Deploy and the Interactions Endpoint
 
-- Push to `main`; Vercel builds.
+- Vercel's production branch is `release/v0.1`. Merge `main` into it through a PR; Vercel builds
+  production from it. Every other branch, `main` included, gets a Preview deploy.
 - In the Discord portal, set the Interactions Endpoint URL to
   `https://<vercel-domain>/api/interactions`.
 - Verify: Discord accepts the URL (it sends a PING and refuses on a bad signature check).

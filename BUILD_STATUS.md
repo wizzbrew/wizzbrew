@@ -4,7 +4,7 @@ Builder: Opus 5.5 on `build/integration`. Cards live in `docs/cards/`.
 
 ## Current wave
 
-Build complete on fakes. Waves 0 to 4, review (3 reviewers) and fixes R1 to R4c, F1 to F6 merged. Final gate: typecheck, lint, 761 tests (3 consecutive green runs), rules ok (131 files), relay 11 tests. Next: fast-forward main and tag v0.1.0 (with Vince), then the live phase in docs/deploy-checklist.md.
+Build complete on fakes. Waves 0 to 4, review (3 reviewers) and fixes R1 to R4c, F1 to F6 merged. Final gate: typecheck, lint, 761 tests (3 consecutive green runs), rules ok (131 files), relay 11 tests. main fast-forwarded and tagged v0.1.0 (06220cf), local only. Next: the live phase, starting at docs/handoff-deploy.md. Challonge API work parked in docs/backlog.md (2026-10-16): deploy without CHALLONGE_API_KEY, brackets answer link-only until Wizzrobe's brackets feature is on.
 
 ## Tasks
 
