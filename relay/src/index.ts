@@ -1,6 +1,17 @@
-import { Client, GatewayIntentBits, type Message, Partials } from "discord.js";
+import { Client, cleanContent, GatewayIntentBits, type Message, Partials } from "discord.js";
 import { loadConfig } from "./config.js";
-import { buildRelayMessage, MAX_CHAIN, type RelayMessage, shouldForward, sign } from "./forward.js";
+import {
+  buildRelayMessage,
+  formatIgnoredLog,
+  ignoreReason,
+  isBotMention,
+  MAX_CHAIN,
+  mentionsBotName,
+  type RelayMessage,
+  shouldForward,
+  sign,
+  stripRoleMentions,
+} from "./forward.js";
 
 const config = loadConfig();
 const FAIL_TEXT = "I can't answer right now. Try again in a minute.";
@@ -100,6 +111,8 @@ async function post(msg: RelayMessage): Promise<number> {
 client.on("messageCreate", async (message) => {
   const botId = client.user?.id;
   if (!botId) return;
+  // The bot's own posts are never forwarded and never worth a log line.
+  if (message.author.id === botId) return;
   try {
     const isDm = message.guildId === null;
     let repliesToBot = false;
@@ -110,22 +123,51 @@ client.on("messageCreate", async (message) => {
     const channel = message.channel;
     const parentId = channel.isThread() ? channel.parentId : null;
     const memberOk = isDm ? await isMemberOfAllowedGuild(message.author.id) : false;
-    const ok = shouldForward(
-      {
-        authorIsBot: message.author.bot,
-        isDm,
-        mentionsBot: message.mentions.users.has(botId),
-        repliesToBot,
-        channelId: message.channelId,
-        parentId,
-        isMemberOfAllowedGuild: memberOk,
-      },
-      config.channelIds,
-    );
-    if (!ok) return;
+    const inputs = {
+      authorIsBot: message.author.bot,
+      isDm,
+      mentionsBot: isBotMention(
+        message.mentions.users.has(botId),
+        message.mentions.roles.map((r) => r.tags?.botId).filter((id) => id !== undefined),
+        botId,
+      ),
+      repliesToBot,
+      channelId: message.channelId,
+      parentId,
+      isMemberOfAllowedGuild: memberOk,
+    };
+    if (!shouldForward(inputs, config.channelIds)) {
+      const reason = ignoreReason(
+        {
+          ...inputs,
+          nameInContent: mentionsBotName(message.content, [
+            client.user?.username,
+            client.user?.displayName,
+            message.guild?.members.me?.displayName,
+          ]),
+        },
+        config.channelIds,
+      );
+      if (reason) {
+        console.log(
+          formatIgnoredLog({
+            reason,
+            channelId: message.channelId,
+            guildId: message.guildId,
+            messageId: message.id,
+            authorId: message.author.id,
+            mention: inputs.mentionsBot,
+            reply: inputs.repliesToBot,
+          }),
+        );
+      }
+      return;
+    }
 
     if ("sendTyping" in channel) await channel.sendTyping().catch(() => undefined);
     const chain = await walkChain(message);
+    // Only the bot's own managed role, never another role the bot holds.
+    const botRoleIds = [...message.mentions.roles.filter((r) => r.tags?.botId === botId).keys()];
     const relay = buildRelayMessage({
       messageId: message.id,
       channelId: message.channelId,
@@ -137,8 +179,9 @@ client.on("messageCreate", async (message) => {
         globalName: message.author.globalName,
         nick: message.member?.nickname ?? null,
       },
-      text: message.cleanContent,
+      text: cleanContent(stripRoleMentions(message.content, botRoleIds), message.channel),
       botId,
+      botRoleIds,
       chain,
     });
 
@@ -159,7 +202,21 @@ client.on("messageCreate", async (message) => {
 
 client.once("clientReady", () => {
   resolveAllowedGuilds();
-  console.log("relay ready");
+  console.log(`relay ready guilds=${client.guilds.cache.size} channels=${config.channelIds.size}`);
+});
+
+// Gateway connection events, so a dead connection shows up in the logs. Ids and codes only.
+client.on("shardDisconnect", (event, shardId) => {
+  console.warn(`gateway shardDisconnect shard=${shardId} code=${event.code}`);
+});
+client.on("shardReconnecting", (shardId) => {
+  console.warn(`gateway shardReconnecting shard=${shardId}`);
+});
+client.on("shardResume", (shardId) => {
+  console.log(`gateway shardResume shard=${shardId}`);
+});
+client.on("error", (err) => {
+  console.error(`gateway error name=${err instanceof Error ? err.name : "unknown"}`);
 });
 
 function shutdown(): void {

@@ -1,6 +1,7 @@
 # Wizzbrew relay
 
-A small always-on gateway process. It watches Discord for messages that @mention Wizzbrew, DM it,
+A small always-on gateway process. It watches Discord for messages that @mention Wizzbrew (the bot
+user or its own managed role), DM it,
 or reply to one of its messages, and forwards each one (with up to 10 messages of reply chain) to
 the Vercel app at `<WIZZBREW_URL>/api/message`, signed with HMAC-SHA256. It holds no bot logic:
 Vercel posts the reply itself. If Vercel fails, the relay replies once that it can't answer now.
@@ -17,6 +18,18 @@ Vercel posts the reply itself. If Vercel fails, the relay replies once that it c
 
 Enable the **Message Content** privileged intent for the bot in the Discord developer portal,
 or the relay cannot read what people write.
+
+## Logs
+
+The relay logs ids and reasons, never message content or tokens.
+
+- `relay ready guilds=<n> channels=<n allowed>` on start.
+- `forward channel=<id> message=<id> status=<http status>` for each forwarded message.
+- `ignored reason=<reason> channel=<id> guild=<id or dm> message=<id> author=<id> mention=<bool>
+  reply=<bool>` for a DM or a message that looks aimed at the bot (mention, reply, or its name in
+  the text) but was not forwarded. Reasons: `channel_not_allowed`, `not_mention_or_reply`,
+  `dm_not_member`, `bot_author`.
+- `gateway shardDisconnect|shardReconnecting|shardResume|error` lines for the Discord connection.
 
 ## Railway setup
 

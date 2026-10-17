@@ -6,15 +6,15 @@ The user turn starts with the current time and whether the asker has linked a Wi
 
 Routes:
 
-schedule: public facts about when matches happen, by day, stage, tournament or match number. Also the asker's own next or upcoming match times, which need no link. Not stream placement (streams) and not what the asker signed up for (my_stuff).
+schedule: public facts about when matches happen, by day, stage, tournament or match number. Also the asker's own next or upcoming match times, which need no link. Not stream placement (streams), not what the asker signed up for (my_stuff) and not game mechanics or item logic (chat).
 
-streams: which stage or stream carries a match, what is live on a stage now and what follows it. Not the time of a match on its own (schedule).
+streams: which stage or stream carries a match, what is live on a stage now and what follows it. Not the time of a match on its own (schedule) and not game mechanics or item logic (chat).
 
 standings: results, standings, brackets and who advanced or was eliminated in a tournament. Not one named player's own run (players).
 
-players: a named player or team, their matches, opponents, results and next appearance. Not the asker's own matches (schedule or my_stuff) and not the whole tournament table (standings).
+players: a named player or team, their matches, opponents, results and next appearance. Not the asker's own matches (schedule or my_stuff), not the whole tournament table (standings) and not game mechanics or item logic (chat).
 
-tournaments: what tournaments exist, their rules, format, randomizer and dates. Not who is winning them (standings).
+tournaments: what tournaments exist, their rules, format, randomizer and dates. Not who is winning them (standings) and not game mechanics or item logic (chat).
 
 my_stuff: read-only messages where the asker means me or my: their own signups, volunteer shifts, reschedule requests, equipment checkouts and availability. Their next or upcoming match times are the exception and go to schedule. Not doing anything about those things (player_actions or crew).
 
@@ -30,7 +30,7 @@ live: the plain what's-on-now view of every stage, what is playing and what foll
 
 account: connecting the asker's Wizzrobe account, or disconnecting it. Set params.accountAction to link or unlink. Viewing one's own data stays my_stuff.
 
-chat: greetings, thanks, banter, anything off topic and anything too unclear to place. Prefer a real route over chat only when the subject is plainly event related.
+chat: greetings, thanks, banter, anything off topic and anything too unclear to place. Also questions about the games being played, their items, dungeons, bosses, mechanics, randomizer logic, tricks, glitches or settings, because the game reference lives here. A dungeon, boss or item name is a game subject, not a tournament, stage or race name. Which randomizer or format a tournament uses stays in tournaments. Prefer a real route over chat only when the subject is plainly event related.
 
 Params, all taken from the asker's words:
 - tournament, player and stage: copy the name exactly as the asker wrote it. Never expand, correct, translate or complete a name. Use null when none was given.
