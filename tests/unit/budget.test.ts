@@ -50,6 +50,22 @@ function makeKv(): Kv {
     async expire(): Promise<void> {
       // TTLs are not enforced by the test Kv.
     },
+    // Lists and hashes are not used by the budget code.
+    async rpush(): Promise<number> {
+      throw new Error("budget.test: rpush is not used");
+    },
+    async lrange(): Promise<unknown[]> {
+      throw new Error("budget.test: lrange is not used");
+    },
+    async hincrby(): Promise<number> {
+      throw new Error("budget.test: hincrby is not used");
+    },
+    async hget(): Promise<unknown> {
+      throw new Error("budget.test: hget is not used");
+    },
+    async hgetall(): Promise<Record<string, unknown>> {
+      throw new Error("budget.test: hgetall is not used");
+    },
   };
 }
 

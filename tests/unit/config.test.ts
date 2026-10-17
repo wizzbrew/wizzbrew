@@ -104,6 +104,82 @@ describe("config()", () => {
   });
 });
 
+describe("OWNER_DISCORD_IDS and DM_DAILY_LIMIT", () => {
+  it("reads the owner ids as a trimmed list", () => {
+    vi.stubEnv("OWNER_DISCORD_IDS", " 111111111111111111 ,222222222222222222,");
+    expect(config().ownerDiscordIds).toEqual(["111111111111111111", "222222222222222222"]);
+  });
+
+  it("reads one owner id", () => {
+    vi.stubEnv("OWNER_DISCORD_IDS", "111111111111111111");
+    expect(config().ownerDiscordIds).toEqual(["111111111111111111"]);
+  });
+
+  it("treats an unset, empty or all comma owner list as nobody", () => {
+    vi.stubEnv("OWNER_DISCORD_IDS", undefined);
+    expect(config().ownerDiscordIds).toEqual([]);
+    resetConfigForTests();
+    vi.stubEnv("OWNER_DISCORD_IDS", "");
+    expect(config().ownerDiscordIds).toEqual([]);
+    resetConfigForTests();
+    vi.stubEnv("OWNER_DISCORD_IDS", " , ,");
+    expect(config().ownerDiscordIds).toEqual([]);
+  });
+
+  it.each(["vince", "111111111111111111,vince", "<@111111111111111111>", "1.5", "-1"])(
+    "rejects the owner list %s loudly, without echoing it",
+    (value) => {
+      vi.stubEnv("OWNER_DISCORD_IDS", value);
+      const text = thrownText(() => config());
+      expect(text).toContain(
+        "OWNER_DISCORD_IDS must be a comma-separated list of Discord user ids",
+      );
+      expect(text).not.toContain(value);
+    },
+  );
+
+  it("reads DM_DAILY_LIMIT as a whole number", () => {
+    vi.stubEnv("DM_DAILY_LIMIT", "12");
+    expect(config().dmDailyLimit).toBe(12);
+  });
+
+  it("defaults DM_DAILY_LIMIT to 5 when unset or empty", () => {
+    vi.stubEnv("DM_DAILY_LIMIT", undefined);
+    expect(config().dmDailyLimit).toBe(5);
+    resetConfigForTests();
+    vi.stubEnv("DM_DAILY_LIMIT", "");
+    expect(config().dmDailyLimit).toBe(5);
+  });
+
+  it.each(["0", "-3", "2.5", "many", "5 or so"])("rejects DM_DAILY_LIMIT=%s loudly", (value) => {
+    vi.stubEnv("DM_DAILY_LIMIT", value);
+    const text = thrownText(() => config());
+    expect(text).toContain("DM_DAILY_LIMIT must be a positive whole number");
+    expect(text).not.toContain(value);
+  });
+
+  it("checkConfig reports both as problems and stays valid when they are unset", () => {
+    vi.stubEnv("DM_DAILY_LIMIT", "0");
+    vi.stubEnv("OWNER_DISCORD_IDS", "nope");
+    expect(checkConfig().problems).toEqual([
+      "OWNER_DISCORD_IDS must be a comma-separated list of Discord user ids (digits only)",
+      "DM_DAILY_LIMIT must be a positive whole number",
+    ]);
+    vi.stubEnv("DM_DAILY_LIMIT", undefined);
+    vi.stubEnv("OWNER_DISCORD_IDS", undefined);
+    expect(checkConfig()).toEqual({ valid: true, problems: [] });
+  });
+
+  it("configFor reads just these two keys", () => {
+    vi.stubEnv("KV_REST_API_URL", undefined);
+    vi.stubEnv("DM_DAILY_LIMIT", "9");
+    expect(configFor("ownerDiscordIds", "dmDailyLimit")).toEqual({
+      ownerDiscordIds: ["100000000000000001", "100000000000000002"],
+      dmDailyLimit: 9,
+    });
+  });
+});
+
 describe("configFor()", () => {
   it("validates only the requested keys", () => {
     vi.stubEnv("KV_REST_API_URL", undefined);

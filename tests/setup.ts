@@ -26,6 +26,8 @@ const DUMMY_ENV: Record<string, string> = {
   CHALLONGE_API_KEY: "test-challonge-key",
   RELAY_SECRET: "test-relay-value-not-real-".padEnd(40, "x"),
   STAFF_ALERT_CHANNEL_ID: "test-staff-alert-channel-id",
+  OWNER_DISCORD_IDS: "100000000000000001,100000000000000002",
+  DM_DAILY_LIMIT: "5",
 };
 
 for (const [name, value] of Object.entries(DUMMY_ENV)) {

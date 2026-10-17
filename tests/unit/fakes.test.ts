@@ -99,6 +99,46 @@ describe("FakeKv", () => {
   });
 });
 
+describe("FakeKv lists and hashes", () => {
+  it("rpush appends and returns the length; lrange follows the Redis index rules", async () => {
+    const kv = new FakeKv();
+    expect(await kv.lrange("l", 0, -1)).toEqual([]);
+    expect(await kv.rpush("l", "a")).toBe(1);
+    expect(await kv.rpush("l", "b")).toBe(2);
+    await kv.rpush("l", "c");
+    expect(await kv.lrange("l", 0, -1)).toEqual(["a", "b", "c"]);
+    expect(await kv.lrange("l", -2, -1)).toEqual(["b", "c"]);
+    expect(await kv.lrange("l", -500, -1)).toEqual(["a", "b", "c"]);
+    expect(await kv.lrange("l", 1, 1)).toEqual(["b"]);
+    expect(await kv.lrange("l", 5, 9)).toEqual([]);
+  });
+
+  it("hincrby counts per field, hget and hgetall read them, a missing key is empty", async () => {
+    const kv = new FakeKv();
+    expect(await kv.hget("h", "x")).toBeNull();
+    expect(await kv.hgetall("h")).toEqual({});
+    expect(await kv.hincrby("h", "x", 1)).toBe(1);
+    expect(await kv.hincrby("h", "x", 2)).toBe(3);
+    await kv.hincrby("h", "y", 1);
+    expect(await kv.hget("h", "x")).toBe(3);
+    expect(await kv.hget("h", "z")).toBeNull();
+    expect(await kv.hgetall("h")).toEqual({ x: 3, y: 1 });
+  });
+
+  it("applies the TTL to lists and hashes against the injected clock", async () => {
+    let now = 0;
+    const kv = new FakeKv(() => now);
+    await kv.rpush("l", "a", 10);
+    await kv.hincrby("h", "x", 1, 10);
+    expect(kv.ttlSec("l")).toBe(10);
+    now += 10_000;
+    expect(kv.has("l")).toBe(false);
+    expect(await kv.lrange("l", 0, -1)).toEqual([]);
+    expect(await kv.hgetall("h")).toEqual({});
+    expect(kv.ttlSec("h")).toBeNull();
+  });
+});
+
 describe("FakeAnthropic", () => {
   const params = {
     max_tokens: 10,

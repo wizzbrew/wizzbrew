@@ -282,6 +282,8 @@ export interface Config {
   challongeApiKey: string | null;       // CHALLONGE_API_KEY, optional
   relaySecret: string;                  // RELAY_SECRET, at least 32 chars, shared with the relay
   staffAlertChannelId: string | null;   // STAFF_ALERT_CHANNEL_ID, optional
+  ownerDiscordIds: string[];            // OWNER_DISCORD_IDS, optional comma-separated Discord user ids; empty means nobody
+  dmDailyLimit: number;                 // DM_DAILY_LIMIT, optional positive integer, default 5
 }
 export function config(): Config;                        // validates every var at first use, then caches
 export function configFor<K extends keyof Config>(...keys: K[]): Pick<Config, K>;   // validates only these (scripts)
@@ -301,6 +303,8 @@ export function nowBlock(now: Date): string;             // "Current time: Thu 2
 export function parseWizzrobeTime(iso: string): Date;
 export function discordTimestamp(d: Date, style?: "f" | "F" | "t" | "R"): string;
 export function communityDate(d: Date): string;          // YYYY-MM-DD in community tz
+export function communityHm(d: Date): string;            // HH:MM in community tz
+export function isYmd(text: string): boolean;            // strict YYYY-MM-DD
 export function parseUserDateTime(text: string, now: Date): { date: string; time: string; instant: Date };
                                                          // community clock; throws UserInputError (L3)
 export function parseUserDate(text: string, now: Date): string;   // date words only -> YYYY-MM-DD; UserInputError (added before wave 1)
@@ -328,6 +332,7 @@ export function renderError(message: string, ephemeral: boolean): RESTPatchAPIIn
 // discord/commands.ts (added before wave 1)
 export type CommandName = "ask" | "schedule" | "live" | "standings" | "player" | "link" | "unlink" | "me";
 export const COMMANDS: RESTPostAPIChatInputApplicationCommandsJSONBody[];   // what register-commands PUTs
+export const OWNER_COMMANDS: ReadonlySet<string>;   // only OWNER_DISCORD_IDS may run these (dmlog); hidden from /help
 // /player takes `name` (string) and an optional `user` (type 6, a Discord user); a user option resolves
 // through the interaction's resolved data, so mentions are never lost.
 
@@ -361,6 +366,11 @@ export interface Kv {
   set<T>(key: string, value: T, ttlSec?: number): Promise<void>;
   del(key: string): Promise<void>;
   incrByFloat(key: string, by: number, ttlSec?: number): Promise<number>;
+  rpush(key: string, value: string, ttlSec?: number): Promise<number>;   // RPUSH then EXPIRE when ttlSec is given
+  lrange(key: string, start: number, stop: number): Promise<unknown[]>;  // negative indexes count from the end
+  hincrby(key: string, field: string, by: number, ttlSec?: number): Promise<number>;
+  hget(key: string, field: string): Promise<unknown>;                    // null when absent
+  hgetall(key: string): Promise<Record<string, unknown>>;                // empty when absent
   expire(key: string, ttlSec: number): Promise<void>;
   take<T>(key: string): Promise<T | null>;                              // atomic get and delete (GETDEL)
   setIfAbsent<T>(key: string, value: T, ttlSec: number): Promise<boolean>;   // SET NX EX; true when set
@@ -378,6 +388,8 @@ export const keys: {
   thread(id: string): string;                    // disambiguation / follow-up context
   spend(day: string): string;                    // daily USD
   cache(scope: string, hash: string): string;    // short-lived Wizzrobe read cache
+  dmLog(day: string): string;                    // wb:v1:dmlog:{YYYY-MM-DD}, list of JSON lines, 14 days
+  dmCount(day: string): string;                  // wb:v1:dmcount:{YYYY-MM-DD}, hash of discord id to count, 14 days
   lock(discordUserId: string): string;           // per-user in-flight lock, 120 s
   kill(): string;                                // kill switch: any value pauses the bot
   alert(event: string): string;                  // staff-alert rate limit, 600 s
@@ -537,7 +549,8 @@ export interface PipelineRequest {
   forced?: RoutingDecision;             // slash shortcuts, /me and picked choices skip the router
   now: Date;
 }
-export function runAskPipeline(req: PipelineRequest): Promise<void>;   // never throws; always ends in a delivered reply (L16)
+export interface AskResult { route: string; text: string }   // what was answered, for the DM log
+export function runAskPipeline(req: PipelineRequest): Promise<AskResult | null>;   // never throws; always ends in a delivered reply (L16); null when refused or failed
 // Order: per-user lock -> kill switch -> budget -> route (unless forced) -> auth gate -> capability:
 // route "account" -> runAccountAction; route "live" -> liveAnswer; else runResponder. Then
 // save the thread (turns + this question + the answer text), then deliver.
@@ -721,3 +734,12 @@ Helper exports beyond the contract, accepted at merge: oauth.ts `pkcePair`, `dis
 `exchangeCode`; challonge.ts `parseBracketUrl`; tests/fakes/fetch.ts `requestUrl`. `renderError`
 accepts `ephemeral` for symmetry and ignores it (visibility is set at deferral). `RelayMessage.isDm`
 is validated but only the relay uses it.
+
+// store/dmlog.ts (added 2026-10-17): the DM log and the per-user daily cap
+export const DM_RETENTION_SEC: number;                                   // 14 days
+export function recordDm(input: DmRecordInput): Promise<void>;           // RPUSH the entry, HINCRBY the user's count, both with the retention TTL
+export function dmCount(day: string, userId: string): Promise<number>;   // the cap check (one HGET)
+export function readDmLog(day: string): Promise<DmLogView>;              // per-user counts plus the last 20 entries
+// handlers/dmlog.ts
+export function runDmLogCommand(i: APIChatInputApplicationCommandInteraction, target: ReplyTarget, now: Date): Promise<void>;
+// owner only (dispatch refuses others before any Redis read); defer ephemeral, then edit the reply; under 2000 chars

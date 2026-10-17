@@ -23,6 +23,8 @@ export const keys: {
   lock(discordUserId: string): string; // per-user in-flight lock, 120 s
   kill(): string; // kill switch: any value pauses the bot
   alert(event: string): string; // staff-alert rate limit, 600 s
+  dmLog(day: string): string; // list of JSON lines, one per DM question that day, 14 days
+  dmCount(day: string): string; // hash of discord id to DM questions that day, 14 days
 } = {
   link(discordUserId: string): string {
     return `${PREFIX}:link:${part(discordUserId, DISCORD_ID, "discord id")}`;
@@ -64,5 +66,11 @@ export const keys: {
   },
   alert(event: string): string {
     return `${PREFIX}:alert:${part(event, EVENT, "alert event")}`;
+  },
+  dmLog(day: string): string {
+    return `${PREFIX}:dmlog:${part(day, DAY, "day")}`;
+  },
+  dmCount(day: string): string {
+    return `${PREFIX}:dmcount:${part(day, DAY, "day")}`;
   },
 };

@@ -92,6 +92,64 @@ beforeEach(() => {
   vi.mocked(saveThread).mockResolvedValue({ id: "thr1" } as never);
 });
 
+describe("runAskPipeline result and ask.done log", () => {
+  function doneLine(spy: { mock: { calls: unknown[][] } }): Record<string, unknown> | undefined {
+    return spy.mock.calls
+      .map((c) => JSON.parse(String(c[0])) as Record<string, unknown>)
+      .find((line) => line.event === "ask.done");
+  }
+
+  it("returns the route and the answer text it delivered", async () => {
+    expect(await run({ reply: msg })).toEqual({ route: "schedule", text: "The answer" });
+  });
+
+  it("returns the answer object's text for a held private answer, not the prompt", async () => {
+    vi.mocked(runResponder).mockResolvedValue({ text: "Your shifts.", ephemeral: true });
+    expect(await run({ reply: msg, question: "what are my shifts" })).toEqual({
+      route: "schedule",
+      text: "Your shifts.",
+    });
+  });
+
+  it("does not hand back a private account link", async () => {
+    vi.mocked(routeQuestion).mockResolvedValue(decision("account", { accountAction: "link" }));
+    vi.mocked(accountAnswer).mockResolvedValue({
+      text: "Link here: https://bot.test/link?state=secret",
+      ephemeral: true,
+    });
+    const result = await run({ reply: msg });
+    expect(result).toEqual({ route: "account", text: "(sent a private account link)" });
+  });
+
+  it("returns null when the request was refused or failed", async () => {
+    vi.mocked(isPaused).mockResolvedValue(true);
+    expect(await run()).toBeNull();
+    vi.mocked(isPaused).mockResolvedValue(false);
+    await store.set(keys.lock(USER), "other", 120);
+    expect(await run()).toBeNull();
+    await store.del(keys.lock(USER));
+    vi.mocked(runResponder).mockRejectedValue(new Error("boom"));
+    expect(await run()).toBeNull();
+  });
+
+  it("logs the asker id and the path on ask.done, ids only and no question or answer text", async () => {
+    const out = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    await run({ reply: msg, question: "a private question about my shifts" });
+    const line = doneLine(out);
+    out.mockRestore();
+    expect(line).toMatchObject({
+      requestId: "req1",
+      route: "schedule",
+      path: "message",
+      askerId: USER,
+    });
+    expect(typeof line?.askerId).toBe("string");
+    const raw = JSON.stringify(line);
+    expect(raw).not.toContain("private question");
+    expect(raw).not.toContain("The answer");
+  });
+});
+
 describe("runAskPipeline", () => {
   it("routes, answers, saves a thread and delivers", async () => {
     await run({ history: [{ role: "user", text: "earlier" }] });

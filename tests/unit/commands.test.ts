@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMMANDS, type CommandName } from "../../src/discord/commands.js";
+import { COMMANDS, type CommandName, OWNER_COMMANDS } from "../../src/discord/commands.js";
 
 // Built from code points so this file itself holds no dash characters.
 const EM_OR_EN_DASH = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
@@ -15,6 +15,7 @@ const EXPECTED_NAMES: Record<CommandName, true> = {
   unlink: true,
   me: true,
   help: true,
+  dmlog: true,
 };
 
 describe("COMMANDS", () => {
@@ -32,6 +33,13 @@ describe("COMMANDS", () => {
       { type: 3, name: "name", description: "The player's name", required: false },
       { type: 6, name: "user", description: "A Discord user", required: false },
     ]);
+  });
+
+  it("gives /dmlog one optional day option and marks it owner only", () => {
+    const dmlog = COMMANDS.find((c) => c.name === "dmlog");
+    expect(dmlog?.options).toHaveLength(1);
+    expect(dmlog?.options?.[0]).toMatchObject({ type: 3, name: "day", required: false });
+    expect([...OWNER_COMMANDS]).toEqual(["dmlog"]);
   });
 
   it("registers every command as a chat input command for guilds and DMs", () => {

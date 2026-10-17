@@ -27,13 +27,16 @@ export interface Config {
   challongeApiKey: string | null; // CHALLONGE_API_KEY, optional
   relaySecret: string; // RELAY_SECRET, at least 32 chars, shared with the relay
   staffAlertChannelId: string | null; // STAFF_ALERT_CHANNEL_ID, optional
+  ownerDiscordIds: string[]; // OWNER_DISCORD_IDS, optional comma-separated Discord user ids; empty means nobody
+  dmDailyLimit: number; // DM_DAILY_LIMIT, optional positive integer, default 5
 }
 
 interface VarSpec<T> {
   env: string;
   rule: string; // finishes the sentence "<ENV> must be ..."
   optional: boolean;
-  schema: z.ZodType<T>;
+  fallback?: () => T; // what an optional variable reads as when unset, instead of null
+  schema: z.ZodType<T, unknown>;
 }
 
 type Specs = { [K in keyof Config]: VarSpec<NonNullable<Config[K]>> };
@@ -55,6 +58,20 @@ const base64Key32 = z.string().refine((v) => {
   return Buffer.from(v, "base64").length === 32;
 });
 
+const DISCORD_ID_LIST_ITEM = /^\d+$/;
+
+// "123, 456," becomes ["123", "456"]: items are trimmed and empty items (a stray comma) dropped.
+// Any item that is not all digits fails the whole value.
+const discordIdList = z
+  .string()
+  .transform((v) =>
+    v
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item !== ""),
+  )
+  .refine((items) => items.every((item) => DISCORD_ID_LIST_ITEM.test(item)));
+
 const ianaZone = z.string().refine((v) => {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: v });
@@ -75,6 +92,19 @@ const optionalVar = <T>(env: string, rule: string, schema: z.ZodType<T>): VarSpe
   env,
   rule,
   optional: true,
+  schema,
+});
+
+const optionalWithDefault = <T>(
+  env: string,
+  rule: string,
+  schema: z.ZodType<T, unknown>,
+  fallback: () => T,
+): VarSpec<T> => ({
+  env,
+  rule,
+  optional: true,
+  fallback,
   schema,
 });
 
@@ -114,6 +144,18 @@ const SPECS: Specs = {
   challongeApiKey: optionalVar("CHALLONGE_API_KEY", "a non-empty string", nonEmpty),
   relaySecret: required("RELAY_SECRET", "at least 32 characters", z.string().min(32)),
   staffAlertChannelId: optionalVar("STAFF_ALERT_CHANNEL_ID", "a non-empty string", nonEmpty),
+  ownerDiscordIds: optionalWithDefault(
+    "OWNER_DISCORD_IDS",
+    "a comma-separated list of Discord user ids (digits only)",
+    discordIdList,
+    () => [],
+  ),
+  dmDailyLimit: optionalWithDefault(
+    "DM_DAILY_LIMIT",
+    "a positive whole number",
+    z.coerce.number().int().positive(),
+    () => 5,
+  ),
 };
 
 const ALL_KEYS = Object.keys(SPECS) as (keyof Config)[];
@@ -126,6 +168,7 @@ function readVar<K extends keyof Config>(key: K): VarResult<K> {
   const spec = SPECS[key];
   const raw = process.env[spec.env];
   if (raw === undefined || raw === "") {
+    if (spec.fallback) return { ok: true, value: spec.fallback() as Config[K] };
     if (spec.optional) return { ok: true, value: null as Config[K] };
     return { ok: false, problem: `${spec.env} is missing` };
   }

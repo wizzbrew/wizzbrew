@@ -38,6 +38,21 @@ const fake = vi.hoisted(() => {
     getdel(...args: unknown[]) {
       return record("getdel", args);
     }
+    rpush(...args: unknown[]) {
+      return record("rpush", args);
+    }
+    lrange(...args: unknown[]) {
+      return record("lrange", args);
+    }
+    hincrby(...args: unknown[]) {
+      return record("hincrby", args);
+    }
+    hget(...args: unknown[]) {
+      return record("hget", args);
+    }
+    hgetall(...args: unknown[]) {
+      return record("hgetall", args);
+    }
   }
   return { state, FakeRedis };
 });
@@ -160,6 +175,49 @@ describe("kv", () => {
     });
   });
 
+  it("rpush appends one string and sets the TTL only when given", async () => {
+    fake.state.result = 3;
+    expect(await kv().rpush("k", "line", 600)).toBe(3);
+    expect(await kv().rpush("k", "line")).toBe(3);
+    expect(fake.state.calls).toStrictEqual([
+      { method: "rpush", args: ["k", "line"] },
+      { method: "expire", args: ["k", 600] },
+      { method: "rpush", args: ["k", "line"] },
+    ]);
+  });
+
+  it("lrange passes the indexes through and returns the items", async () => {
+    fake.state.result = [{ a: 1 }, "raw"];
+    expect(await kv().lrange("k", -20, -1)).toStrictEqual([{ a: 1 }, "raw"]);
+    expect(fake.state.calls).toStrictEqual([{ method: "lrange", args: ["k", -20, -1] }]);
+  });
+
+  it("hincrby returns the new value and sets the TTL only when given", async () => {
+    fake.state.result = 4;
+    expect(await kv().hincrby("k", "f", 1, 300)).toBe(4);
+    expect(await kv().hincrby("k", "f", 1)).toBe(4);
+    expect(fake.state.calls).toStrictEqual([
+      { method: "hincrby", args: ["k", "f", 1] },
+      { method: "expire", args: ["k", 300] },
+      { method: "hincrby", args: ["k", "f", 1] },
+    ]);
+  });
+
+  it("hget returns the field value or null", async () => {
+    fake.state.result = 2;
+    expect(await kv().hget("k", "f")).toBe(2);
+    fake.state.result = null;
+    expect(await kv().hget("k", "f")).toBeNull();
+    expect(fake.state.calls[0]).toStrictEqual({ method: "hget", args: ["k", "f"] });
+  });
+
+  it("hgetall returns the hash, or an empty object when the key is absent", async () => {
+    fake.state.result = { a: 1, b: 2 };
+    expect(await kv().hgetall("k")).toStrictEqual({ a: 1, b: 2 });
+    fake.state.result = null;
+    expect(await kv().hgetall("k")).toStrictEqual({});
+  });
+
   it("propagates an Upstash rejection unchanged", async () => {
     const failure = new Error("upstash unavailable");
     fake.state.failWith = failure;
@@ -176,6 +234,11 @@ describe("kv", () => {
       expire: async () => undefined,
       take: async () => null,
       setIfAbsent: async () => true,
+      rpush: async () => 1,
+      lrange: async () => [],
+      hincrby: async () => 1,
+      hget: async () => null,
+      hgetall: async () => ({}),
     };
     setKvForTests(custom);
     expect(kv()).toBe(custom);
