@@ -216,11 +216,12 @@ describe("routine and game inference", () => {
     expect(planGame(game({ game: "sm" })).game).toBe("sm");
   });
 
-  it("loads nothing but the instructions for a game with no reference yet", () => {
-    const d = game({ game: "sm", routine: "dungeon", subjects: ["Ice Palace"] });
-    expect(planGame(d).hasReference).toBe(false);
-    expect(texts(d)).toHaveLength(1);
-    expect(gameVolatileLines(d)).toEqual(["No reference material is loaded for Super Metroid."]);
+  it("has a reference for both games (the fallback for a game with none is in slices-nodata)", () => {
+    for (const g of ["alttp", "sm"] as const) {
+      const d = game({ game: g, routine: "general" });
+      expect(planGame(d).hasReference, g).toBe(true);
+      expect(gameVolatileLines(d), g).toEqual([]);
+    }
   });
 
   it("does not use another game's notes when the router chose a game", () => {
@@ -238,6 +239,139 @@ describe("sizes", () => {
           .slice(1)
           .join("");
         expect(subject.length, routine).toBeLessThan(total / 3);
+      }
+    }
+  });
+});
+
+describe("Super Metroid subject blocks", () => {
+  const SM_KEYS = [
+    "crateria",
+    "brinstar",
+    "norfair_upper",
+    "norfair_lower",
+    "wrecked_ship",
+    "maridia",
+    "tourian",
+  ];
+
+  it("dungeon: the area's notes alone, whether the area or its boss was named", () => {
+    for (const subjects of [["Brinstar"], ["Kraid"], ["Spore Spawn", "Kraid's Lair"]]) {
+      const blocks = texts(game({ routine: "dungeon", game: "sm", subjects }));
+      expect(blocks.slice(1), subjects.join()).toEqual([data("sm/dungeons/brinstar.md")]);
+    }
+    expect(texts(game({ routine: "dungeon", subjects: ["Draygon"] })).slice(1)).toEqual([
+      data("sm/dungeons/maridia.md"),
+    ]);
+  });
+
+  it("logic: the area notes plus the hand-written location rules, like a rendered table", () => {
+    for (const key of SM_KEYS) {
+      expect(GAME_DATA[`sm/logic/${key}.md`], key).toBeDefined();
+    }
+    const [, subject] = texts(game({ routine: "logic", game: "sm", subjects: ["Wrecked Ship"] }));
+    expect(subject).toBe(
+      `${data("sm/dungeons/wrecked_ship.md")}\n${data("sm/logic/wrecked_ship.md")}`,
+    );
+    expect(subject).toContain("Reserve Tank, Wrecked Ship: C: Spd and PB");
+    expect(subject).toContain("| WSX |");
+  });
+
+  it("logic: a boss loads its area's notes and rules", () => {
+    const blocks = texts(game({ routine: "logic", subjects: ["Botwoon"] }));
+    expect(blocks.slice(1)).toEqual([
+      `${data("sm/dungeons/maridia.md")}\n${data("sm/logic/maridia.md")}`,
+    ]);
+  });
+
+  it("overworld, items and general: one file each, whatever the names", () => {
+    expect(texts(game({ routine: "overworld", game: "sm", subjects: ["Kraid"] })).slice(1)).toEqual(
+      [data("sm/overworld.md")],
+    );
+    expect(texts(game({ routine: "items", game: "sm", subjects: ["Varia"] })).slice(1)).toEqual([
+      data("sm/items.md"),
+    ]);
+    expect(texts(game({ routine: "general", game: "sm" })).slice(1)).toEqual([
+      data("sm/general.md"),
+    ]);
+  });
+
+  it("reads the game and the routine from the names when the router gave none", () => {
+    const d = game({ subjects: ["Kraid"] });
+    expect(planGame(d)).toMatchObject({ game: "sm", routine: "dungeon", hasReference: true });
+    expect(texts(d).slice(1)).toEqual([data("sm/dungeons/brinstar.md")]);
+    expect(planGame(game({ subjects: ["Varia Suit"] }))).toMatchObject({
+      game: "sm",
+      routine: "items",
+    });
+    expect(planGame(game({ subjects: ["Hookshot", "Kraid"] })).game).toBe("sm");
+  });
+
+  it("follows the game for a name both games have", () => {
+    const sm = texts(game({ routine: "items", game: "sm", subjects: ["Bombs"] })).slice(1);
+    const alttp = texts(game({ routine: "items", game: "alttp", subjects: ["Bombs"] })).slice(1);
+    const none = texts(game({ routine: "items", subjects: ["Bombs"] })).slice(1);
+    expect(sm).toEqual([data("sm/items.md")]);
+    expect(alttp).toEqual([data("alttp/items.md")]);
+    expect(none).toEqual([data("alttp/items.md")]);
+  });
+
+  it("orders several areas by key and merges the extras into the second block", () => {
+    const a = texts(
+      game({ routine: "dungeon", game: "sm", subjects: ["Maridia", "Crateria", "Brinstar"] }),
+    );
+    const b = texts(
+      game({ routine: "dungeon", game: "sm", subjects: ["Brinstar", "Maridia", "Crateria"] }),
+    );
+    expect(a).toEqual(b);
+    expect(a).toHaveLength(3);
+    expect(a[1]).toBe(data("sm/dungeons/brinstar.md"));
+    expect(a[2]).toBe([data("sm/dungeons/crateria.md"), data("sm/dungeons/maridia.md")].join(SEP));
+  });
+
+  it("loads both halves for Norfair on its own", () => {
+    const blocks = texts(game({ routine: "dungeon", game: "sm", subjects: ["Norfair"] }));
+    expect(blocks.slice(1)).toEqual([
+      data("sm/dungeons/norfair_lower.md"),
+      data("sm/dungeons/norfair_upper.md"),
+    ]);
+  });
+
+  it("falls back to the items, then the orientation, and names what it could not place", () => {
+    const items = game({ routine: "dungeon", game: "sm", subjects: ["Varia Suit"] });
+    expect(texts(items).slice(1)).toEqual([data("sm/items.md")]);
+    expect(gameVolatileLines(items)).toEqual([]);
+    const other = game({ routine: "dungeon", game: "sm", subjects: ["Ice Palace", "xyzzy"] });
+    expect(texts(other).slice(1)).toEqual([data("sm/general.md")]);
+    expect(gameVolatileLines(other)).toEqual([
+      "Names not found in the loaded material: Ice Palace; xyzzy",
+    ]);
+  });
+
+  it("stays inside the breakpoint limit for every routine and area", () => {
+    for (const routine of ROUTINE_NAMES) {
+      for (const subjects of [
+        SM_KEYS.map((k) => k.replace("_", " ")),
+        ["Kraid"],
+        ["Norfair", "Maridia"],
+      ]) {
+        const blocks = gameSystemBlocks(game({ routine, game: "sm", subjects }));
+        expect(blocks.length, routine).toBeLessThanOrEqual(1 + MAX_SUBJECT_BLOCKS);
+        for (const b of blocks) expect(b.cache_control, routine).toEqual(CACHE_1H);
+      }
+    }
+  });
+
+  it("keeps each subject block a fraction of the whole Super Metroid reference", () => {
+    const total = Object.entries(GAME_DATA)
+      .filter(([path]) => path.startsWith("sm/"))
+      .reduce((n, [, t]) => n + t.length, 0);
+    for (const routine of ROUTINE_NAMES) {
+      for (const subjects of [["Norfair"], ["Lower Norfair"], ["Varia"], []]) {
+        const subject = texts(game({ routine, game: "sm", subjects }))
+          .slice(1)
+          .join("");
+        expect(subject.length, routine).toBeLessThan(total / 2);
       }
     }
   });
