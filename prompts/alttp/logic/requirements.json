@@ -1,0 +1,1873 @@
+{
+  "source": "ALttPDoorRandomizer 1.5.6-u, branch fix/money-balance-no-mint, commit 5d6ccf3ec8fd",
+  "settings": {
+    "mode": "open",
+    "logic": "noglitches",
+    "swords": "random",
+    "difficulty": "normal",
+    "item_functionality": "normal",
+    "key_logic_algorithm": "static",
+    "shopsanity": false,
+    "pottery": "none",
+    "dropshuffle": "none",
+    "door_shuffle": "vanilla",
+    "entrance_shuffle": "vanilla",
+    "keyshuffle": "none",
+    "bigkeyshuffle": false,
+    "bombbag": false,
+    "accessibility": "items",
+    "goal": "ganon",
+    "crystals_needed_for_gt": 7,
+    "starting_items": [],
+    "misery_mire_medallion": "Ether",
+    "turtle_rock_medallion": "Quake",
+    "cli": "--mode open --logic noglitches --swords random --difficulty normal --item_functionality normal --shuffle vanilla --door_shuffle vanilla --intensity 1 --key_logic_algorithm static --pottery none --dropshuffle none --keyshuffle none --accessibility items --goal ganon --suppress_rom --spoiler none"
+  },
+  "levels": {
+    "Sword": ["Fighter Sword", "Master Sword", "Tempered Sword", "Golden Sword"],
+    "Glove": ["Power Glove", "Titans Mitts"],
+    "Bow": ["Bow", "Silver Arrows"],
+    "Shield": ["Blue Shield", "Red Shield", "Mirror Shield"]
+  },
+  "dungeons": {
+    "hc": {
+      "entry": {
+        "needs": [],
+        "any_of": []
+      },
+      "locations": [
+        {
+          "name": "Hyrule Castle - Map Chest",
+          "region": "Hyrule Dungeon Map Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Hyrule Castle - Map Guard Key Drop",
+          "region": "Hyrule Dungeon Map Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Hyrule Castle - Boomerang Chest",
+          "region": "Hyrule Dungeon Armory Boomerang",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Hyrule Castle - Boomerang Guard Key Drop",
+          "region": "Hyrule Dungeon Armory Boomerang",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Hyrule Castle - Big Key Drop",
+          "region": "Hyrule Dungeon Cellblock",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Hyrule Castle - Zelda's Chest",
+          "region": "Hyrule Dungeon Cell",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": true
+        },
+        {
+          "name": "Sewers - Dark Cross",
+          "region": "Sewers Dark Cross",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Hyrule Castle - Key Rat Key Drop",
+          "region": "Sewers Key Rat",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Sewers - Secret Room - Left",
+          "region": "Sewers Secret Room",
+          "needs": [],
+          "any_of": [["Glove", "Lamp"]],
+          "small_keys": 0,
+          "big_key": false,
+          "small_keys_without": {
+            "Glove": 1
+          }
+        },
+        {
+          "name": "Sewers - Secret Room - Middle",
+          "region": "Sewers Secret Room",
+          "needs": [],
+          "any_of": [["Glove", "Lamp"]],
+          "small_keys": 0,
+          "big_key": false,
+          "small_keys_without": {
+            "Glove": 1
+          }
+        },
+        {
+          "name": "Sewers - Secret Room - Right",
+          "region": "Sewers Secret Room",
+          "needs": [],
+          "any_of": [["Glove", "Lamp"]],
+          "small_keys": 0,
+          "big_key": false,
+          "small_keys_without": {
+            "Glove": 1
+          }
+        },
+        {
+          "name": "Sanctuary",
+          "region": "Sanctuary",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        }
+      ],
+      "unreachable": []
+    },
+    "ct": {
+      "entry": {
+        "needs": [],
+        "any_of": [["Cape", "Sword level 2"]]
+      },
+      "locations": [
+        {
+          "name": "Castle Tower - Room 03",
+          "region": "Tower Room 03",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Castle Tower - Dark Maze",
+          "region": "Tower Dark Maze",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Castle Tower - Dark Archer Key Drop",
+          "region": "Tower Dark Archers",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 2,
+          "big_key": false
+        },
+        {
+          "name": "Castle Tower - Circle of Pots Key Drop",
+          "region": "Tower Circle of Pots",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 2,
+          "big_key": false
+        },
+        {
+          "name": "Agahnim 1",
+          "region": "Tower Agahnim 1",
+          "needs": ["Lamp", "Sword"],
+          "any_of": [],
+          "small_keys": 2,
+          "big_key": false
+        }
+      ],
+      "unreachable": []
+    },
+    "ep": {
+      "entry": {
+        "needs": [],
+        "any_of": []
+      },
+      "locations": [
+        {
+          "name": "Eastern Palace - Cannonball Chest",
+          "region": "Eastern Cannonball",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Eastern Palace - Map Chest",
+          "region": "Eastern Map Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Eastern Palace - Compass Chest",
+          "region": "Eastern Compass Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Eastern Palace - Big Chest",
+          "region": "Eastern Courtyard",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Eastern Palace - Dark Square Pot Key",
+          "region": "Eastern Dark Pots",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Eastern Palace - Big Key Chest",
+          "region": "Eastern Big Key",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Eastern Palace - Dark Eyegore Key Drop",
+          "region": "Eastern Darkness",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Eastern Palace - Boss",
+          "region": "Eastern Boss",
+          "needs": ["Bow", "Lamp"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Eastern Palace - Prize",
+          "region": "Eastern Boss",
+          "needs": ["Bow", "Lamp"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        }
+      ],
+      "unreachable": []
+    },
+    "dp": {
+      "entry": {
+        "needs": [],
+        "any_of": [
+          ["Book of Mudora", "Glove level 2"],
+          ["Book of Mudora", "Magic Mirror"],
+          ["Book of Mudora", "Ocarina"]
+        ],
+        "either": [
+          {
+            "groups": [0, 1, 2],
+            "terms": [["Book of Mudora"], ["Glove level 2", "Magic Mirror", "Ocarina"]]
+          }
+        ]
+      },
+      "locations": [
+        {
+          "name": "Desert Palace - Compass Chest",
+          "region": "Desert Compass Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Desert Palace - Big Key Chest",
+          "region": "Desert Cannonball",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Desert Palace - Map Chest",
+          "region": "Desert Map Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Desert Palace - Torch",
+          "region": "Desert Bonk Torch",
+          "needs": ["Pegasus Boots"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Desert Palace - Big Chest",
+          "region": "Desert Big Chest Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Desert Palace - Desert Tiles 1 Pot Key",
+          "region": "Desert Tiles 1",
+          "needs": ["Glove"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Desert Palace - Beamos Hall Pot Key",
+          "region": "Desert Beamos Hall",
+          "needs": ["Glove"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Desert Palace - Desert Tiles 2 Pot Key",
+          "region": "Desert Tiles 2",
+          "needs": ["Glove"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Desert Palace - Boss",
+          "region": "Desert Boss",
+          "needs": ["Glove"],
+          "any_of": [
+            ["Fire Rod", "Lamp"],
+            ["Bow", "Cane of Byrna", "Cane of Somaria", "Fire Rod", "Hammer", "Ice Rod", "Sword"]
+          ],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [
+                ["Fire Rod"],
+                ["Bow", "Lamp"],
+                ["Cane of Byrna", "Lamp"],
+                ["Cane of Somaria", "Lamp"],
+                ["Hammer", "Lamp"],
+                ["Ice Rod", "Lamp"],
+                ["Lamp", "Sword"]
+              ]
+            }
+          ],
+          "small_keys": 1,
+          "big_key": true
+        },
+        {
+          "name": "Desert Palace - Prize",
+          "region": "Desert Boss",
+          "needs": ["Glove"],
+          "any_of": [
+            ["Fire Rod", "Lamp"],
+            ["Bow", "Cane of Byrna", "Cane of Somaria", "Fire Rod", "Hammer", "Ice Rod", "Sword"]
+          ],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [
+                ["Fire Rod"],
+                ["Bow", "Lamp"],
+                ["Cane of Byrna", "Lamp"],
+                ["Cane of Somaria", "Lamp"],
+                ["Hammer", "Lamp"],
+                ["Ice Rod", "Lamp"],
+                ["Lamp", "Sword"]
+              ]
+            }
+          ],
+          "small_keys": 1,
+          "big_key": true
+        }
+      ],
+      "unreachable": []
+    },
+    "toh": {
+      "entry": {
+        "needs": [],
+        "any_of": [
+          ["Glove", "Ocarina"],
+          ["Hammer", "Magic Mirror"],
+          ["Hookshot", "Magic Mirror"],
+          ["Lamp", "Ocarina"]
+        ],
+        "either": [
+          {
+            "groups": [0, 3],
+            "terms": [["Ocarina"], ["Glove", "Lamp"]]
+          },
+          {
+            "groups": [1, 2],
+            "terms": [["Magic Mirror"], ["Hammer", "Hookshot"]]
+          }
+        ]
+      },
+      "locations": [
+        {
+          "name": "Tower of Hera - Map Chest",
+          "region": "Hera Back",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Tower of Hera - Basement Cage",
+          "region": "Hera Basement Cage",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Tower of Hera - Big Key Chest",
+          "region": "Hera Torches",
+          "needs": [],
+          "any_of": [["Fire Rod", "Lamp"]],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Tower of Hera - Compass Chest",
+          "region": "Hera 4F",
+          "needs": [],
+          "any_of": [
+            ["Bottle", "Bow level 2", "Cane of Somaria", "Hammer", "Sword"],
+            ["Bow level 2", "Cane of Byrna", "Cane of Somaria", "Hammer", "Sword"],
+            ["Bow level 2", "Cane of Somaria", "Hammer", "Magic Upgrade (1/2)", "Sword"]
+          ],
+          "either": [
+            {
+              "groups": [0, 1, 2],
+              "terms": [
+                ["Bow level 2"],
+                ["Cane of Somaria"],
+                ["Hammer"],
+                ["Sword"],
+                ["Bottle", "Cane of Byrna", "Magic Upgrade (1/2)"]
+              ]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Tower of Hera - Big Chest",
+          "region": "Hera Big Chest Landing",
+          "needs": [],
+          "any_of": [
+            ["Bottle", "Bow level 2", "Cane of Somaria", "Hammer", "Sword"],
+            ["Bow level 2", "Cane of Byrna", "Cane of Somaria", "Hammer", "Sword"],
+            ["Bow level 2", "Cane of Somaria", "Hammer", "Magic Upgrade (1/2)", "Sword"]
+          ],
+          "either": [
+            {
+              "groups": [0, 1, 2],
+              "terms": [
+                ["Bow level 2"],
+                ["Cane of Somaria"],
+                ["Hammer"],
+                ["Sword"],
+                ["Bottle", "Cane of Byrna", "Magic Upgrade (1/2)"]
+              ]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Tower of Hera - Boss",
+          "region": "Hera Boss",
+          "needs": [],
+          "any_of": [["Hammer", "Sword"]],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Tower of Hera - Prize",
+          "region": "Hera Boss",
+          "needs": [],
+          "any_of": [["Hammer", "Sword"]],
+          "small_keys": 0,
+          "big_key": true
+        }
+      ],
+      "unreachable": []
+    },
+    "pod": {
+      "entry": {
+        "needs": ["Moon Pearl"],
+        "any_of": [
+          ["Glove", "Lamp"],
+          ["Glove", "Sword"],
+          ["Cape", "Glove", "Sword level 2"],
+          ["Flippers", "Hammer", "Lamp"],
+          ["Flippers", "Hammer", "Sword"],
+          ["Glove level 2", "Hammer", "Lamp"],
+          ["Glove level 2", "Hammer", "Sword"],
+          ["Cape", "Flippers", "Hammer", "Sword level 2"],
+          ["Cape", "Glove level 2", "Hammer", "Sword level 2"]
+        ],
+        "either": [
+          {
+            "groups": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+            "terms": [
+              ["Flippers", "Glove level 2"],
+              ["Glove", "Hammer"],
+              ["Lamp", "Sword level 2"],
+              ["Cape", "Lamp", "Sword"]
+            ]
+          }
+        ]
+      },
+      "locations": [
+        {
+          "name": "Palace of Darkness - Shooter Room",
+          "region": "PoD Shooter Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - The Arena - Bridge",
+          "region": "PoD Arena Bridge",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false,
+          "small_keys_without": {
+            "Bow": 1,
+            "Hammer": 1
+          }
+        },
+        {
+          "name": "Palace of Darkness - The Arena - Ledge",
+          "region": "PoD Arena Ledge",
+          "needs": ["Bow"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Map Chest",
+          "region": "PoD Map Balcony",
+          "needs": ["Bow"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Stalfos Basement",
+          "region": "PoD Stalfos Basement",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false,
+          "small_keys_without": {
+            "Bow": 1,
+            "Hammer": 1
+          }
+        },
+        {
+          "name": "Palace of Darkness - Big Key Chest",
+          "region": "PoD Big Key Landing",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 6,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Dark Maze - Top",
+          "region": "PoD Dark Maze",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 6,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Dark Maze - Bottom",
+          "region": "PoD Dark Maze",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 6,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Big Chest",
+          "region": "PoD Big Chest Balcony",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 6,
+          "big_key": true
+        },
+        {
+          "name": "Palace of Darkness - Compass Chest",
+          "region": "PoD Compass Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Dark Basement - Left",
+          "region": "PoD Dark Basement",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Dark Basement - Right",
+          "region": "PoD Dark Basement",
+          "needs": ["Lamp"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Harmless Hellway",
+          "region": "PoD Harmless Hellway",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 6,
+          "big_key": false
+        },
+        {
+          "name": "Palace of Darkness - Boss",
+          "region": "PoD Boss",
+          "needs": ["Bow", "Hammer", "Lamp"],
+          "any_of": [],
+          "small_keys": 6,
+          "big_key": true
+        },
+        {
+          "name": "Palace of Darkness - Prize",
+          "region": "PoD Boss",
+          "needs": ["Bow", "Hammer", "Lamp"],
+          "any_of": [],
+          "small_keys": 6,
+          "big_key": true
+        }
+      ],
+      "unreachable": []
+    },
+    "sp": {
+      "entry": {
+        "needs": ["Moon Pearl"],
+        "any_of": [
+          ["Glove", "Lamp"],
+          ["Glove", "Sword"],
+          ["Cape", "Glove", "Sword level 2"],
+          ["Flippers", "Glove", "Hammer"],
+          ["Glove level 2", "Hammer", "Hookshot"],
+          ["Glove level 2", "Hammer", "Lamp"],
+          ["Glove level 2", "Hammer", "Sword"],
+          ["Cape", "Glove level 2", "Hammer", "Sword level 2"]
+        ],
+        "either": [
+          {
+            "groups": [0, 1, 2, 3, 4, 5, 6, 7],
+            "terms": [
+              ["Glove level 2"],
+              ["Glove", "Hammer"],
+              ["Hammer", "Lamp", "Sword level 2"],
+              ["Cape", "Hammer", "Lamp", "Sword"],
+              ["Flippers", "Hookshot", "Lamp", "Sword level 2"],
+              ["Glove", "Hookshot", "Lamp", "Sword level 2"],
+              ["Cape", "Flippers", "Hookshot", "Lamp", "Sword"],
+              ["Cape", "Glove", "Hookshot", "Lamp", "Sword"]
+            ]
+          }
+        ]
+      },
+      "locations": [
+        {
+          "name": "Swamp Palace - Entrance",
+          "region": "Swamp Entrance",
+          "needs": ["Flippers", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Pot Row Pot Key",
+          "region": "Swamp Pot Row",
+          "needs": ["Flippers", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Map Chest",
+          "region": "Swamp Map Ledge",
+          "needs": ["Flippers", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Trench 1 Pot Key",
+          "region": "Swamp Trench 1 Alcove",
+          "needs": ["Flippers", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Big Chest",
+          "region": "Swamp Hub",
+          "needs": ["Flippers", "Hammer", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": true
+        },
+        {
+          "name": "Swamp Palace - Hookshot Pot Key",
+          "region": "Swamp Hub Side Ledges",
+          "needs": ["Flippers", "Hammer", "Hookshot", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Compass Chest",
+          "region": "Swamp Compass Donut",
+          "needs": ["Flippers", "Hammer", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Trench 2 Pot Key",
+          "region": "Swamp Trench 2 Alcove",
+          "needs": ["Flippers", "Hammer", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Big Key Chest",
+          "region": "Swamp Big Key Ledge",
+          "needs": ["Flippers", "Hammer", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - West Chest",
+          "region": "Swamp West Ledge",
+          "needs": ["Flippers", "Hammer", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Flooded Room - Left",
+          "region": "Swamp Flooded Spot",
+          "needs": ["Flippers", "Hammer", "Hookshot", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Flooded Room - Right",
+          "region": "Swamp Flooded Spot",
+          "needs": ["Flippers", "Hammer", "Hookshot", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Waterfall Room",
+          "region": "Swamp Waterfall Room",
+          "needs": ["Flippers", "Hammer", "Hookshot", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Waterway Pot Key",
+          "region": "Swamp Waterway",
+          "needs": ["Flippers", "Hammer", "Hookshot", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Boss",
+          "region": "Swamp Boss",
+          "needs": ["Flippers", "Hammer", "Hookshot", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Swamp Palace - Prize",
+          "region": "Swamp Boss",
+          "needs": ["Flippers", "Hammer", "Hookshot", "Magic Mirror"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        }
+      ],
+      "unreachable": []
+    },
+    "sw": {
+      "entry": {
+        "needs": ["Moon Pearl"],
+        "any_of": [
+          ["Glove", "Hookshot"],
+          ["Glove", "Lamp"],
+          ["Glove", "Sword"],
+          ["Cape", "Glove", "Sword level 2"],
+          ["Flippers", "Glove", "Hammer"],
+          ["Glove level 2", "Hammer", "Hookshot"],
+          ["Glove level 2", "Hammer", "Lamp"],
+          ["Glove level 2", "Hammer", "Sword"],
+          ["Cape", "Glove level 2", "Hammer", "Sword level 2"]
+        ],
+        "either": [
+          {
+            "groups": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+            "terms": [
+              ["Glove level 2"],
+              ["Glove", "Hammer"],
+              ["Flippers", "Hookshot", "Lamp", "Sword level 2"],
+              ["Glove", "Hookshot", "Lamp", "Sword level 2"],
+              ["Hammer", "Hookshot", "Lamp", "Sword level 2"],
+              ["Cape", "Flippers", "Hookshot", "Lamp", "Sword"],
+              ["Cape", "Glove", "Hookshot", "Lamp", "Sword"],
+              ["Cape", "Hammer", "Hookshot", "Lamp", "Sword"]
+            ]
+          }
+        ]
+      },
+      "locations": [
+        {
+          "name": "Skull Woods - Map Chest",
+          "region": "Skull Map Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - Big Chest",
+          "region": "Skull Big Chest",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Skull Woods - Pinball Room",
+          "region": "Skull Pinball",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - Pot Prison",
+          "region": "Skull Pot Prison",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - Compass Chest",
+          "region": "Skull Compass Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - Big Key Chest",
+          "region": "Skull Big Key",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - West Lobby Pot Key",
+          "region": "Skull 2 West Lobby",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - Bridge Room",
+          "region": "Skull West Bridge Nook",
+          "needs": ["Fire Rod"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - Spike Corner Key Drop",
+          "region": "Skull Spike Corner",
+          "needs": ["Fire Rod", "Sword"],
+          "any_of": [],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - Boss",
+          "region": "Skull Boss",
+          "needs": ["Fire Rod", "Sword"],
+          "any_of": [],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Skull Woods - Prize",
+          "region": "Skull Boss",
+          "needs": ["Fire Rod", "Sword"],
+          "any_of": [],
+          "small_keys": 3,
+          "big_key": false
+        }
+      ],
+      "unreachable": []
+    },
+    "tt": {
+      "entry": {
+        "needs": ["Moon Pearl"],
+        "any_of": [
+          ["Glove", "Hookshot"],
+          ["Glove", "Lamp"],
+          ["Glove", "Sword"],
+          ["Cape", "Glove", "Sword level 2"],
+          ["Flippers", "Glove", "Hammer"],
+          ["Glove level 2", "Hammer", "Hookshot"],
+          ["Glove level 2", "Hammer", "Lamp"],
+          ["Glove level 2", "Hammer", "Sword"],
+          ["Cape", "Glove level 2", "Hammer", "Sword level 2"]
+        ],
+        "either": [
+          {
+            "groups": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+            "terms": [
+              ["Glove level 2"],
+              ["Glove", "Hammer"],
+              ["Flippers", "Hookshot", "Lamp", "Sword level 2"],
+              ["Glove", "Hookshot", "Lamp", "Sword level 2"],
+              ["Hammer", "Hookshot", "Lamp", "Sword level 2"],
+              ["Cape", "Flippers", "Hookshot", "Lamp", "Sword"],
+              ["Cape", "Glove", "Hookshot", "Lamp", "Sword"],
+              ["Cape", "Hammer", "Hookshot", "Lamp", "Sword"]
+            ]
+          }
+        ]
+      },
+      "locations": [
+        {
+          "name": "Thieves' Town - Map Chest",
+          "region": "Thieves Lobby",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Thieves' Town - Ambush Chest",
+          "region": "Thieves Ambush",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Thieves' Town - Compass Chest",
+          "region": "Thieves Compass Room",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Thieves' Town - Big Key Chest",
+          "region": "Thieves Big Chest Nook",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Thieves' Town - Hallway Pot Key",
+          "region": "Thieves Hallway",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Thieves' Town - Boss",
+          "region": "Thieves Boss",
+          "needs": [],
+          "any_of": [["Cane of Byrna", "Cane of Somaria", "Hammer", "Sword"]],
+          "small_keys": 1,
+          "big_key": true
+        },
+        {
+          "name": "Thieves' Town - Prize",
+          "region": "Thieves Boss",
+          "needs": [],
+          "any_of": [["Cane of Byrna", "Cane of Somaria", "Hammer", "Sword"]],
+          "small_keys": 1,
+          "big_key": true
+        },
+        {
+          "name": "Thieves' Town - Spike Switch Pot Key",
+          "region": "Thieves Spike Switch",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Thieves' Town - Attic",
+          "region": "Thieves Attic Window",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": true
+        },
+        {
+          "name": "Thieves' Town - Blind's Cell",
+          "region": "Thieves Blind's Cell Interior",
+          "needs": [],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Thieves' Town - Big Chest",
+          "region": "Thieves Big Chest Room",
+          "needs": ["Hammer"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": true
+        }
+      ],
+      "unreachable": []
+    },
+    "ip": {
+      "entry": {
+        "needs": ["Flippers", "Glove level 2"],
+        "any_of": []
+      },
+      "locations": [
+        {
+          "name": "Ice Palace - Jelly Key Drop",
+          "region": "Ice Jelly Key",
+          "needs": ["Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Compass Chest",
+          "region": "Ice Compass Room",
+          "needs": ["Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Big Key Chest",
+          "region": "Ice Big Key",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Conveyor Key Drop",
+          "region": "Ice Conveyor",
+          "needs": ["Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Spike Room",
+          "region": "Ice Spike Room",
+          "needs": ["Hookshot", "Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Hammer Block Key Drop",
+          "region": "Ice Hammer Block",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Map Chest",
+          "region": "Ice Hammer Block",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Freezor Chest",
+          "region": "Ice Freezors",
+          "needs": ["Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Iced T Room",
+          "region": "Iced T",
+          "needs": ["Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Many Pots Pot Key",
+          "region": "Ice Many Pots",
+          "needs": ["Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ice Palace - Big Chest",
+          "region": "Ice Big Chest Landing",
+          "needs": ["Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Ice Palace - Boss",
+          "region": "Ice Boss",
+          "needs": ["Hammer", "Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 1,
+          "big_key": true,
+          "small_keys_without": {
+            "Cane of Somaria": 2
+          }
+        },
+        {
+          "name": "Ice Palace - Prize",
+          "region": "Ice Boss",
+          "needs": ["Hammer", "Moon Pearl"],
+          "any_of": [["Bombos", "Fire Rod"], ["Fire Rod", "Sword"]],
+          "either": [
+            {
+              "groups": [0, 1],
+              "terms": [["Fire Rod"], ["Bombos", "Sword"]]
+            }
+          ],
+          "small_keys": 1,
+          "big_key": true,
+          "small_keys_without": {
+            "Cane of Somaria": 2
+          }
+        }
+      ],
+      "unreachable": []
+    },
+    "mm": {
+      "entry": {
+        "needs": ["Ether", "Glove level 2", "Moon Pearl", "Ocarina", "Sword"],
+        "any_of": []
+      },
+      "locations": [
+        {
+          "name": "Misery Mire - Main Lobby",
+          "region": "Mire Hub Switch",
+          "needs": [],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Big Chest",
+          "region": "Mire Falling Bridge - Chest",
+          "needs": [],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Misery Mire - Map Chest",
+          "region": "Mire Map Spot",
+          "needs": [],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Spike Chest",
+          "region": "Mire Spikes",
+          "needs": [],
+          "any_of": [
+            ["Hookshot", "Pegasus Boots"],
+            ["Boss Heart Container", "Cane of Byrna", "Cape"]
+          ],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Spikes Pot Key",
+          "region": "Mire Spikes",
+          "needs": [],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Bridge Chest",
+          "region": "Mire Right Bridge",
+          "needs": [],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Fishbone Pot Key",
+          "region": "Mire Fishbone",
+          "needs": [],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Conveyor Crystal Key Drop",
+          "region": "Mire Conveyor Crystal",
+          "needs": [],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Compass Chest",
+          "region": "Mire Compass Chest",
+          "needs": [],
+          "any_of": [["Fire Rod", "Lamp"], ["Hookshot", "Pegasus Boots"]],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Big Key Chest",
+          "region": "Mire BK Chest Ledge",
+          "needs": [],
+          "any_of": [["Fire Rod", "Lamp"], ["Hookshot", "Pegasus Boots"]],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Misery Mire - Boss",
+          "region": "Mire Boss",
+          "needs": ["Cane of Somaria", "Lamp"],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Misery Mire - Prize",
+          "region": "Mire Boss",
+          "needs": ["Cane of Somaria", "Lamp"],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": true
+        }
+      ],
+      "unreachable": []
+    },
+    "tr": {
+      "entry": {
+        "needs": ["Glove level 2", "Hammer", "Moon Pearl", "Quake", "Sword"],
+        "any_of": [["Hookshot", "Magic Mirror"], ["Lamp", "Ocarina"]]
+      },
+      "locations": [
+        {
+          "name": "Turtle Rock - Compass Chest",
+          "region": "TR Compass Room",
+          "needs": ["Cane of Somaria"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Turtle Rock - Roller Room - Left",
+          "region": "TR Roller Room",
+          "needs": ["Cane of Somaria", "Fire Rod"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Turtle Rock - Roller Room - Right",
+          "region": "TR Roller Room",
+          "needs": ["Cane of Somaria", "Fire Rod"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Turtle Rock - Pokey 1 Key Drop",
+          "region": "TR Pokey 1",
+          "needs": ["Cane of Somaria"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Turtle Rock - Chain Chomps",
+          "region": "TR Chain Chomps Top",
+          "needs": ["Cane of Somaria"],
+          "any_of": [],
+          "small_keys": 1,
+          "big_key": false
+        },
+        {
+          "name": "Turtle Rock - Big Key Chest",
+          "region": "TR Lava Island",
+          "needs": ["Cane of Somaria"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Turtle Rock - Pokey 2 Key Drop",
+          "region": "TR Pokey 2 Bottom",
+          "needs": ["Cane of Somaria"],
+          "any_of": [],
+          "small_keys": 2,
+          "big_key": false
+        },
+        {
+          "name": "Turtle Rock - Big Chest",
+          "region": "TR Big Chest",
+          "needs": ["Cane of Somaria"],
+          "any_of": [],
+          "small_keys": 2,
+          "big_key": true
+        },
+        {
+          "name": "Turtle Rock - Crystaroller Room",
+          "region": "TR Crystaroller Chest",
+          "needs": ["Cane of Somaria"],
+          "any_of": [],
+          "small_keys": 2,
+          "big_key": true
+        },
+        {
+          "name": "Turtle Rock - Eye Bridge - Bottom Left",
+          "region": "TR Eye Bridge",
+          "needs": ["Cane of Somaria", "Lamp"],
+          "any_of": [["Cane of Byrna", "Cape", "Shield level 3"]],
+          "small_keys": 3,
+          "big_key": true
+        },
+        {
+          "name": "Turtle Rock - Eye Bridge - Bottom Right",
+          "region": "TR Eye Bridge",
+          "needs": ["Cane of Somaria", "Lamp"],
+          "any_of": [["Cane of Byrna", "Cape", "Shield level 3"]],
+          "small_keys": 3,
+          "big_key": true
+        },
+        {
+          "name": "Turtle Rock - Eye Bridge - Top Left",
+          "region": "TR Eye Bridge",
+          "needs": ["Cane of Somaria", "Lamp"],
+          "any_of": [["Cane of Byrna", "Cape", "Shield level 3"]],
+          "small_keys": 3,
+          "big_key": true
+        },
+        {
+          "name": "Turtle Rock - Eye Bridge - Top Right",
+          "region": "TR Eye Bridge",
+          "needs": ["Cane of Somaria", "Lamp"],
+          "any_of": [["Cane of Byrna", "Cape", "Shield level 3"]],
+          "small_keys": 3,
+          "big_key": true
+        },
+        {
+          "name": "Turtle Rock - Boss",
+          "region": "TR Boss",
+          "needs": ["Cane of Somaria", "Fire Rod", "Ice Rod", "Lamp"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": true
+        },
+        {
+          "name": "Turtle Rock - Prize",
+          "region": "TR Boss",
+          "needs": ["Cane of Somaria", "Fire Rod", "Ice Rod", "Lamp"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": true
+        }
+      ],
+      "unreachable": []
+    },
+    "gt": {
+      "entry": {
+        "needs": ["Glove level 2"],
+        "any_of": [["Hammer", "Hookshot"], ["Hookshot", "Magic Mirror"], ["Lamp", "Ocarina"]],
+        "either": [
+          {
+            "groups": [0, 1],
+            "terms": [["Hookshot"], ["Hammer", "Magic Mirror"]]
+          }
+        ]
+      },
+      "locations": [
+        {
+          "name": "Ganons Tower - Bob's Torch",
+          "region": "GT Bob's Torch",
+          "needs": ["Moon Pearl", "Pegasus Boots"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Hope Room - Left",
+          "region": "GT Hope Room",
+          "needs": ["Moon Pearl"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Hope Room - Right",
+          "region": "GT Hope Room",
+          "needs": ["Moon Pearl"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Big Chest",
+          "region": "GT Big Chest",
+          "needs": ["Moon Pearl"],
+          "any_of": [
+            ["Cane of Somaria", "Hammer"],
+            ["Cane of Somaria", "Hookshot"],
+            ["Fire Rod", "Hammer"],
+            ["Fire Rod", "Hookshot"]
+          ],
+          "either": [
+            {
+              "groups": [0, 1, 2, 3],
+              "terms": [["Cane of Somaria", "Fire Rod"], ["Hammer", "Hookshot"]]
+            }
+          ],
+          "small_keys": 3,
+          "big_key": true
+        },
+        {
+          "name": "Ganons Tower - Bob's Chest",
+          "region": "GT Bob's Room",
+          "needs": ["Moon Pearl"],
+          "any_of": [
+            ["Cane of Somaria", "Hammer"],
+            ["Cane of Somaria", "Hookshot"],
+            ["Fire Rod", "Hammer"],
+            ["Fire Rod", "Hookshot"]
+          ],
+          "either": [
+            {
+              "groups": [0, 1, 2, 3],
+              "terms": [["Cane of Somaria", "Fire Rod"], ["Hammer", "Hookshot"]]
+            }
+          ],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Tile Room",
+          "region": "GT Tile Room",
+          "needs": ["Cane of Somaria", "Magic Powder", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Compass Room - Top Left",
+          "region": "GT Compass Room",
+          "needs": ["Cane of Somaria", "Fire Rod", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Compass Room - Top Right",
+          "region": "GT Compass Room",
+          "needs": ["Cane of Somaria", "Fire Rod", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Compass Room - Bottom Left",
+          "region": "GT Compass Room",
+          "needs": ["Cane of Somaria", "Fire Rod", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Compass Room - Bottom Right",
+          "region": "GT Compass Room",
+          "needs": ["Cane of Somaria", "Fire Rod", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Conveyor Cross Pot Key",
+          "region": "GT Conveyor Cross",
+          "needs": ["Moon Pearl"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Map Chest",
+          "region": "GT Map Room",
+          "needs": ["Hammer", "Moon Pearl"],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Double Switch Pot Key",
+          "region": "GT Double Switch Pot Corners",
+          "needs": ["Hammer", "Moon Pearl"],
+          "any_of": [["Hookshot", "Pegasus Boots"]],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Firesnake Room",
+          "region": "GT Firesnake Room Ledge",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Conveyor Star Pits Pot Key",
+          "region": "GT Conveyor Star Pits",
+          "needs": ["Cane of Somaria", "Fire Rod", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - DMs Room - Top Left",
+          "region": "GT DMs Room",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - DMs Room - Top Right",
+          "region": "GT DMs Room",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - DMs Room - Bottom Left",
+          "region": "GT DMs Room",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - DMs Room - Bottom Right",
+          "region": "GT DMs Room",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 0,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Randomizer Room - Top Left",
+          "region": "GT Randomizer Room",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Randomizer Room - Top Right",
+          "region": "GT Randomizer Room",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Randomizer Room - Bottom Left",
+          "region": "GT Randomizer Room",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Randomizer Room - Bottom Right",
+          "region": "GT Randomizer Room",
+          "needs": ["Hammer", "Hookshot", "Moon Pearl"],
+          "any_of": [],
+          "small_keys": 4,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Big Key Room - Left",
+          "region": "GT Big Key Room",
+          "needs": ["Moon Pearl"],
+          "any_of": [
+            ["Cane of Somaria", "Hammer"],
+            ["Cane of Somaria", "Hookshot"],
+            ["Fire Rod", "Hammer"],
+            ["Fire Rod", "Hookshot"],
+            [
+              "Blue Boomerang",
+              "Bottle",
+              "Bow",
+              "Hammer",
+              "Magic Upgrade (1/2)",
+              "Red Boomerang",
+              "Sword"
+            ]
+          ],
+          "either": [
+            {
+              "groups": [0, 1, 2, 3],
+              "terms": [["Cane of Somaria", "Fire Rod"], ["Hammer", "Hookshot"]]
+            }
+          ],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Big Key Room - Right",
+          "region": "GT Big Key Room",
+          "needs": ["Moon Pearl"],
+          "any_of": [
+            ["Cane of Somaria", "Hammer"],
+            ["Cane of Somaria", "Hookshot"],
+            ["Fire Rod", "Hammer"],
+            ["Fire Rod", "Hookshot"],
+            [
+              "Blue Boomerang",
+              "Bottle",
+              "Bow",
+              "Hammer",
+              "Magic Upgrade (1/2)",
+              "Red Boomerang",
+              "Sword"
+            ]
+          ],
+          "either": [
+            {
+              "groups": [0, 1, 2, 3],
+              "terms": [["Cane of Somaria", "Fire Rod"], ["Hammer", "Hookshot"]]
+            }
+          ],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Big Key Chest",
+          "region": "GT Big Key Room",
+          "needs": ["Moon Pearl"],
+          "any_of": [
+            ["Cane of Somaria", "Hammer"],
+            ["Cane of Somaria", "Hookshot"],
+            ["Fire Rod", "Hammer"],
+            ["Fire Rod", "Hookshot"],
+            [
+              "Blue Boomerang",
+              "Bottle",
+              "Bow",
+              "Hammer",
+              "Magic Upgrade (1/2)",
+              "Red Boomerang",
+              "Sword"
+            ]
+          ],
+          "either": [
+            {
+              "groups": [0, 1, 2, 3],
+              "terms": [["Cane of Somaria", "Fire Rod"], ["Hammer", "Hookshot"]]
+            }
+          ],
+          "small_keys": 3,
+          "big_key": false
+        },
+        {
+          "name": "Ganons Tower - Mini Helmasaur Room - Left",
+          "region": "GT Mini Helmasaur Room",
+          "needs": ["Bow", "Moon Pearl"],
+          "any_of": [["Fire Rod", "Lamp"]],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Ganons Tower - Mini Helmasaur Room - Right",
+          "region": "GT Mini Helmasaur Room",
+          "needs": ["Bow", "Moon Pearl"],
+          "any_of": [["Fire Rod", "Lamp"]],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Ganons Tower - Mini Helmasaur Key Drop",
+          "region": "GT Mini Helmasaur Room",
+          "needs": ["Bow", "Moon Pearl"],
+          "any_of": [["Fire Rod", "Lamp"]],
+          "small_keys": 0,
+          "big_key": true
+        },
+        {
+          "name": "Ganons Tower - Pre-Moldorm Chest",
+          "region": "GT Crystal Inner Circle",
+          "needs": ["Bow", "Moon Pearl"],
+          "any_of": [["Fire Rod", "Lamp"]],
+          "small_keys": 3,
+          "big_key": true
+        },
+        {
+          "name": "Ganons Tower - Validation Chest",
+          "region": "GT Validation",
+          "needs": ["Bow", "Hookshot", "Moon Pearl"],
+          "any_of": [["Fire Rod", "Lamp"], ["Hammer", "Sword"]],
+          "small_keys": 4,
+          "big_key": true
+        },
+        {
+          "name": "Agahnim 2",
+          "region": "GT Agahnim 2",
+          "needs": ["Bow", "Hookshot", "Moon Pearl"],
+          "any_of": [["Fire Rod", "Lamp"], ["Hammer", "Sword"]],
+          "small_keys": 4,
+          "big_key": true
+        }
+      ],
+      "unreachable": []
+    }
+  }
+}

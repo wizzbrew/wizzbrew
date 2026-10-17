@@ -7,6 +7,8 @@ import {
   EVENT_DIR,
   GAME_TS,
   KeyTable,
+  LOGIC_FILE_CAP,
+  RequirementTable,
   readGameSources,
   renderGameDataModule,
   renderLogic,
@@ -286,6 +288,83 @@ describe("rendered key logic", () => {
       "GT_RANDOMIZER",
       "TR_EYE_BRIDGE",
     ]);
+  });
+});
+
+// The per-location requirements exported from the door randomizer (tools/export-dungeon-logic.py).
+// The tables feed the rendering only, so they are read from prompts/, not from the data.
+describe("rendered location requirements", () => {
+  const sources = readGameSources();
+  const ng = RequirementTable.parse(JSON.parse(sources["alttp/logic/requirements.json"] ?? "{}"));
+  const hmg = RequirementTable.parse(
+    JSON.parse(sources["alttp/logic/requirements-hmg.json"] ?? "{}"),
+  );
+  const logic = (key: string): string => GAME_DATA[`alttp/logic/${key}.md`] ?? "";
+
+  it("was exported with static key logic, no glitches and Hybrid Major Glitches", () => {
+    for (const [table, mode] of [
+      [ng, "noglitches"],
+      [hmg, "hybridglitches"],
+    ] as const) {
+      expect(table.settings.logic).toBe(mode);
+      expect(table.settings.key_logic_algorithm).toBe("static");
+      expect(table.settings.door_shuffle).toBe("vanilla");
+      expect(table.settings.mode).toBe("open");
+      expect(Object.keys(table.dungeons).sort()).toEqual([...DUNGEONS].sort());
+      for (const [key, dungeon] of Object.entries(table.dungeons)) {
+        expect(dungeon.unreachable, key).toEqual([]);
+        expect(dungeon.locations.length, key).toBeGreaterThan(4);
+      }
+    }
+  });
+
+  it("stays out of the data, which carries the rendered files instead", () => {
+    expect(GAME_DATA["alttp/logic/requirements.json"]).toBeUndefined();
+    expect(GAME_DATA["alttp/logic/requirements-hmg.json"]).toBeUndefined();
+  });
+
+  it("gives every dungeon an entry line, every location a line, and the glitched differences", () => {
+    for (const key of DUNGEONS) {
+      const text = logic(key);
+      const start = text.indexOf("## Location requirements");
+      const glitched = text.indexOf("## Hybrid Major Glitches");
+      expect(start, key).toBeGreaterThan(text.indexOf("key door table"));
+      expect(glitched, key).toBeGreaterThan(start);
+      expect(text.slice(start), key).toContain("\n- Entry: ");
+      for (const location of ng.dungeons[key]?.locations ?? []) {
+        const short = location.name.replace(/^[^-]+ - /, "");
+        expect(text.includes(location.name) || text.includes(short), location.name).toBe(true);
+      }
+      expect(text.trimEnd(), key).toMatch(/match(es)? no glitches\.$/);
+    }
+  });
+
+  it("keeps every logic file under the cap", () => {
+    for (const key of DUNGEONS) expect(logic(key).length, key).toBeLessThan(LOGIC_FILE_CAP);
+  });
+
+  it("states the rules the engine gives for well known locations", () => {
+    expect(logic("ep")).toContain("\n- Eastern Palace - Boss: Bow, Lamp; big key\n");
+    expect(logic("ip")).toContain(
+      "\n- Ice Palace - Boss: Hammer, Moon Pearl; either Fire Rod, or Bombos and Sword; 1 small key, 2 if Cane of Somaria is missing; big key\n",
+    );
+    expect(logic("tr")).toContain("any of Cane of Byrna, Cape or Shield level 3");
+    expect(logic("ct")).toContain("\n- Entry: any of Cape or Sword level 2\n");
+    expect(logic("ct")).toContain("Sword level 2 is the Master Sword");
+    expect(logic("gt")).toContain(
+      "\n- Ganons Tower - Big Chest: Moon Pearl; either Cane of Somaria and Fire Rod, or Hammer and Hookshot; 3 small keys; big key\n",
+    );
+    expect(logic("pod")).toContain(
+      "\n- Palace of Darkness - Boss: Bow, Hammer, Lamp; 6 small keys; big key\n",
+    );
+    expect(logic("mm")).toContain("It starts with Pegasus Boots, so they are never listed.");
+  });
+
+  it("has no em or en dashes in any rendered logic file", () => {
+    for (const key of DUNGEONS) {
+      expect(logic(key), key).not.toContain(EM);
+      expect(logic(key), key).not.toContain(EN);
+    }
   });
 });
 
