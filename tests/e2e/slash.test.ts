@@ -124,6 +124,9 @@ describe("slash commands end to end", () => {
       expect(edits[0]?.content).toContain(`**${stage}**`);
     }
     expect(edits[0]?.content).toContain("Now:");
+    // Stream links are angle-bracketed so Discord posts no link embeds.
+    expect(edits[0]?.content).toContain("<https://");
+    expect(edits[0]?.content).not.toMatch(/(^|[^<])https:\/\//);
   });
 
   it("3. a linked user proposes a write, confirms, and the write runs as that user", async () => {

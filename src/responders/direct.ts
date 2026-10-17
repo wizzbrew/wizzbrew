@@ -72,7 +72,8 @@ export async function liveAnswer(now: Date): Promise<Answer> {
     const here = matches.filter((m) => m.stageName === stage.name);
     const current = here.find((m) => NOW_STATUSES.has(m.status));
     const next = here.find((m) => m !== current && isUpcoming(m, now));
-    const head = stage.stream_url ? `**${stage.name}** ${stage.stream_url}` : `**${stage.name}**`;
+    // Angle brackets stop Discord unfurling a link embed per stage; the link stays clickable.
+    const head = stage.stream_url ? `**${stage.name}** <${stage.stream_url}>` : `**${stage.name}**`;
     const nowLine = current ? `Now: ${describeMatch(current)}` : "Now: nothing on";
     const nextLine = next
       ? `Next: ${describeMatch(next)} <t:${epoch(next.at)}:t> (<t:${epoch(next.at)}:R>)`

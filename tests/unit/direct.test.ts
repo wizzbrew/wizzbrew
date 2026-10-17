@@ -74,14 +74,23 @@ describe("liveAnswer", () => {
     const blocks = a.text.split("\n\n");
     expect(blocks).toHaveLength(4);
     expect(blocks[0]).toBe(
-      `**Earth** https://twitch.tv/SpeedGaming\nNow: P1a vs P1b (Super Mario World)\nNext: P2a vs P2b (Mario Kart 64) <t:${epoch("2026-10-16T17:00:00Z")}:t> (<t:${epoch("2026-10-16T17:00:00Z")}:R>)`,
+      `**Earth** <https://twitch.tv/SpeedGaming>\nNow: P1a vs P1b (Super Mario World)\nNext: P2a vs P2b (Mario Kart 64) <t:${epoch("2026-10-16T17:00:00Z")}:t> (<t:${epoch("2026-10-16T17:00:00Z")}:R>)`,
     );
-    expect(blocks[1]).toContain("**Fire** https://twitch.tv/SpeedGaming2\nNow: nothing on");
+    expect(blocks[1]).toContain("**Fire** <https://twitch.tv/SpeedGaming2>\nNow: nothing on");
     expect(blocks[2]).toContain("Now: nothing on");
     expect(blocks[2]).toContain(`<t:${epoch("2026-10-16T19:00:00Z")}:t>`);
     expect(blocks[3]).toBe(
-      "**Air** https://twitch.tv/SpeedGaming4\nNow: nothing on\nNext: nothing scheduled",
+      "**Air** <https://twitch.tv/SpeedGaming4>\nNow: nothing on\nNext: nothing scheduled",
     );
+  });
+
+  it("wraps every stage stream link in angle brackets so Discord does not unfurl it", async () => {
+    const a = await liveAnswer(NOW);
+    const heads = a.text.split("\n\n").map((b) => b.split("\n")[0]);
+    expect(heads).toHaveLength(4);
+    for (const head of heads) expect(head).toMatch(/^\*\*\w+\*\* <https:\/\/[^>\s]+>$/);
+    // No bare link anywhere in the answer.
+    expect(a.text).not.toMatch(/(^|[^<])https:\/\//);
   });
 
   it("does not fetch tomorrow when two or more matches are still upcoming today", async () => {
