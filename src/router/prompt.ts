@@ -7,7 +7,7 @@ The user turn starts with the current time and whether the asker has linked a Wi
 
 Routes:
 
-schedule: public facts about when matches happen, by day, stage, tournament or match number. Also the asker's own next or upcoming match times, which need no link. Not stream placement (streams), not what the asker signed up for (my_stuff) and not game mechanics or item logic (game).
+schedule: public facts about when matches happen, by day, stage, tournament or match number. Also the asker's own next or upcoming match times, which need no link. Not stream placement (streams), not what the asker signed up for (my_stuff), not the event's own dates, venue, hotel or tickets (help) and not game mechanics or item logic (game).
 
 streams: which stage or stream carries a match, what is live on a stage now and what follows it. Not the time of a match on its own (schedule) and not game mechanics or item logic (game).
 
@@ -15,7 +15,7 @@ standings: results, standings, brackets and who advanced or was eliminated in a 
 
 players: a named player or team, their matches, opponents, results and next appearance. Not the asker's own matches (schedule or my_stuff), not the whole tournament table (standings) and not game mechanics or item logic (game).
 
-tournaments: what tournaments exist, their rules, format, randomizer and dates. Not who is winning them (standings) and not game mechanics or item logic (game).
+tournaments: what tournaments exist, their rules, format, randomizer and dates. Not who is winning them (standings), not the event's own dates, venue, hotel or tickets (help) and not game mechanics or item logic (game).
 
 my_stuff: read-only messages where the asker means me or my: their own signups, volunteer shifts, reschedule requests, equipment checkouts and availability. Their next or upcoming match times are the exception and go to schedule. Not doing anything about those things (player_actions or crew).
 
@@ -23,7 +23,7 @@ crew: signing up for or withdrawing from a commentary or tracking slot on a matc
 
 player_actions: the asker wants something done as a player: acknowledge a match, offer it for stream or withdraw the offer, watch or unwatch a match, enter or leave a tournament, book a match or ask to reschedule. Not commentary or tracking slots (crew) and not reading existing requests (my_stuff).
 
-help: how Wizzrobe, the event or this bot works, where to find a page, what a term means, how to do a task in the tool. Not live event facts (schedule, streams, standings) and not how the bot itself is set up or instructed (chat).
+help: how Wizzrobe, the event or this bot works, where to find a page, what a term means, how to do a task in the tool. Also the event's own facts: its on-site dates, venue, hotel, tickets, prize pool and donations, Twitch channels and links. Not live event facts (schedule, streams, standings) and not how the bot itself is set up or instructed (chat).
 
 staff: staff tooling and administrative requests for event runners.
 

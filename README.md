@@ -63,6 +63,30 @@ text.
   field), create `prompts/<game>/` with the same file names, and run `npm run build:game`. The
   `game` id is already in the router schema.
 
+## Event facts and the prize pool line
+
+SpeedGaming Live 2026 is on site Thursday October 22 to Sunday October 25. The event's own facts
+(dates, venue, hotel block, ticket tiers, volunteering, Twitch channels, Discord invite, bracket
+and schedule links) live in one file, `prompts/event/sgl26.md`, kept under 4,500 characters, no
+dashes. Questions about them route to `help`.
+
+- **The prompt.** `src/responders/base.ts` adds the file as its own cached block (one hour) after
+  the instructions block, for the `help` and `tournaments` routes only, ahead of the uncached
+  block with the clock. The `help` spec says to answer those questions only from it and never to
+  guess a time of day it does not give.
+- **Refresh it.** Edit `prompts/event/sgl26.md`, update its "Reviewed" line, and run
+  `npm run build:game`. That compiles every `prompts/event/*.md` into `src/game/data.ts` under the
+  key `event/<file>` (the event folder holds flat markdown files only), and `npm run check` fails
+  until you do. Facts that are unconfirmed or staff-only stay out of the file.
+- **Prize pool line.** With `MATCHERINO_BOUNTY_ID` set (digits only; empty turns it off, and then
+  no request is made), `src/event/prizepool.ts` reads the bounty's public balance from
+  `https://api.matcherino.com/__api/bounties/balance` with a 4 second timeout. Only the total is
+  read, never donor data. The result is cached in Redis for 5 minutes (`wb:v1:prizepool:{id}`), with a copy kept for
+  24 hours as the fallback (`wb:v1:prizepool:stale:{id}`). The help route gets one line in its uncached block, for example
+  `Community prize pool total: $15,140 (updated 14:05)`, on the community clock. If Matcherino
+  fails, the stale line is used, or none; the answer is never held up beyond the timeout and a
+  failure is logged as `prizepool.fetch_failed`.
+
 ## Owner only
 
 `/dmlog [day]` shows who sent DMs on a day (default today, community timezone, or `YYYY-MM-DD`):

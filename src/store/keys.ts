@@ -3,6 +3,7 @@ const DISCORD_ID = /^\d+$/;
 const TOKEN_PART = /^[A-Za-z0-9_.-]{1,128}$/;
 const EVENT = /^[a-z0-9_.-]{1,64}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const BOUNTY_ID = /^\d{1,20}$/;
 
 // Returns the value when it matches; throws without echoing the value.
 function part(value: string, pattern: RegExp, what: string): string {
@@ -25,6 +26,8 @@ export const keys: {
   alert(event: string): string; // staff-alert rate limit, 600 s
   dmLog(day: string): string; // list of JSON lines, one per DM question that day, 14 days
   dmCount(day: string): string; // hash of discord id to DM questions that day, 14 days
+  prizePool(bountyId: string): string; // {balance, fetchedAt} of the Matcherino prize pool, fresh copy, 300 s
+  prizePoolStale(bountyId: string): string; // same record, kept as the fallback when a fetch fails, 24 hours
 } = {
   link(discordUserId: string): string {
     return `${PREFIX}:link:${part(discordUserId, DISCORD_ID, "discord id")}`;
@@ -72,5 +75,11 @@ export const keys: {
   },
   dmCount(day: string): string {
     return `${PREFIX}:dmcount:${part(day, DAY, "day")}`;
+  },
+  prizePool(bountyId: string): string {
+    return `${PREFIX}:prizepool:${part(bountyId, BOUNTY_ID, "bounty id")}`;
+  },
+  prizePoolStale(bountyId: string): string {
+    return `${PREFIX}:prizepool:stale:${part(bountyId, BOUNTY_ID, "bounty id")}`;
   },
 };

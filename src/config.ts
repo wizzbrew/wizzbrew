@@ -29,6 +29,7 @@ export interface Config {
   staffAlertChannelId: string | null; // STAFF_ALERT_CHANNEL_ID, optional
   ownerDiscordIds: string[]; // OWNER_DISCORD_IDS, optional comma-separated Discord user ids; empty means nobody
   dmDailyLimit: number; // DM_DAILY_LIMIT, optional positive integer, default 5
+  matcherinoBountyId: string | null; // MATCHERINO_BOUNTY_ID, optional, digits only; empty turns the prize pool line off
 }
 
 interface VarSpec<T> {
@@ -71,6 +72,8 @@ const discordIdList = z
       .filter((item) => item !== ""),
   )
   .refine((items) => items.every((item) => DISCORD_ID_LIST_ITEM.test(item)));
+
+const digitsOnly = z.string().regex(/^\d+$/);
 
 const ianaZone = z.string().refine((v) => {
   try {
@@ -156,6 +159,7 @@ const SPECS: Specs = {
     z.coerce.number().int().positive(),
     () => 5,
   ),
+  matcherinoBountyId: optionalVar("MATCHERINO_BOUNTY_ID", "digits only", digitsOnly),
 };
 
 const ALL_KEYS = Object.keys(SPECS) as (keyof Config)[];

@@ -1,7 +1,8 @@
 // Turns prompts/<game>/ into src/game/data.ts, a TS constant the game route imports. Vercel's
 // bundler cannot be trusted to ship loose markdown, so the text travels as code. Every file under
 // prompts/<game>/ is read (markdown and logic/keys.json), and logic/<key>.md is rendered from
-// keys.json here, never written by hand. Run with: npm run build:game
+// keys.json here, never written by hand. prompts/event/*.md (event facts, not a game) is read too,
+// under the keys "event/<file>". Run with: npm run build:game
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -18,6 +19,9 @@ const HEADER =
 const IGNORE = "// biome-ignore format: generated file, each string is one line by design";
 
 const KEYS_FILE = "logic/keys.json";
+
+// The one folder under prompts/ that is not a game: event facts as flat markdown files.
+export const EVENT_DIR = "event";
 
 // What tools/export-key-logic.py writes. Checked here because the file is read from disk.
 const Chests = z.union([z.string(), z.array(z.string()).min(1)]);
@@ -94,12 +98,32 @@ function walk(dir: string, rel: string, out: Record<string, string>): void {
   }
 }
 
-// Every file under prompts/<game>/, as paths relative to prompts/ with forward slashes. A
-// directory that is not a known game id is an error, so a typo cannot ship silently.
+// The markdown files directly inside prompts/event/. Anything else there is an error, so a stray
+// file or folder cannot ship silently.
+function readEventSources(dir: string, out: Record<string, string>): void {
+  const entries = readdirSync(join(dir, EVENT_DIR), { withFileTypes: true }).sort((a, b) =>
+    a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
+  );
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".md")) {
+      throw new Error(`prompts/${EVENT_DIR}/${entry.name} is not a markdown file`);
+    }
+    const path = `${EVENT_DIR}/${entry.name}`;
+    out[path] = readFileSync(join(dir, path), "utf8");
+  }
+}
+
+// Every file under prompts/<game>/, as paths relative to prompts/ with forward slashes, plus the
+// event facts under prompts/event/. A directory that is not a known game id is an error, so a
+// typo cannot ship silently.
 export function readGameSources(dir: string = PROMPTS_DIR): Record<string, string> {
   const out: Record<string, string> = {};
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isDirectory()) throw new Error(`prompts/${entry.name} is not inside a game folder`);
+    if (entry.name === EVENT_DIR) {
+      readEventSources(dir, out);
+      continue;
+    }
     if (!(GAME_IDS as readonly string[]).includes(entry.name)) {
       throw new Error(`prompts/${entry.name} is not a known game id`);
     }

@@ -1,7 +1,10 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildGameData,
+  EVENT_DIR,
   GAME_TS,
   KeyTable,
   readGameSources,
@@ -45,12 +48,20 @@ describe("game data", () => {
     expect(JSON.parse(line.slice(colon + 2))).toBe(sample["alttp/a.md"]);
   });
 
-  it("keys every path with its game, in a stable order", () => {
+  it("keys every path with its game or the event folder, in a stable order", () => {
     const paths = Object.keys(GAME_DATA);
     expect(paths).toEqual([...paths].sort());
     for (const path of paths) {
-      expect(GAME_IDS as readonly string[], path).toContain(path.split("/")[0]);
+      const top = path.split("/")[0] ?? "";
+      expect([...GAME_IDS, EVENT_DIR] as readonly string[], path).toContain(top);
     }
+  });
+
+  it("compiles prompts/event/*.md under event/<file>", () => {
+    expect(Object.keys(sources).filter((p) => p.startsWith("event/"))).toEqual(["event/sgl26.md"]);
+    expect(GAME_DATA["event/sgl26.md"]).toBe(
+      readFileSync(new URL("../../prompts/event/sgl26.md", import.meta.url), "utf8"),
+    );
   });
 
   it("holds the orientation, the overworld, the items, the key table and every dungeon", () => {
@@ -113,6 +124,82 @@ describe("game data", () => {
     for (const [path, text] of Object.entries(GAME_DATA)) {
       expect(text, path).not.toContain(EM);
       expect(text, path).not.toContain(EN);
+    }
+  });
+
+  it("holds the event facts and stays under 4500 characters", () => {
+    const facts = GAME_DATA["event/sgl26.md"] ?? "";
+    expect(facts.length).toBeGreaterThan(1000);
+    expect(facts.length).toBeLessThan(4500);
+    for (const s of [
+      "run by SpeedGaming",
+      "Thursday October 22 to Sunday October 25, 2026",
+      "DoubleTree by Hilton Washington Dulles Airport",
+      "13869 Park Center Road, Herndon, VA 20171",
+      "+1 703-478-2900",
+      "https://www.hilton.com/en/attend-my-event/iaddddt-sgt-dbdc1c4d-2085-440e-abcd-94c590cebeee/",
+      "$129 per night",
+      "arrival is Wednesday October 21",
+      "departure is Monday October 26",
+      "adjust the dates in the form",
+      "Daily, $40",
+      "Base, $80",
+      "VIP, $110",
+      "SUPER VIP, $160",
+      "The online tournaments need no ticket",
+      "https://matcherino.com/t/sglive26",
+      "https://matcherino.com/t/sglive26?contribute=true",
+      "name the game it supports",
+      "https://forms.gle/DSseFRkwKffPynN9A",
+      "8 hours or more comps your badge",
+      "https://twitch.tv/SpeedGaming2",
+      "https://discord.com/invite/T6qzxNJ",
+      "https://speedgaming.challonge.com/",
+      "https://speedgaming.org/sgl26",
+      "Reviewed 2026-10-17 from sglive.speedgaming.org",
+    ]) {
+      expect(facts, s).toContain(s);
+    }
+    for (const slug of [
+      "sgl26alttpr",
+      "sgl26hybrid",
+      "sgl26nmg",
+      "sgl26smany",
+      "sgl26smmap",
+      "sgl26z1r",
+    ]) {
+      expect(facts, slug).toContain(slug);
+    }
+    for (const slug of ["ffmqr", "smb3r", "z2r", "ctjets", "aosr", "crys", "proto", "mm7"]) {
+      expect(facts, slug).toContain(slug);
+    }
+  });
+
+  it("leaves out what the builder ruled out of the event facts", () => {
+    const facts = GAME_DATA["event/sgl26.md"] ?? "";
+    expect(facts).not.toContain("October 27");
+    expect(facts).not.toContain("gg/YGzQsUp");
+    expect(facts).not.toContain("check-in opens");
+    expect(facts).not.toContain("tournament room");
+    expect(facts).not.toMatch(/donor|donation|182107/i);
+    expect(facts).not.toContain("$15,140");
+  });
+
+  it("reads event markdown and refuses anything else in the event folder", () => {
+    const root = mkdtempSync(join(tmpdir(), "wb-event-"));
+    try {
+      mkdirSync(join(root, EVENT_DIR));
+      writeFileSync(join(root, EVENT_DIR, "b.md"), "B\n");
+      writeFileSync(join(root, EVENT_DIR, "a.md"), "A\n");
+      expect(readGameSources(root)).toEqual({ "event/a.md": "A\n", "event/b.md": "B\n" });
+      expect(buildGameData(readGameSources(root))).toEqual({
+        "event/a.md": "A\n",
+        "event/b.md": "B\n",
+      });
+      writeFileSync(join(root, EVENT_DIR, "notes.txt"), "x");
+      expect(() => readGameSources(root)).toThrow(/notes\.txt is not a markdown file/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 

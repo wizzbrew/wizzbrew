@@ -11,6 +11,8 @@ const h = vi.hoisted(() => ({
   runClientTool: undefined as unknown,
   botAccessToken: undefined as unknown,
   userAccessToken: undefined as unknown,
+  prizePool: null as string | null,
+  prizePoolCalls: [] as Date[],
 }));
 
 vi.mock("../../src/config.js", () => ({
@@ -29,6 +31,13 @@ vi.mock("../../src/llm/client.js", () => ({
       .flatMap((b) => (b.type === "text" ? [b.text] : []))
       .join("")
       .trim(),
+}));
+
+vi.mock("../../src/event/prizepool.js", () => ({
+  prizePoolLine: vi.fn(async (now: Date) => {
+    h.prizePoolCalls.push(now);
+    return h.prizePool;
+  }),
 }));
 
 vi.mock("../../src/responders/specs.js", () => ({
@@ -121,6 +130,8 @@ beforeEach(() => {
   h.userAccessToken = async () => "user-tok";
   h.callTool = async () => [];
   h.runClientTool = async () => "{}";
+  h.prizePool = null;
+  h.prizePoolCalls.length = 0;
   vi.spyOn(console, "log").mockImplementation(() => undefined);
 });
 
@@ -436,7 +447,14 @@ describe("runResponder", () => {
 
   it("gives every other responder route the stable block then the volatile block only", async () => {
     const routes = (Object.keys(ROUTES) as (keyof typeof ROUTES)[]).filter(
-      (r) => r !== "chat" && r !== "game" && r !== "live" && r !== "account" && r !== "staff",
+      (r) =>
+        r !== "chat" &&
+        r !== "game" &&
+        r !== "live" &&
+        r !== "account" &&
+        r !== "staff" &&
+        r !== "help" &&
+        r !== "tournaments",
     );
     expect(routes.length).toBeGreaterThan(0);
     for (const route of routes) {
@@ -452,9 +470,69 @@ describe("runResponder", () => {
       for (const b of system) {
         expect(b.text, route).not.toContain(KNOWLEDGE_FRAMING);
         expect(b.text, route).not.toContain((GAME_DATA["alttp/general.md"] ?? "").slice(0, 200));
+        expect(b.text, route).not.toContain(GAME_DATA["event/sgl26.md"] ?? "");
         expect(b.text, route).not.toContain("Tournaments:");
       }
+      expect(h.prizePoolCalls, route).toHaveLength(0);
     }
+  });
+
+  it.each(["help", "tournaments"] as const)(
+    "lays %s out as stable, event facts, then the uncached volatile block",
+    async (route) => {
+      queue(fakeMessage([block.text("ok")]));
+      await runResponder(route, { ...decision, route }, ctx());
+      const system = systemOf(h.requests[0]);
+      expect(system).toHaveLength(3);
+      const [stable, facts, volatile] = system;
+
+      expect(stable?.cache_control).toEqual(HOUR);
+      expect(stable?.text).toContain(`INSTR ${route}`);
+      expect(stable?.text).not.toContain(GAME_DATA["event/sgl26.md"] ?? "");
+
+      expect(facts?.cache_control).toEqual(HOUR);
+      expect(facts?.text).toBe(GAME_DATA["event/sgl26.md"]);
+      expect(facts?.text).toContain("DoubleTree by Hilton Washington Dulles Airport");
+
+      expect(volatile?.cache_control).toBeUndefined();
+      expect(volatile?.text).toContain("Current time:");
+      expect(volatile?.text).toContain("Asker: Sam");
+      for (const cached of [stable, facts]) {
+        expect(cached?.text).not.toContain("Current time");
+        expect(cached?.text).not.toContain("Asker:");
+      }
+      expect(system.map((b) => b.cache_control !== undefined)).toEqual([true, true, false]);
+      expect(system.some((b) => b.text.includes("Tournaments:"))).toBe(false);
+    },
+  );
+
+  it("puts the live prize pool line in the volatile block of help only", async () => {
+    h.prizePool = "Community prize pool total: $15,140 (updated 14:05)";
+    queue(fakeMessage([block.text("ok")]));
+    const now = new Date("2026-10-17T18:05:00Z");
+    await runResponder("help", { ...decision, route: "help" }, ctx({ now }));
+    const system = systemOf(h.requests[0]);
+    expect(system[2]?.text).toContain("Community prize pool total: $15,140 (updated 14:05)");
+    expect(system[0]?.text).not.toContain("prize pool total");
+    expect(system[1]?.text).not.toContain("prize pool total");
+    expect(h.prizePoolCalls).toEqual([now]);
+
+    h.requests.length = 0;
+    h.prizePoolCalls.length = 0;
+    queue(fakeMessage([block.text("ok")]));
+    await runResponder("tournaments", { ...decision, route: "tournaments" }, ctx());
+    for (const b of systemOf(h.requests[0])) expect(b.text).not.toContain("prize pool total");
+    expect(h.prizePoolCalls).toHaveLength(0);
+  });
+
+  it("leaves the prize pool line out of the help answer when there is none", async () => {
+    h.prizePool = null;
+    queue(fakeMessage([block.text("ok")]));
+    await runResponder("help", { ...decision, route: "help" }, ctx());
+    const system = systemOf(h.requests[0]);
+    expect(system).toHaveLength(3);
+    expect(system[2]?.text).not.toContain("prize pool");
+    expect(system[2]?.text).toContain("Params:");
   });
 
   it("builds the game route from the routine and subject blocks on the no tools path", async () => {

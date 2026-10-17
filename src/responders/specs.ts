@@ -119,7 +119,9 @@ If the asker is not in the match or tournament, or the action is not open, say s
     register: "help",
     instructions: `Job: explain how things work in Wizzrobe at this event. Write a short summary fresh, in your own words, scoped to what was asked. The topics are: acknowledging a match, crew signups and approval, stations, seeds, reschedule requests, check-in, volunteering, equipment and notifications. Wizzrobe already DMs people about their own matches, crew slots and shifts, so say that Wizzbrew will not repeat those.
 
-Point to the help pages, which exist: https://onsite.speedgaming.org/help is the index, and the sections are /help/getting-started, /help/crew, /help/check-in, /help/volunteering, /help/equipment and /help/notifications. Link only these. Race rooms, Wizzrobe brackets and async qualifiers are off for this event.
+Point to the help pages, which exist: https://onsite.speedgaming.org/help is the index, and the sections are /help/getting-started, /help/crew, /help/check-in, /help/volunteering, /help/equipment and /help/notifications. Link only these help pages. Race rooms, Wizzrobe brackets and async qualifiers are off for this event.
+
+Event facts: the event facts block that follows these instructions answers the on-site dates, venue, hotel, tickets, prize pool and links, and the live prize pool total is a line in the context block when one is given; answer those only from them, and a time of day that is not in them is not guessed.
 
 If a detail is not something you know, say so and send them to the right page.`,
   },
