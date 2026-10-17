@@ -12,6 +12,7 @@ export type Route =
   | "help"
   | "staff"
   | "chat"
+  | "game"
   | "live"
   | "account";
 
@@ -27,6 +28,9 @@ export interface RoutingDecision {
     stage?: string;
     matchId?: number;
     accountAction?: "link" | "unlink"; // route "account" only
+    routine?: "dungeon" | "logic" | "overworld" | "items" | "general"; // route "game" only
+    subjects?: string[]; // route "game" only: area, boss and item names as written, at most 4
+    game?: "alttp" | "sm"; // route "game" only: A Link to the Past or Super Metroid
   };
   reason: string; // one short line, logged (L24)
 }

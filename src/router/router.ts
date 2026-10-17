@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { sanitizeForPrompt } from "../discord/markup.js";
 import { ModelOutputError, UserInputError } from "../errors.js";
+import { GAME_IDS } from "../game/catalog.js";
+import { ROUTINE_NAMES } from "../game/routines.js";
 import { createMessage, textOf } from "../llm/client.js";
 import { log } from "../log.js";
 import { nowBlock, parseUserDate } from "../time/time.js";
@@ -29,7 +31,17 @@ export const ROUTER_SCHEMA = {
     params: {
       type: "object",
       additionalProperties: false,
-      required: ["day", "tournament", "player", "stage", "matchId", "accountAction"],
+      required: [
+        "day",
+        "tournament",
+        "player",
+        "stage",
+        "matchId",
+        "accountAction",
+        "routine",
+        "subjects",
+        "game",
+      ],
       properties: {
         day: nullableString,
         tournament: nullableString,
@@ -39,6 +51,10 @@ export const ROUTER_SCHEMA = {
         accountAction: {
           anyOf: [{ type: "string", enum: ["link", "unlink"] }, { type: "null" }],
         },
+        routine: { anyOf: [{ type: "string", enum: ROUTINE_NAMES }, { type: "null" }] },
+        // The schema cannot cap the length (structured output allows no maxItems); zod does.
+        subjects: { anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }] },
+        game: { anyOf: [{ type: "string", enum: GAME_IDS }, { type: "null" }] },
       },
     },
   },
@@ -55,6 +71,9 @@ const RouterOutput = z.object({
     stage: z.string().nullish(),
     matchId: z.number().int().nullish(),
     accountAction: z.enum(["link", "unlink"]).nullish(),
+    routine: z.enum(ROUTINE_NAMES).nullish(),
+    subjects: z.array(z.string()).max(4).nullish(),
+    game: z.enum(GAME_IDS).nullish(),
   }),
 });
 
@@ -153,6 +172,15 @@ export async function routeQuestion(ctx: AskContext): Promise<RoutingDecision> {
   }
 
   if (out.params.accountAction) params.accountAction = out.params.accountAction;
+
+  // The game params mean something only on the game route; elsewhere they stay out of the
+  // decision, so no other responder's context block carries them.
+  if (out.route === "game") {
+    if (out.params.routine) params.routine = out.params.routine;
+    const subjects = (out.params.subjects ?? []).filter((s) => s.trim() !== "");
+    if (subjects.length > 0) params.subjects = subjects;
+    if (out.params.game) params.game = out.params.game;
+  }
 
   if (confidence >= MIN_CONFIDENCE && out.route === "account" && !params.accountAction) {
     const missing: RoutingDecision = {

@@ -1,9 +1,11 @@
 import type { BetaMessage } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BudgetExceededError, ModelOutputError } from "../../src/errors.js";
+import { GAME_IDS } from "../../src/game/catalog.js";
+import { ROUTINE_NAMES } from "../../src/game/routines.js";
 import { createMessage, textOf } from "../../src/llm/client.js";
 import { ROUTER_PROMPT } from "../../src/router/prompt.js";
-import { routeQuestion } from "../../src/router/router.js";
+import { ROUTER_SCHEMA, routeQuestion } from "../../src/router/router.js";
 import type { AskContext } from "../../src/types.js";
 
 vi.mock("../../src/llm/client.js");
@@ -18,6 +20,9 @@ const NO_PARAMS = {
   stage: null,
   matchId: null,
   accountAction: null,
+  routine: null,
+  subjects: null,
+  game: null,
 };
 
 function ctx(overrides: Partial<AskContext> = {}, linked = false): AskContext {
@@ -280,6 +285,7 @@ describe("routeQuestion request", () => {
         "account",
         "chat",
         "crew",
+        "game",
         "help",
         "live",
         "my_stuff",
@@ -301,6 +307,9 @@ describe("routeQuestion request", () => {
       "stage",
       "matchId",
       "accountAction",
+      "routine",
+      "subjects",
+      "game",
     ]);
     expect(params.properties.matchId?.anyOf).toEqual([{ type: "integer" }, { type: "null" }]);
     expect(params.properties.day?.anyOf).toEqual([{ type: "string" }, { type: "null" }]);
@@ -316,6 +325,100 @@ describe("routeQuestion request", () => {
     const content = String(request()[1].messages[0]?.content);
     expect(content).toContain("line one");
     expect(content).not.toContain("\n\n\n");
+  });
+});
+
+describe("game params", () => {
+  const params = ROUTER_SCHEMA.properties.params;
+
+  it("puts routine, subjects and game in the schema as required nullable fields", () => {
+    expect(params.required).toEqual(expect.arrayContaining(["routine", "subjects", "game"]));
+    expect(Object.keys(params.properties)).toEqual(params.required);
+    expect(params.properties.routine).toEqual({
+      anyOf: [{ type: "string", enum: ROUTINE_NAMES }, { type: "null" }],
+    });
+    expect(params.properties.game).toEqual({
+      anyOf: [{ type: "string", enum: GAME_IDS }, { type: "null" }],
+    });
+    expect(params.properties.subjects).toEqual({
+      anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }],
+    });
+    expect([...ROUTINE_NAMES].sort()).toEqual([
+      "dungeon",
+      "general",
+      "items",
+      "logic",
+      "overworld",
+    ]);
+    expect([...GAME_IDS].sort()).toEqual(["alttp", "sm"]);
+  });
+
+  it("passes routine, subjects and game through on the game route", async () => {
+    reply(
+      decide(
+        { route: "game", confidence: 0.9 },
+        { routine: "logic", subjects: ["Ice Palace", "Hookshot"], game: "alttp" },
+      ),
+    );
+    const decision = await routeQuestion(ctx());
+    expect(decision.route).toBe("game");
+    expect(decision.params).toEqual({
+      routine: "logic",
+      subjects: ["Ice Palace", "Hookshot"],
+      game: "alttp",
+    });
+  });
+
+  it("accepts every routine and every game id", async () => {
+    for (const routine of ROUTINE_NAMES) {
+      reply(decide({ route: "game" }, { routine }));
+      expect((await routeQuestion(ctx())).params.routine).toBe(routine);
+    }
+    for (const game of GAME_IDS) {
+      reply(decide({ route: "game" }, { game }));
+      expect((await routeQuestion(ctx())).params.game).toBe(game);
+    }
+  });
+
+  it("leaves null and empty game params absent", async () => {
+    reply(decide({ route: "game" }, { subjects: [] }));
+    expect((await routeQuestion(ctx())).params).toEqual({});
+    reply(decide({ route: "game" }, { subjects: ["  ", ""] }));
+    expect((await routeQuestion(ctx())).params).toEqual({});
+  });
+
+  it("copies subject names as returned", async () => {
+    reply(decide({ route: "game" }, { subjects: ["  Mire's  boss "] }));
+    expect((await routeQuestion(ctx())).params.subjects).toEqual(["  Mire's  boss "]);
+  });
+
+  it("keeps game params out of the decision on any other route", async () => {
+    reply(decide({ route: "schedule" }, { routine: "items", subjects: ["Hookshot"], game: "sm" }));
+    const decision = await routeQuestion(ctx());
+    expect(decision.route).toBe("schedule");
+    expect(decision.params).toEqual({});
+  });
+
+  it("sends a game decision with an unknown routine, game or bad subjects to chat", async () => {
+    const bad: Record<string, unknown>[] = [
+      { routine: "walkthrough" },
+      { game: "nes" },
+      { subjects: "Ice Palace" },
+      { subjects: [1, 2] },
+      { subjects: ["a", "b", "c", "d", "e"] },
+    ];
+    for (const params of bad) {
+      reply(decide({ route: "game" }, params));
+      const decision = await routeQuestion(ctx());
+      expect(decision.route, JSON.stringify(params)).toBe("chat");
+      expect(decision.confidence).toBe(0);
+      expect(decision.reason).toContain("bad_shape");
+    }
+  });
+
+  it("accepts four subjects", async () => {
+    reply(decide({ route: "game" }, { subjects: ["a", "b", "c", "d"] }));
+    expect((await routeQuestion(ctx())).params.subjects).toEqual(["a", "b", "c", "d"]);
   });
 });
 
@@ -336,22 +439,48 @@ describe("ROUTER_PROMPT", () => {
     expect(new RegExp(`[${dashes}]`).test(ROUTER_PROMPT)).toBe(false);
   });
 
-  it("sends game mechanics and item logic to chat and keeps data routes out of them", () => {
+  it("sends game mechanics and item logic to game and keeps data routes and chat out of them", () => {
     const description = (route: string): string => {
       const line = ROUTER_PROMPT.split("\n").find((l) => l.startsWith(`${route}:`));
       expect(line, route).toBeDefined();
       return line ?? "";
     };
-    const chat = description("chat");
+    const game = description("game");
     for (const subject of ["items", "dungeons", "bosses", "mechanics", "randomizer logic"]) {
-      expect(chat, subject).toContain(subject);
+      expect(game, subject).toContain(subject);
     }
-    expect(chat).toContain("game reference");
+    const chat = description("chat");
     expect(chat).toContain("anything off topic");
     expect(chat).toContain("too unclear to place");
-    for (const route of ["schedule", "streams", "players", "tournaments"]) {
-      expect(description(route), route).toContain("not game mechanics or item logic (chat)");
+    for (const subject of [
+      "dungeons",
+      "bosses",
+      "mechanics",
+      "randomizer logic",
+      "game reference",
+    ]) {
+      expect(chat, subject).not.toContain(subject);
     }
+    for (const route of ["schedule", "streams", "players", "tournaments"]) {
+      expect(description(route), route).toContain("not game mechanics or item logic (game)");
+    }
+    expect(ROUTER_PROMPT).not.toContain("item logic (chat)");
+  });
+
+  it("describes each routine, the subjects and the game params", () => {
+    const game = ROUTER_PROMPT.split("\n").find((l) => l.startsWith("game:")) ?? "";
+    for (const routine of ROUTINE_NAMES) expect(game, routine).toContain(`${routine} for`);
+    expect(game).toContain("params.routine");
+    expect(game).toContain("params.subjects");
+    expect(game).toContain("params.game");
+    const lines = ROUTER_PROMPT.split("\n");
+    for (const name of ["routine", "subjects", "game"]) {
+      const line = lines.find((l) => l.startsWith(`- ${name}:`)) ?? "";
+      expect(line, name).toContain("only for the game route");
+    }
+    const gameParam = lines.find((l) => l.startsWith("- game:")) ?? "";
+    for (const id of GAME_IDS) expect(gameParam, id).toContain(`${id} is`);
+    expect(gameParam).toContain("Use null");
   });
 
   it("keeps questions about the bot's own setup out of help and data routes", () => {
@@ -375,6 +504,7 @@ describe("ROUTER_PROMPT", () => {
       "help",
       "staff",
       "chat",
+      "game",
       "live",
       "account",
     ]) {

@@ -6,7 +6,8 @@ import {
   leakWindows,
   PROTECTED_TEXTS,
 } from "../../src/discord/leakguard.js";
-import { ALTTP_KNOWLEDGE } from "../../src/personality/knowledge.js";
+import { GAME_DATA } from "../../src/game/data.js";
+import { ROUTINE_PROMPTS } from "../../src/game/routines.js";
 import { CHAT_BLOCK, CORE, DATA_BLOCK, HELP_BLOCK } from "../../src/personality/voice.js";
 import {
   KNOWLEDGE_FRAMING,
@@ -17,6 +18,12 @@ import { SHARED_RULES, SPECS } from "../../src/responders/specs.js";
 import { ROUTER_PROMPT } from "../../src/router/prompt.js";
 
 const dashes = new RegExp(`[${String.fromCharCode(0x2014, 0x2013)}]`);
+
+// The public game reference, as one string, for the tests that must not flag it.
+const GAME_TEXT = Object.entries(GAME_DATA)
+  .filter(([path]) => path.endsWith(".md"))
+  .map(([, text]) => text)
+  .join("\n");
 
 // 80 characters in the middle of CORE's first paragraph.
 const CHUNK = CORE.slice(40, 120);
@@ -58,8 +65,11 @@ describe("isPromptLeak", () => {
   });
 
   it("does not catch a chunk of the game reference", () => {
-    expect(isPromptLeak(ALTTP_KNOWLEDGE.slice(2000, 2500))).toBe(false);
-    expect(isPromptLeak(ALTTP_KNOWLEDGE.slice(0, 1500))).toBe(false);
+    expect(isPromptLeak(GAME_TEXT.slice(2000, 2500))).toBe(false);
+    expect(isPromptLeak(GAME_TEXT.slice(0, 1500))).toBe(false);
+    for (const [path, text] of Object.entries(GAME_DATA)) {
+      expect(isPromptLeak(text), path).toBe(false);
+    }
   });
 
   it("does not catch an empty answer", () => {
@@ -84,6 +94,10 @@ describe("isPromptLeak", () => {
       ["router prompt", ROUTER_PROMPT.slice(500, 600)],
       ["knowledge framing", KNOWLEDGE_FRAMING],
       ["tool description", PROPOSE_ACTION_DESCRIPTION],
+      ...Object.entries(ROUTINE_PROMPTS).map(([name, text]): [string, string] => [
+        `${name} routine prompt`,
+        text,
+      ]),
     ];
     for (const [name, text] of probes) {
       expect(isPromptLeak(text), name).toBe(true);
@@ -113,13 +127,14 @@ describe("isPromptLeak", () => {
       KNOWLEDGE_FRAMING,
       OFFER_CHOICES_DESCRIPTION,
       PROPOSE_ACTION_DESCRIPTION,
+      ...Object.values(ROUTINE_PROMPTS),
     ]) {
       expect(set.has(text), text.slice(0, 40)).toBe(true);
     }
     for (const spec of Object.values(SPECS)) {
       expect(set.has(spec.instructions), spec.route).toBe(false);
     }
-    expect(set.has(ALTTP_KNOWLEDGE)).toBe(false);
+    for (const text of Object.values(GAME_DATA)) expect(set.has(text)).toBe(false);
   });
 
   it("allows a verbatim chunk of a route spec, which carries public facts", () => {
@@ -145,11 +160,25 @@ describe("isPromptLeak", () => {
   });
 
   it("leaves the reference material out of the protected set", () => {
-    expect(PROTECTED_TEXTS).not.toContain(ALTTP_KNOWLEDGE);
+    for (const text of Object.values(GAME_DATA)) expect(PROTECTED_TEXTS).not.toContain(text);
+  });
+
+  it("protects every routine prompt, down to a run taken from its middle", () => {
+    for (const [name, text] of Object.entries(ROUTINE_PROMPTS)) {
+      expect(PROTECTED_TEXTS, name).toContain(text);
+      expect(isPromptLeak(text), name).toBe(true);
+      expect(isPromptLeak(`Here you go: ${text.slice(20, 120)} done.`), name).toBe(true);
+    }
+  });
+
+  it("lets an answer state what a routine tells it to in its own words", () => {
+    const own =
+      "Under the logic you need the Hookshot and the Fire Rod before the ice gives way. The key door table gives 3 small keys at the spike cross, or 1 with the big key on that side.";
+    expect(isPromptLeak(own)).toBe(false);
   });
 
   it("answers a 2000 character reply in well under a millisecond", () => {
-    const answer = ALTTP_KNOWLEDGE.slice(3000, 5000);
+    const answer = GAME_TEXT.slice(3000, 5000);
     expect(answer).toHaveLength(2000);
     isPromptLeak(answer);
     const runs = 200;

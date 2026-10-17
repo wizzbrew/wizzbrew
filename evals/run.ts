@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { config } from "../src/config.js";
+import { GAME_IDS } from "../src/game/catalog.js";
+import { ROUTINE_NAMES } from "../src/game/routines.js";
 import { routeQuestion } from "../src/router/router.js";
 import { ROUTES } from "../src/router/routes.js";
 import { keys } from "../src/store/keys.js";
@@ -21,6 +23,9 @@ const Line = z.object({
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string() })).optional(),
   linked: z.boolean(),
   note: z.string(),
+  // Game lines may also say which routine and game the router should pick. Reported, not gated.
+  routine: z.enum(ROUTINE_NAMES).optional(),
+  game: z.enum(GAME_IDS).optional(),
 });
 type Line = z.infer<typeof Line>;
 
@@ -73,10 +78,24 @@ async function live(lines: Line[]): Promise<number> {
   const before = await spent(now);
   const confusion = new Map<string, number>();
   const misses: string[] = [];
+  const paramMisses: string[] = [];
   let hits = 0;
+  let paramChecks = 0;
 
   for (const [i, line] of lines.entries()) {
-    const got = (await routeQuestion(contextFor(line, i, now))).route;
+    const decision = await routeQuestion(contextFor(line, i, now));
+    const got = decision.route;
+    if (line.route === "game" && got === "game") {
+      for (const [name, want] of [
+        ["routine", line.routine],
+        ["game", line.game],
+      ] as const) {
+        if (want === undefined) continue;
+        paramChecks += 1;
+        const have = decision.params[name];
+        if (have !== want) paramMisses.push(`${name}: expected ${want}, got ${have}: "${line.q}"`);
+      }
+    }
     const key = `${line.route} -> ${got}`;
     confusion.set(key, (confusion.get(key) ?? 0) + 1);
     if (got === line.route) hits += 1;
@@ -90,6 +109,10 @@ async function live(lines: Line[]): Promise<number> {
   if (misses.length > 0) {
     console.log("\nmisses:");
     for (const m of misses) console.log(`  ${m}`);
+  }
+  if (paramChecks > 0) {
+    console.log(`\ngame params: ${paramChecks - paramMisses.length}/${paramChecks} (not gated)`);
+    for (const m of paramMisses) console.log(`  ${m}`);
   }
   const cost = (await spent(now)) - before;
   console.log(`\ncost: $${cost.toFixed(4)}`);

@@ -131,6 +131,16 @@ export const ROUTES: Record<Route, RouteSpec> = {
     description: "How Wizzrobe, the event or the bot works and where to find things.",
     ephemeral: false,
   },
+  game: {
+    route: "game",
+    auth: "public",
+    readTools: [],
+    clientTools: [],
+    writeTools: [],
+    description:
+      "The games being played and their randomizers: items, areas, bosses, mechanics, logic, tricks and settings.",
+    ephemeral: false,
+  },
   staff: {
     route: "staff",
     auth: "staff",
