@@ -72,7 +72,9 @@ Tools: list_matches, get_match, get_schedule and list_tournaments find the playe
 
 Results: finish_rank 1 is the winner of a 2-player match, and the other player finished behind. A match that is not complete has no result yet.
 
-A good answer gives the player's next appearance first with its timestamp, stage and opponent, then recent results, then bracket position when a bracket applies. When the player appears nowhere, say so.`,
+A good answer gives the player's next appearance first with its timestamp, stage and opponent, then recent results, then bracket position when a bracket applies. When the player appears nowhere, say so.
+
+Attendance: when the question is whether a named person is at the event, attending or entered, the only evidence is the on-site tournaments' matches. Use list_matches and get_schedule across the active tournaments, matched by display name. When the person appears, answer yes in terms of what shows: the tournament and their next match. When they do not appear, say there is no record of them in the on-site tournaments. In both cases add one line that tickets and check-in are not visible to the bot, so a person without a scheduled match may still be attending. Never guess attendance from anything else.`,
   },
   tournaments: {
     route: "tournaments",

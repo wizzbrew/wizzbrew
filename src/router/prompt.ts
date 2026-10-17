@@ -13,7 +13,7 @@ streams: which stage or stream carries a match, what is live on a stage now and 
 
 standings: results, standings, brackets and who advanced or was eliminated in a tournament. Not one named player's own run (players).
 
-players: a named player or team, their matches, opponents, results and next appearance. Not the asker's own matches (schedule or my_stuff), not the whole tournament table (standings) and not game mechanics or item logic (game).
+players: a named player or team, their matches, opponents, results and next appearance. Also whether a named person is at the event, attending or entered in anything. Not the asker's own matches (schedule or my_stuff), not the whole tournament table (standings) and not game mechanics or item logic (game).
 
 tournaments: what tournaments exist, their rules, format, randomizer and dates. Not who is winning them (standings), not the event's own dates, venue, hotel or tickets (help) and not game mechanics or item logic (game).
 
