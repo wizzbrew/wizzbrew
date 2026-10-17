@@ -93,8 +93,8 @@ describe("recordSpend", () => {
       }),
       NOW,
     );
-    // 2000 * 0.01 + 1000 * 0.125 = 145 per million tokens
-    expect(usd).toBeCloseTo(0.000145, 12);
+    // 2000 * 0.01 + 1000 * 0.20 = 220 per million tokens (cache write is the 1h rate, 2x input)
+    expect(usd).toBeCloseTo(0.00022, 12);
   });
 
   it("prices an unknown model as the fallback and warns", async () => {
