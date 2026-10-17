@@ -80,6 +80,29 @@ function parseRetryAfter(value: string | null): number | undefined {
   return Number.isFinite(sec) && sec >= 0 ? sec : undefined;
 }
 
+// Turns an MCP tool result into text that parses to the value the tool returned. FastMCP (the
+// Python SDK) emits one text block per list item and wraps non-object returns in
+// structuredContent {"result": X}, so joining the blocks does not give JSON for lists.
+export function resultText(content: unknown, structured: unknown, isError: boolean): string {
+  const texts = (Array.isArray(content) ? content : []).flatMap((entry) => {
+    const part = entry as { type?: unknown; text?: unknown };
+    return part.type === "text" && typeof part.text === "string" ? [part.text] : [];
+  });
+  if (isError) return texts.join("");
+  if (typeof structured === "object" && structured !== null && !Array.isArray(structured)) {
+    const obj = structured as Record<string, unknown>;
+    const keys = Object.keys(obj);
+    return JSON.stringify(keys.length === 1 && keys[0] === "result" ? obj.result : obj);
+  }
+  if (texts.length === 1) return texts[0] as string;
+  if (texts.length === 0) return "[]";
+  try {
+    return JSON.stringify(texts.map((t) => JSON.parse(t) as unknown));
+  } catch {
+    return texts.join("");
+  }
+}
+
 // MCP SDK Client over StreamableHTTP, one connection per call (serverless: no shared state).
 async function realRawToolCall(
   token: string,
@@ -101,14 +124,9 @@ async function realRawToolCall(
   try {
     await client.connect(transport);
     const result = await client.callTool({ name, arguments: args });
-    const content: unknown[] = Array.isArray(result.content) ? result.content : [];
-    const text = content
-      .flatMap((entry) => {
-        const part = entry as { type?: unknown; text?: unknown };
-        return part.type === "text" && typeof part.text === "string" ? [part.text] : [];
-      })
-      .join("");
-    return { isError: result.isError === true, text };
+    const isError = result.isError === true;
+    const text = resultText(result.content, result.structuredContent, isError);
+    return { isError, text };
   } catch (err) {
     if (err instanceof WizzrobeError) throw err;
     if (err instanceof StreamableHTTPError && typeof err.code === "number" && err.code >= 100) {

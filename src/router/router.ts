@@ -14,7 +14,7 @@ const ROUTE_NAMES = Object.keys(ROUTES) as [Route, ...Route[]];
 
 type FailureKind = "refusal" | "max_tokens" | "bad_json" | "bad_shape";
 
-const nullableString = { type: ["string", "null"] };
+const nullableString = { anyOf: [{ type: "string" }, { type: "null" }] };
 
 // The JSON schema the model must follow (structured output). The zod schema below checks the
 // same shape again in code, because the output is still untrusted text (L10).
@@ -35,8 +35,10 @@ const ROUTER_SCHEMA = {
         tournament: nullableString,
         player: nullableString,
         stage: nullableString,
-        matchId: { type: ["integer", "null"] },
-        accountAction: { type: ["string", "null"], enum: ["link", "unlink", null] },
+        matchId: { anyOf: [{ type: "integer" }, { type: "null" }] },
+        accountAction: {
+          anyOf: [{ type: "string", enum: ["link", "unlink"] }, { type: "null" }],
+        },
       },
     },
   },

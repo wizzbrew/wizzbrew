@@ -5,6 +5,7 @@ import {
   callTool,
   connectorParams,
   type RawToolCall,
+  resultText,
   setRawToolCallForTests,
 } from "../../src/wizzrobe/mcp.js";
 import { FakeKv } from "../fakes/kv.js";
@@ -246,5 +247,30 @@ describe("callTool 429 retry", () => {
     const err = await callTool("tok-1", "get_match", { match_id: 1 }).catch((e) => e);
     expect(err).toMatchObject({ status: 503 });
     expect(calls).toBe(1);
+  });
+});
+
+describe("resultText (FastMCP wire shapes)", () => {
+  const blocks = (...t: string[]) => t.map((text) => ({ type: "text", text }));
+  it("joins a multi-block list into a JSON array", () => {
+    const text = resultText(blocks('{"id":1}', '{"id":2}'), undefined, false);
+    expect(JSON.parse(text)).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+  it("passes a single dict block through", () => {
+    expect(JSON.parse(resultText(blocks('{"a":1}'), undefined, false))).toEqual({ a: 1 });
+  });
+  it("returns an empty array for an empty list", () => {
+    expect(JSON.parse(resultText([], undefined, false))).toEqual([]);
+  });
+  it("unwraps structuredContent {result: [...]}", () => {
+    const text = resultText(blocks('{"id":1}'), { result: [{ id: 1 }, { id: 2 }] }, false);
+    expect(JSON.parse(text)).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+  it("uses a structuredContent dict as is, even with a result key among others", () => {
+    expect(JSON.parse(resultText([], { a: 1, b: 2 }, false))).toEqual({ a: 1, b: 2 });
+    expect(JSON.parse(resultText([], { result: 1, b: 2 }, false))).toEqual({ result: 1, b: 2 });
+  });
+  it("keeps error text joined", () => {
+    expect(resultText(blocks("not_found: ", "nope"), { result: [] }, true)).toBe("not_found: nope");
   });
 });

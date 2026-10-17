@@ -254,6 +254,29 @@ describe("createMessage spend and stops", () => {
 });
 
 describe("createMessage logging", () => {
+  it("logs the API error type and a truncated message on failure", async () => {
+    const long = "x".repeat(500);
+    const boom = Object.assign(new Error("400 bad"), {
+      status: 400,
+      error: { error: { type: "invalid_request_error", message: long } },
+    });
+    setAnthropicForTests({
+      beta: {
+        messages: {
+          create: async () => {
+            throw boom;
+          },
+        },
+      },
+    } as never);
+    await expect(createMessage("router", BASE, CTX)).rejects.toBe(boom);
+    const line = JSON.parse(String(logSpy.mock.calls[0]?.[0]));
+    expect(line.errType).toBe("invalid_request_error");
+    // log() clips every string field to 200 chars, so that is the effective cap.
+    expect(line.errMsg).toBe(`${"x".repeat(200)}...`);
+    expect(line.status).toBe(400);
+  });
+
   it("logs one anthropic.call line with the requestId and no message text", async () => {
     fake.queue(
       fakeMessage([block.text("the private answer")], {
