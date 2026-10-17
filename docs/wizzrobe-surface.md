@@ -302,7 +302,9 @@ Open question: does REST accept an MCP OAuth access token, or only a `wizzrobe_p
 Test with one call before designing around either. Synack says (2026-10-15) the REST API covers
 everything; tokens come from Profile, "API tokens & AI clients".
 
-For `sgl26` specifically, the Wizzrobe brackets feature is off and Challonge is on. In the live
+For `sgl26` specifically, the Wizzrobe brackets feature is off and Challonge is on (on
+2026-10-16, 10 tournaments carry `challonge_tournament_url`, but the bracket read tools still
+answer "not enabled"; see `docs/backlog.md`). In the live
 phase, check whether `GET /api/brackets/my-open-matches` and booking a game still serve
 Challonge-linked matchups, or answer 404. Note also `allow_player_match_requests: false` on
 ALTTPR, so `submit_match_request` is refused there: read the flag before offering it.

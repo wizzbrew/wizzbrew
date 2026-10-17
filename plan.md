@@ -217,6 +217,9 @@ community". Each tournament's `bracket_url` points at its Challonge bracket (for
   each round's results. It is cached for 2 minutes. The builder checks the current Challonge API
   docs before writing the card (subdomain tournaments are addressed as `<subdomain>-<url>`).
   Without the key, the tool returns the link only and the answer says so.
+- **Parked (2026-10-16):** v0.1 ships without a Challonge key, so bracket answers are link-only.
+  Brackets are planned to come from Wizzrobe once its brackets feature is on for `sgl26`; see
+  `docs/backlog.md`.
 
 **Write tools never run inside the model's loop.** On write routes the responder gets one extra
 tool, `propose_action`. When the model calls it, the loop stops, and the bot stores the proposal
@@ -269,10 +272,8 @@ contracts. Every task is its own commit, merged and gated wave by wave.
 Everything builds and tests against fakes. Only the live phase needs real keys and the Wizzrobe
 tenant.
 
-Later, after v0.1:
-- follow-up threads,
-- a webhook receiver posting match changes to a channel (needs staff to configure),
-- the staff route.
+Later, after v0.1: `docs/backlog.md` (brackets from Wizzrobe, a webhook receiver posting match
+changes to a channel, the staff route). Follow-up threads shipped in v0.1.
 
 ## Open questions
 
@@ -286,7 +287,8 @@ Settled on 2026-10-15, by testing the MCP as `homemadebeer` (a plain member):
   approved crew, their own signup state per tournament, and randomizers. Staff tools answer
   "forbidden: Staff access required".
 - **Features off for `sgl26`:** Wizzrobe brackets, async qualifiers, race rooms. Standings come
-  from Challonge (above).
+  from Challonge (above). On 2026-10-16, 10 tournaments carry a Wizzrobe Challonge link, but the
+  bracket tools still answer "not enabled"; see `docs/backlog.md`.
 
 Still open:
 
@@ -303,40 +305,7 @@ Still open:
    enough for the standings tool?
 5. Which server, and which channels may the bot answer in? Default to a test channel first.
 
-## Deploying (later, together)
+## Deploying
 
-You do these; I'll walk through each when we get there.
-
-1. **Anthropic API key.** In the Claude Console (platform.claude.com), create a key in its own
-   workspace (for example `wizzbrew`) and set a monthly spend limit on that workspace. Copy the key
-   once; it goes only into Vercel env vars.
-2. **Discord application.** In the Discord Developer Portal, create an app named Wizzbrew. Note:
-   - the Application ID, the Public Key, and the Bot Token (reset it once, copy it);
-   - no privileged intents are needed;
-   - the install link uses scopes `applications.commands bot`, with permission to send messages
-     and embeds.
-
-   Install it to a test server first.
-3. **Wizzrobe.**
-   - Create the bot account and ask SG staff to admit it to the community.
-   - Register an OAuth client at `https://wizzrobe.synack.live/register` with redirect URI
-     `https://<vercel-domain>/api/oauth/callback`. That gives `WIZZROBE_OAUTH_CLIENT_ID` and
-     `_SECRET`.
-   - Run `scripts/wizzrobe-login.ts` once, locally, to sign the bot account in read-only. That
-     gives `WIZZROBE_BOT_REFRESH_TOKEN`.
-4. **GitHub.** Push the repo (public is fine: no secret is ever in the tree), then import it in
-   Vercel. Framework preset: Other.
-5. **Redis.** In the Vercel project, add Upstash Redis from the Marketplace. It injects its own
-   env vars.
-6. **Env vars.** In Vercel (Production and Preview), add everything in `.env.example`. Generate
-   `TOKEN_ENCRYPTION_KEY` with `openssl rand -base64 32`.
-7. **Deploy.** Push to `main`; Vercel builds. Then in the Discord portal, set Interactions
-   Endpoint URL to `https://<vercel-domain>/api/interactions`. Discord sends a PING and refuses the
-   URL if verification fails, which makes it a good first test.
-8. **Commands.** Run `npm run register` with `DISCORD_DEV_GUILD_ID` set (guild commands update
-   instantly). Drop the guild id when going global.
-9. **Smoke test.** `/ask what's on today` in the test server. `vercel logs` shows the router's
-   route and the spend line.
-
-Check the function duration limit for your Vercel plan before phase 2. A tool loop can run tens of
-seconds, and the followup has to land within Discord's 15-minute interaction token window.
+See `docs/handoff-deploy.md` (context, access and secrets, rollback) and
+`docs/deploy-checklist.md` (the steps, in order).

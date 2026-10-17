@@ -83,8 +83,10 @@ responder.
 
 ## Branch workflow
 
-- Work on feature branches, PR into `main`. `main` deploys to Vercel production. Never push to
-  `main` directly, never force-push.
+- Work on feature branches, PR into `main`. Production deploys from a versioned release branch
+  (`release/v0.1` now), never from `main`: shipping is a PR from `main` into the release branch.
+  A new minor version gets a new `release/vX.Y` branch, set as Vercel's production branch. Never
+  push to `main` or a release branch directly, never force-push.
 - Preview deployments use a separate Discord app or guild-scoped commands, never the live server.
 
 ## Posting to Discord

@@ -29,7 +29,9 @@ connection and forwards mentions, DMs and replies, with the reply chain, to the 
 Claude Haiku router, a code permission check, then a Claude Sonnet responder that reads Wizzrobe
 through the MCP connector on the Messages API. Writes are called directly over MCP after a
 Confirm. Upstash Redis holds linked accounts, cache, conversation state, the spend counter and
-the kill switch. Challonge supplies standings (optional). See [plan.md](plan.md).
+the kill switch. Bracket answers give the bracket and rules links; live standings are in
+[docs/backlog.md](docs/backlog.md). See [plan.md](plan.md); deploying starts at
+[docs/handoff-deploy.md](docs/handoff-deploy.md).
 
 ## Local dev
 
