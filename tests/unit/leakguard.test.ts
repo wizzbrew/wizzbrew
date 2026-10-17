@@ -212,4 +212,9 @@ describe("LEAK_REFUSAL", () => {
     expect(LEAK_REFUSAL.length).toBeLessThan(80);
     expect(isPromptLeak(LEAK_REFUSAL)).toBe(false);
   });
+
+  it("declines to share the setup and offers a glass of water, bartender style", () => {
+    expect(LEAK_REFUSAL).toContain("can't share how I'm set up");
+    expect(LEAK_REFUSAL.toLowerCase()).toContain("glass of water");
+  });
 });
