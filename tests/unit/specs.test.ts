@@ -105,20 +105,30 @@ describe("specs", () => {
     expect(SPECS.schedule.instructions).toContain("matches_for_me");
   });
 
-  it("players answers attendance only from the on-site tournaments' matches", () => {
+  it("players answers attendance from the tournaments' matches, then the attendee list", () => {
     const players = SPECS.players.instructions;
     expect(players).toContain("whether a named person is at the event, attending or entered");
-    expect(players).toContain("the only evidence is the on-site tournaments' matches");
+    expect(players).toContain("the evidence is two sources, checked in order");
     expect(players).toContain(
       "list_matches and get_schedule across the active tournaments, matched by display name",
     );
     expect(players).toContain(
       "answer yes in terms of what shows: the tournament and their next match",
     );
-    expect(players).toContain("there is no record of them in the on-site tournaments");
-    expect(players).toContain("tickets and check-in are not visible to the bot");
-    expect(players).toContain("a person without a scheduled match may still be attending");
+    expect(players).toContain(
+      "use the event_participants tool, which searches the SGL26 attendee list on Matcherino by display name",
+    );
+    expect(players).toContain("A match on that list means the person is attending");
+    expect(players).toContain("say it comes from the attendee list on Matcherino");
+    expect(players).toContain("name them and do not pick one");
+    expect(players).toContain("Always say which source matched");
+    expect(players).toContain(
+      "say there is no record of them attending, in the tournaments or on the attendee list",
+    );
     expect(players).toContain("Never guess attendance from anything else");
+    for (const hedge of ["proof of a ticket", "tickets and check-in", "may still be attending"]) {
+      expect(players, hedge).not.toContain(hedge);
+    }
   });
 
   it("chat answers a stray game question briefly from what is loaded, without refusing", () => {

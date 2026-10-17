@@ -49,7 +49,7 @@ describe("schemas sent to Anthropic", () => {
   });
 
   it("no client tool uses an unsupported keyword", () => {
-    const all = clientToolDefs(["matches_for_me", "challonge_bracket"]);
+    const all = clientToolDefs(["matches_for_me", "challonge_bracket", "event_participants"]);
     expect(violations(all, "clientTools")).toEqual([]);
   });
 

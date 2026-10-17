@@ -102,6 +102,19 @@ dashes. Questions about them route to `help`.
   `Community prize pool total: $15,140 (updated 14:05)`, on the community clock. If Matcherino
   fails, the stale line is used, or none; the answer is never held up beyond the timeout and a
   failure is logged as `prizepool.fetch_failed`.
+- **Attendee list.** With the same `MATCHERINO_BOUNTY_ID` set (empty turns it off, and then no
+  request is made), `src/event/participants.ts` reads the bounty's public participants list from
+  `https://api.matcherino.com/__api/bounties/participants`, 500 per page with a 5 second timeout
+  per request, and up to three more pages when the list is longer. The endpoint also returns ids
+  and avatar links that carry Discord ids; they are dropped when the response is parsed, so only
+  each display name and join time is ever held, cached or logged. The trimmed list is cached in
+  Redis for 20 minutes (`wb:v1:participants:{id}`) with a copy kept for 24 hours as the fallback
+  (`wb:v1:participants:stale:{id}`); a failed fetch, including any single failed page, uses the
+  stale copy or none and is logged as `participants.fetch_failed` with a status or error name
+  only. The players route reaches it through the `event_participants` tool, which searches by
+  display name (exact first, then whole-word matches, at most 5) and returns the matches with
+  their join date, the total, and a note. A match means the person is on the SGL26 attendee list;
+  the players route checks the on-site tournaments' matches first, then this list.
 
 ## Owner only
 
