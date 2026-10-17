@@ -17,7 +17,7 @@ const WINDOW = 60;
 const STRIDE = 20;
 
 // What the bot says in place of an answer that quoted its own setup. Plain, no dashes.
-export const LEAK_REFUSAL = "I can't share how I'm set up.";
+export const LEAK_REFUSAL = "I can't share how I'm set up. Can I get you a glass of water?";
 
 // Lowercase and collapse whitespace; punctuation stays so a quote still lines up character by
 // character with the source.
