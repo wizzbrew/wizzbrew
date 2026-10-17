@@ -45,10 +45,10 @@ These need other people. Ask early; none of them are code.
 - **GitHub:** the repo is public in the `wizzbrew` org (Vercel Hobby can't connect a private org
   repo). Give collaborators the **Write** role, not Admin. `main` and `release/v0.1` are protected:
   pull request required (zero approvals while Vince is the only developer; set it back to one
-  when a collaborator joins), no force-push, no deletion. The CI job `check`
-  (`.github/workflows/check.yml`) is the required status check on both: it runs `npm run check`,
-  then the relay build and tests, and must pass before any merge. The release branch deploys to
-  production, so its PR gate is what keeps unreviewed code away from production secrets.
+  when a collaborator joins), no force-push, no deletion. There is no CI by Vince's decision:
+  `npm run check`, plus the relay build and tests when `relay/` changed, runs locally before every
+  merge, and the PR description says it passed. The release branch deploys to production, so its
+  PR is what keeps unreviewed code away from production secrets.
 - **Releases:** feature PRs squash-merge into `main`. A release is a PR from `main` into
   `release/v0.1`, merged with a merge commit (never squash, or the branches diverge). Every
   release bumps the patch version in `package.json` and `relay/package.json` on `main` first, and
@@ -64,7 +64,7 @@ These need other people. Ask early; none of them are code.
   is one Upstash database, the project's, connected to Production only.
 - Mark production values **Sensitive** in Vercel. Rotate any value that is ever pasted somewhere
   it shouldn't be.
-- The `check` workflow is the only Actions workflow and uses no secrets. Keep production secrets
+- No GitHub Actions workflows, by Vince's decision. If that ever changes, keep production secrets
   out of Actions secrets: anyone with Write can add a workflow that reads them.
 
 ## Order

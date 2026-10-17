@@ -88,8 +88,8 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
   deploy, which has no env vars and so fails at startup by design.
 - To ship a release:
   1. On `main`, bump the patch version in `package.json` and `relay/package.json` (a PR, squash
-     merged, with `check` green).
-  2. Open a PR from `main` into `release/v0.1`. Wait for the `check` workflow to pass.
+     merged, with `npm run check` green locally).
+  2. Open a PR from `main` into `release/v0.1`.
   3. Merge it with a merge commit, never squash, or the branches diverge. Vercel builds
      production from the merged commit.
   4. Tag that commit `vX.Y.Z` (the version from step 1) and push the tag:

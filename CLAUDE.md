@@ -91,7 +91,8 @@ responder.
   (never squash, or the branches diverge). Every release bumps the patch version in
   `package.json` and `relay/package.json` on `main` first. The merged release commit is tagged
   `vX.Y.Z` and the tag is pushed.
-- The `check` workflow (`.github/workflows/check.yml`) must pass before any merge.
+- No CI and no GitHub Actions. The gate is `npm run check` (and the relay's build and tests when
+  `relay/` changed), run locally before every merge, and the PR says so.
 - Preview deployments get no env vars at all, so branch code fails at startup instead of touching
   production.
 
