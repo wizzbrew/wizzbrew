@@ -104,6 +104,28 @@ describe("config()", () => {
   });
 });
 
+describe("MATCHERINO_BOUNTY_ID", () => {
+  it("reads digits as the bounty id", () => {
+    vi.stubEnv("MATCHERINO_BOUNTY_ID", "182107");
+    expect(config().matcherinoBountyId).toBe("182107");
+  });
+
+  it("is null when empty or unset, which turns the prize pool line off", () => {
+    vi.stubEnv("MATCHERINO_BOUNTY_ID", "");
+    expect(config().matcherinoBountyId).toBeNull();
+    resetConfigForTests();
+    vi.stubEnv("MATCHERINO_BOUNTY_ID", undefined);
+    expect(configFor("matcherinoBountyId")).toEqual({ matcherinoBountyId: null });
+  });
+
+  it.each(["abc", "1821x7", "182107 ", "-5", "1.5"])("rejects %s loudly", (value) => {
+    vi.stubEnv("MATCHERINO_BOUNTY_ID", value);
+    expect(thrownText(() => config())).toBe(
+      "Config error: MATCHERINO_BOUNTY_ID must be digits only",
+    );
+  });
+});
+
 describe("OWNER_DISCORD_IDS and DM_DAILY_LIMIT", () => {
   it("reads the owner ids as a trimmed list", () => {
     vi.stubEnv("OWNER_DISCORD_IDS", " 111111111111111111 ,222222222222222222,");

@@ -28,6 +28,8 @@ const DUMMY_ENV: Record<string, string> = {
   STAFF_ALERT_CHANNEL_ID: "test-staff-alert-channel-id",
   OWNER_DISCORD_IDS: "100000000000000001,100000000000000002",
   DM_DAILY_LIMIT: "5",
+  // Empty means the prize pool line is off; the tests for it set a bounty id themselves.
+  MATCHERINO_BOUNTY_ID: "",
 };
 
 for (const [name, value] of Object.entries(DUMMY_ENV)) {

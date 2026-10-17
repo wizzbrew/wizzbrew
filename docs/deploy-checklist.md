@@ -81,6 +81,7 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 | `STAFF_ALERT_CHANNEL_ID` | A staff channel id, optional (step 10) |
 | `OWNER_DISCORD_IDS` | Comma-separated Discord user ids allowed to run `/dmlog`, optional (empty means nobody) |
 | `DM_DAILY_LIMIT` | DM questions one person may send per community day, optional (default `5`) |
+| `MATCHERINO_BOUNTY_ID` | Matcherino bounty id (digits only) for the live prize pool total in help answers, optional (empty turns the line off) |
 
 - Verify: the Vercel env list has no empty required name, and every name is scoped to Production
   only.

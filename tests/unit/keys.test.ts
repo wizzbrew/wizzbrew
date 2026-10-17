@@ -15,6 +15,8 @@ describe("keys", () => {
     expect(keys.lock("123")).toBe("wb:v1:lock:123");
     expect(keys.kill()).toBe("wb:v1:kill");
     expect(keys.alert("budget.hit_1")).toBe("wb:v1:alert:budget.hit_1");
+    expect(keys.prizePool("182107")).toBe("wb:v1:prizepool:182107");
+    expect(keys.prizePoolStale("182107")).toBe("wb:v1:prizepool:stale:182107");
   });
 
   it("gives the same key for the same input", () => {
@@ -38,6 +40,8 @@ describe("keys", () => {
     ["discord id with letters", () => keys.link("12a")],
     ["empty discord id", () => keys.userToken("")],
     ["link owner with a fraction", () => keys.linkOwner(1.5)],
+    ["bounty id with letters", () => keys.prizePool("18a")],
+    ["empty bounty id", () => keys.prizePoolStale("")],
     ["link owner negative", () => keys.linkOwner(-1)],
     ["oauth state with a space", () => keys.oauthState("has space")],
     ["oauth state with a slash", () => keys.oauthState("a/b")],

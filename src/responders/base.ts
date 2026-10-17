@@ -11,6 +11,8 @@ import { config } from "../config.js";
 import { isPromptLeak, LEAK_REFUSAL } from "../discord/leakguard.js";
 import { sanitizeForPrompt } from "../discord/markup.js";
 import { ModelOutputError } from "../errors.js";
+import { eventFacts } from "../event/facts.js";
+import { prizePoolLine } from "../event/prizepool.js";
 import { CACHE_1H, gameSystemBlocks, gameVolatileLines } from "../game/slices.js";
 import { type BetaMessageCreateParams, createMessage, textOf } from "../llm/client.js";
 import { log } from "../log.js";
@@ -29,8 +31,12 @@ const MAX_MS = 200_000;
 
 type Tools = NonNullable<BetaMessageCreateParams["tools"]>;
 
+// The routes that carry the event facts block (dates, venue, hotel, tickets, links).
+const EVENT_FACTS_ROUTES: ReadonlySet<Route> = new Set<Route>(["help", "tournaments"]);
+
 // The lines that change on every request. The clock lives here and nowhere in a cached block (L1).
-function volatileBlock(ctx: AskContext, decision: RoutingDecision): string {
+// extra holds other per-request lines, such as the live prize pool total.
+function volatileBlock(ctx: AskContext, decision: RoutingDecision, extra: string[] = []): string {
   const cfg = config();
   const linked = ctx.asker.linked;
   const lines = [
@@ -44,6 +50,7 @@ function volatileBlock(ctx: AskContext, decision: RoutingDecision): string {
         }`
       : "Not linked to Wizzrobe",
     `Params: ${JSON.stringify(decision.params)}`,
+    ...extra,
     ...(decision.route === "game" ? gameVolatileLines(decision) : []),
   ];
   return lines.join("\n");
@@ -225,8 +232,9 @@ async function produceAnswer(
   const ephemeral = r.ephemeral || ctx.ephemeral;
 
   // Stable first, volatile last. The game route caches its routine instructions and at most two
-  // subject blocks (src/game/slices.ts). Every other route caches the instructions block, and
-  // chat adds the event list; the last block carries the clock and the asker and is never cached.
+  // subject blocks (src/game/slices.ts). Every other route caches the instructions block; chat
+  // adds the event list, and help and tournaments add the event facts. The last block carries the
+  // clock and the asker and is never cached.
   const system: BetaTextBlockParam[] =
     route === "game"
       ? gameSystemBlocks(decision)
@@ -243,7 +251,15 @@ async function produceAnswer(
       system.push({ type: "text", text: events.join("\n"), cache_control: CACHE_1H });
     }
   }
-  system.push({ type: "text", text: volatileBlock(ctx, decision) });
+  if (EVENT_FACTS_ROUTES.has(route)) {
+    system.push({ type: "text", text: eventFacts(), cache_control: CACHE_1H });
+  }
+  // The live prize pool total is help only. It never throws, so a Matcherino outage costs the line.
+  const poolLine = route === "help" ? await prizePoolLine(ctx.now) : null;
+  system.push({
+    type: "text",
+    text: volatileBlock(ctx, decision, poolLine === null ? [] : [poolLine]),
+  });
   const messages: BetaMessageParam[] = [
     { role: "user", content: [{ type: "text", text: userText(ctx) }] },
   ];

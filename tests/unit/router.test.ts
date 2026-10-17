@@ -522,6 +522,28 @@ describe("ROUTER_PROMPT", () => {
     expect(gameParam).toContain("Use null");
   });
 
+  it("sends the event's own facts to help and keeps them out of schedule and tournaments", () => {
+    const description = (route: string): string =>
+      ROUTER_PROMPT.split("\n").find((l) => l.startsWith(`${route}:`)) ?? "";
+    const help = description("help");
+    for (const subject of [
+      "on-site dates",
+      "venue",
+      "hotel",
+      "tickets",
+      "prize pool and donations",
+      "Twitch channels",
+      "links",
+    ]) {
+      expect(help, subject).toContain(subject);
+    }
+    for (const route of ["schedule", "tournaments"]) {
+      expect(description(route), route).toContain(
+        "not the event's own dates, venue, hotel or tickets (help)",
+      );
+    }
+  });
+
   it("keeps questions about the bot's own setup out of help and data routes", () => {
     const description = (route: string): string =>
       ROUTER_PROMPT.split("\n").find((l) => l.startsWith(`${route}:`)) ?? "";
