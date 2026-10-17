@@ -7,8 +7,9 @@ out.
 
 ## Where it stands
 
-- `main` is at `v0.1.0` (commit `06220cf`), local only. There is no git remote yet, and nothing is
-  deployed.
+- The repo is `wizzbrew/wizzbrew` on GitHub, public. `main` and `release/v0.1` are at `v0.1.0`
+  (commit `06220cf`). Vercel project `wizzbrew` is connected, with `release/v0.1` as its
+  production branch. Nothing is deployed yet.
 - Everything is built and tested against fakes: 761 tests (three consecutive green runs), the
   rules gate, and 11 relay tests. Nothing has touched a real Discord app, Anthropic key, Redis or
   the Wizzrobe bot account.
@@ -39,9 +40,11 @@ These need other people. Ask early; none of them are code.
 
 ## Repo, access and secrets
 
-- **GitHub:** a private repo in a small org is fine. Give collaborators the **Write** role, not
-  Admin. Protect `main`: pull request required, Vince's approval, `npm run check` passing. `main`
-  deploys to production, so that gate is what keeps unreviewed code away from production secrets.
+- **GitHub:** the repo is public in the `wizzbrew` org (Vercel Hobby can't connect a private org
+  repo). Give collaborators the **Write** role, not Admin. `main` and `release/v0.1` are protected:
+  pull request with one approval, no force-push, no deletion. Add `npm run check` as a required
+  check once a CI workflow exists. The release branch deploys to production, so its PR gate is
+  what keeps unreviewed code away from production secrets.
 - The public-repo rules in CLAUDE.md still apply whether the repo is public or private: no secret
   in the tree, ever. `.env.example` holds names only; `src/config.ts` and `relay/src/config.ts`
   are the only readers of env.

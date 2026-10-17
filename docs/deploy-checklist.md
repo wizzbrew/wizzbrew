@@ -46,7 +46,8 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 
 ## 5. Vercel project and env vars
 
-- Push the repo to GitHub and import it in Vercel. Framework preset: Other.
+- Push the repo to GitHub and import it in Vercel. Framework preset: Other. Set the production
+  branch to `release/v0.1` (Settings, Environments, Production).
 - Set every name from `.env.example`. Production gets the real values. Preview gets its own test
   values (a separate Anthropic key with a small limit, the test Discord app, a separate Upstash
   database), so branch code never runs with production secrets:
@@ -81,7 +82,8 @@ Context, access, secrets and rollback: [handoff-deploy.md](handoff-deploy.md).
 
 ## 6. Deploy and the Interactions Endpoint
 
-- Push to `main`; Vercel builds.
+- Vercel's production branch is `release/v0.1`. Merge `main` into it through a PR; Vercel builds
+  production from it. Every other branch, `main` included, gets a Preview deploy.
 - In the Discord portal, set the Interactions Endpoint URL to
   `https://<vercel-domain>/api/interactions`.
 - Verify: Discord accepts the URL (it sends a PING and refuses on a bad signature check).
