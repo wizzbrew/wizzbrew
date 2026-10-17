@@ -15,6 +15,7 @@ vi.mock("../../src/ops/alerts.js", () => ({ isPaused: vi.fn(), alertStaff: vi.fn
 
 import { loadThread, saveThread, takePending } from "../../src/actions/pending.js";
 import { encodeCustomId } from "../../src/discord/components.js";
+import { helpText } from "../../src/discord/help.js";
 import { runAskPipeline } from "../../src/handlers/ask.js";
 import { runComponent } from "../../src/handlers/component.js";
 import { deliver, deliverError } from "../../src/handlers/deliver.js";
@@ -229,6 +230,29 @@ describe("handleInteraction", () => {
     const b = await body(await run(command("me")));
     expect(b.data.flags).toBe(64);
     expect(vi.mocked(runAskPipeline).mock.calls[0]?.[0].forced?.route).toBe("my_stuff");
+  });
+
+  it("/help answers at once, privately, with the static overview and no outside call", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const b = await body(await run(command("help")));
+    expect(b.type).toBe(4);
+    expect(b.data.flags).toBe(64);
+    expect(b.data.allowed_mentions).toEqual({ parse: [] });
+    expect(b.data.content).toBe(helpText());
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(loadAsker).not.toHaveBeenCalled();
+    expect(runAskPipeline).not.toHaveBeenCalled();
+    expect(scheduleAnswer).not.toHaveBeenCalled();
+    expect(saveThread).not.toHaveBeenCalled();
+    expect(deliver).not.toHaveBeenCalled();
+    expect(deliverError).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it("/help honors the kill switch like every other command", async () => {
+    vi.mocked(isPaused).mockResolvedValue(true);
+    const b = await body(await run(command("help")));
+    expect(b.data.content).toBe("Wizzbrew is paused right now.");
   });
 
   it("/live forces the live route", async () => {

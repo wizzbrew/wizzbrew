@@ -6,6 +6,7 @@ import type {
 } from "discord-api-types/v10";
 import { loadThread, saveThread, takePending } from "../actions/pending.js";
 import { decodeCustomId, encodeCustomId } from "../discord/components.js";
+import { helpText } from "../discord/help.js";
 import { normalizeInput } from "../discord/markup.js";
 import { userMessageFor } from "../errors.js";
 import { log } from "../log.js";
@@ -21,7 +22,7 @@ import { shortcutRequest } from "./shortcuts.js";
 
 const EPHEMERAL = 64;
 const NO_MENTIONS = { parse: [] as string[] };
-const PRIVATE_COMMANDS = new Set(["link", "unlink", "me"]);
+const PRIVATE_COMMANDS = new Set(["link", "unlink", "me", "help"]);
 const KNOWN_COMMANDS = new Set([
   "ask",
   "schedule",
@@ -31,6 +32,7 @@ const KNOWN_COMMANDS = new Set([
   "link",
   "unlink",
   "me",
+  "help",
 ]);
 
 type Waiter = (p: Promise<unknown>) => void;
@@ -139,6 +141,8 @@ async function handleCommand(
 ): Promise<Response> {
   if (await isPaused()) return say("Wizzbrew is paused right now.");
   if (!KNOWN_COMMANDS.has(i.data.name)) return say("I don't know that command.");
+  // Static text: answered in the interaction response itself, with no deferral and no model call.
+  if (i.data.name === "help") return say(helpText());
   const ephemeral = PRIVATE_COMMANDS.has(i.data.name);
   const target: ReplyTarget = { kind: "interaction", token: i.token, ephemeral };
   waitUntil(runCommand(i, target, requestId, now));

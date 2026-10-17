@@ -165,5 +165,19 @@ exports[`COMMANDS > matches the snapshot 1`] = `
     "name": "me",
     "type": 1,
   },
+  {
+    "contexts": [
+      0,
+      1,
+      2,
+    ],
+    "description": "What Wizzbrew can do and how to ask",
+    "integration_types": [
+      0,
+      1,
+    ],
+    "name": "help",
+    "type": 1,
+  },
 ]
 `;

@@ -14,6 +14,7 @@ const EXPECTED_NAMES: Record<CommandName, true> = {
   link: true,
   unlink: true,
   me: true,
+  help: true,
 };
 
 describe("COMMANDS", () => {
