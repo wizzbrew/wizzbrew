@@ -772,6 +772,7 @@ export function gameVolatileLines(decision: RoutingDecision): string[];         
 // game/override.ts
 export function overrideChatToGame(decision: RoutingDecision, question: string, requestId: string): RoutingDecision;   // chat + a catalog hit in the text -> game; logs router.override
 // tools/export-key-logic.py: reads StaticKeyLogic.py (door randomizer) with ast and writes prompts/alttp/logic/keys.json
+// tools/export-dungeon-logic.py: drives the door randomizer engine in memory (open, no-glitch or HMG, static key logic, vanilla doors) and writes prompts/alttp/logic/requirements.json and requirements-hmg.json: per location, needs, any_of, either, small_keys (and small_keys_without), big_key, relative to the dungeon's entry; build:game renders them into logic/<key>.md after the key door table, with an HMG difference section
 
 // event/ (added 2026-10-17): SGL 2026 facts and the live prize pool
 export function eventFacts(): string;                           // GAME_DATA["event/sgl26.md"], compiled from prompts/event/sgl26.md by build:game; throws when missing
