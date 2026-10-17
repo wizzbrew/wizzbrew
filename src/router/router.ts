@@ -89,7 +89,9 @@ export async function routeQuestion(ctx: AskContext): Promise<RoutingDecision> {
       {
         max_tokens: 4000,
         // The clock lives in the user turn only, so the cached system block never changes (L1).
-        system: [{ type: "text", text: ROUTER_PROMPT, cache_control: { type: "ephemeral" } }],
+        system: [
+          { type: "text", text: ROUTER_PROMPT, cache_control: { type: "ephemeral", ttl: "1h" } },
+        ],
         messages: [
           {
             role: "user",
