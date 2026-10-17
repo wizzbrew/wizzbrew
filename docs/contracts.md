@@ -386,7 +386,7 @@ export function seal(plaintext: string): Promise<string>;     // AES-256-GCM, TO
 export function open(sealed: string): Promise<string>;
 
 // llm/models.ts
-export const MODELS: { router: "claude-haiku-5-5"; responder: "claude-sonnet-5-5"; chat: "claude-haiku-5-5" };
+export const MODELS: { router: "claude-haiku-5-5"; responder: "claude-sonnet-5-5"; chat: "claude-sonnet-5-5" };
 export const PRICING: Record<string, { inPerM: number; outPerM: number; cacheReadPerM: number; cacheWritePerM: number }>;
 
 // llm/budget.ts

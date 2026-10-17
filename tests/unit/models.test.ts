@@ -14,3 +14,11 @@ describe("MODELS pricing", () => {
     },
   );
 });
+
+describe("MODELS routing", () => {
+  it("keeps the router on Haiku and puts chat on the responder's model", () => {
+    expect(MODELS.router).toBe("claude-haiku-5-5");
+    expect(MODELS.chat).toBe("claude-sonnet-5-5");
+    expect(MODELS.chat).toBe(MODELS.responder);
+  });
+});

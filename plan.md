@@ -49,7 +49,7 @@ All model ids live in one `MODELS` map, which is where to swap them.
 |---|---|---|
 | router | `claude-haiku-5-5`, effort `low` | Classification. JSON via structured outputs (`output_config.format`). |
 | responders | `claude-sonnet-5-5`, effort `medium` | Multi-step tool use, the same tier beer-league uses for agents. `claude-opus-5-5` is a one-line swap if answers are weak. |
-| chat / help | `claude-haiku-5-5` | Short answers from the help summary, no tools. |
+| chat / help | `claude-sonnet-5-5` | Short answers from the help summary, no tools. Chat moved from Haiku on 2026-10-17: it was not holding the voice. |
 
 Every call goes through one `createMessage(purpose, ...)` wrapper, as in beer-league. The wrapper:
 

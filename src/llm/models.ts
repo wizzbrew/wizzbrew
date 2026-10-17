@@ -1,11 +1,11 @@
 export const MODELS: {
   router: "claude-haiku-5-5";
   responder: "claude-sonnet-5-5";
-  chat: "claude-haiku-5-5";
+  chat: "claude-sonnet-5-5";
 } = {
   router: "claude-haiku-5-5",
   responder: "claude-sonnet-5-5",
-  chat: "claude-haiku-5-5",
+  chat: "claude-sonnet-5-5",
 };
 
 // USD per million tokens. Anthropic first-party rates, checked 2026-10-15.

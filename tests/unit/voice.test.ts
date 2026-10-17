@@ -54,10 +54,14 @@ describe("voice", () => {
     }
   });
 
-  it("keeps chat warm: no help-list exit, one turn of phrase", () => {
+  it("keeps chat warm: no help-list exit, light humor, one turn of phrase", () => {
     const text = CHAT_BLOCK.toLowerCase();
     expect(text).not.toContain("the schedule, streams");
-    expect(text).toContain("never answer casual talk with a list");
+    expect(text).toContain("never describe yourself or list what you can do");
+    expect(text).toContain("one or two short lines");
+    expect(text).toContain("light humor");
+    expect(text).toContain("never sarcastic");
+    expect(text).toContain("no closing offer");
     expect(text).toContain("at most one");
   });
 
