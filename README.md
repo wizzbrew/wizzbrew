@@ -11,14 +11,18 @@ up as crew, acknowledge a match, offer a match for stream.
 - **Replies.** Reply to one of its messages to follow up. Anyone can follow up on a public answer.
 - **DMs.** Message it directly; it answers there.
 - **Slash commands.** `/ask`, `/schedule`, `/live`, `/standings`, `/player`, `/link`, `/unlink`,
-  `/me`.
+  `/me`, `/help`. `/help` is a static private overview; it makes no model or Wizzrobe call.
 - **Buttons.** Anything that changes your data shows a Confirm and Cancel button first. Only the
   person who asked can press them, and the action runs with their own Wizzrobe token. Answers can
   also offer choices (for example when a name matches several players) and "Change something".
 - **Follow-ups.** The responder sees the earlier turns, so you can keep going in a reply chain.
+  Private answers cannot be replied to, so they carry an "Ask a follow-up" button instead.
 - **Private answers.** Anything about one person (`/me`, linked actions) is ephemeral. On the
   message path, "Show me privately" moves a personal answer out of the channel. Only schedule,
   stream and standings answers post publicly.
+- **Casual chat.** Chat has A Link to the Past and randomizer reference knowledge from
+  `prompts/alttp-game-knowledge.md`. After editing it, rebuild the prompt constant with
+  `npm run build:knowledge`; the unit tests fail until you do.
 
 ## Architecture
 

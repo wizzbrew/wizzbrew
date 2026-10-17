@@ -318,7 +318,8 @@ export function finalizeText(text: string): string[];   // dash-free, split <= 2
 export function renderAnswer(a: Answer, ids?: { pendingId?: string; threadId?: string }): RESTPatchAPIInteractionOriginalResponseJSONBody[];
 // pendingId -> Confirm/Cancel buttons, plus "Change something" when threadId is given;
 // threadId with choices -> one "choose" button per choice; threadId without choices or
-// pendingId -> one "Ask a follow-up" button
+// pendingId -> one "Ask a follow-up" button, only when the answer is ephemeral (a public
+// answer takes replies through the relay; an old public message's button keeps working)
 export function renderPrivateStub(threadId: string): RESTPatchAPIInteractionOriginalResponseJSONBody;
 // "This one is just for you." plus a "Show me privately" button (kind private)
 export function renderError(message: string, ephemeral: boolean): RESTPatchAPIInteractionOriginalResponseJSONBody;
@@ -344,6 +345,7 @@ export function decodeCustomId(id: string): ComponentAction | null;
 // discord/api.ts
 export interface DiscordApi {
   editOriginal(token: string, body: unknown): Promise<void>;
+  deleteOriginal(token: string): Promise<void>; // DELETE .../messages/@original
   followup(token: string, body: unknown): Promise<void>;
   registerCommands(commands: unknown[], guildId?: string): Promise<void>;
   postMessage(channelId: string, body: unknown, replyToMessageId?: string): Promise<void>;
@@ -386,7 +388,7 @@ export function seal(plaintext: string): Promise<string>;     // AES-256-GCM, TO
 export function open(sealed: string): Promise<string>;
 
 // llm/models.ts
-export const MODELS: { router: "claude-haiku-5-5"; responder: "claude-sonnet-5-5"; chat: "claude-haiku-5-5" };
+export const MODELS: { router: "claude-haiku-5-5"; responder: "claude-sonnet-5-5"; chat: "claude-sonnet-5-5" };
 export const PRICING: Record<string, { inPerM: number; outPerM: number; cacheReadPerM: number; cacheWritePerM: number }>;
 
 // llm/budget.ts
@@ -543,7 +545,8 @@ export function runAskPipeline(req: PipelineRequest): Promise<void>;   // never 
 // handlers/deliver.ts
 export function deliver(target: ReplyTarget, answer: Answer, ids: { pendingId?: string; threadId?: string }): Promise<void>;
 // interaction: edit the deferred reply with payload 0, followups for the rest; a private answer
-// behind a public deferral -> public "I sent you the answer privately." + ephemeral followups.
+// behind a public deferral -> ephemeral followups, then deleteOriginal so nothing public stays
+// (if the delete fails: warn, and edit the original to "I sent you the answer privately.").
 // message: never ephemeral; a private answer is held on the thread and the reply is
 // renderPrivateStub(threadId); public answers reply under the user's message (postMessage).
 export function deliverError(target: ReplyTarget, message: string): Promise<void>;   // never throws
@@ -620,7 +623,7 @@ export const block: {
 
 // discord.ts
 export class FakeDiscordApi implements DiscordApi {
-  readonly calls: { method: "editOriginal" | "followup" | "registerCommands" | "postMessage"; token: string | null; body: unknown }[];
+  readonly calls: { method: "editOriginal" | "deleteOriginal" | "followup" | "registerCommands" | "postMessage"; token: string | null; body: unknown }[];
   failNext(err: Error): void;                        // the next call throws err
 }
 

@@ -11,6 +11,7 @@ import {
   buttons,
   choicesReply,
   clientToolReply,
+  deletedOriginals,
   linkUser,
   type Payload,
   post,
@@ -32,7 +33,6 @@ import {
 
 const EM = String.fromCharCode(0x2014);
 const EN = String.fromCharCode(0x2013);
-const PRIVATE_LINE = "I sent you the answer privately.";
 const SIGNUP_ARGS = { match_id: 1, role: "commentator" };
 
 let world: World;
@@ -67,9 +67,9 @@ async function proposeSignup(token = "tok-ask"): Promise<{ confirm: string; canc
   expect(res.body).toEqual({ type: 5, data: { flags: 0 } });
   await res.done;
 
-  const edit = sent(world, "editOriginal", token);
-  expect(edit).toHaveLength(1);
-  expect(edit[0]?.content).toBe(PRIVATE_LINE);
+  // the card is a private followup and the public deferral is deleted, so nothing public stays
+  expect(sent(world, "editOriginal", token)).toHaveLength(0);
+  expect(deletedOriginals(world)).toEqual([token]);
   const followups = sent(world, "followup", token);
   expect(followups).toHaveLength(1);
   const card = followups[0] as Payload;
@@ -86,7 +86,7 @@ function signups(): typeof world.wizzrobe.calls {
 }
 
 describe("slash commands end to end", () => {
-  it("1. /ask routes to schedule and answers publicly with a follow-up button", async () => {
+  it("1. /ask routes to schedule and answers publicly with no follow-up button", async () => {
     world.anthropic.queue(
       routerReply("schedule"),
       thinkingMcpReply("Two matches are on Fire today."),
@@ -108,7 +108,9 @@ describe("slash commands end to end", () => {
     const edit = edits[0] as Payload;
     expect(edit.content).toBe("Two matches are on Fire today.");
     expect(edit.allowed_mentions).toEqual({ parse: [] });
-    expect(buttons(edit).map((b) => b.label)).toEqual(["Ask a follow-up"]);
+    // a public answer takes replies, so it carries no follow-up button
+    expect(buttons(edit)).toEqual([]);
+    expect(deletedOriginals(world)).toEqual([]);
   });
 
   it("2. /live answers directly with no model call", async () => {
@@ -124,6 +126,9 @@ describe("slash commands end to end", () => {
       expect(edits[0]?.content).toContain(`**${stage}**`);
     }
     expect(edits[0]?.content).toContain("Now:");
+    // Stream links are angle-bracketed so Discord posts no link embeds.
+    expect(edits[0]?.content).toContain("<https://");
+    expect(edits[0]?.content).not.toMatch(/(^|[^<])https:\/\//);
   });
 
   it("3. a linked user proposes a write, confirms, and the write runs as that user", async () => {
@@ -230,7 +235,8 @@ describe("slash commands end to end", () => {
     const asked = await post(ask(USER_B, "tok8b", "connect me to SGL"));
     expect(asked.body).toEqual({ type: 5, data: { flags: 0 } });
     await asked.done;
-    expect(sent(world, "editOriginal", "tok8b").map((e) => e.content)).toEqual([PRIVATE_LINE]);
+    expect(sent(world, "editOriginal", "tok8b")).toHaveLength(0);
+    expect(deletedOriginals(world)).toEqual(["tok8b"]);
     const followups = sent(world, "followup", "tok8b");
     expect(followups).toHaveLength(1);
     expect(followups[0]?.flags).toBe(64);
@@ -297,32 +303,60 @@ describe("slash commands end to end", () => {
     expect(await world.kv.get(keys.oauthState(state2))).toBeNull();
   });
 
-  it("9. a follow-up carries the earlier turns to the router and the responder", async () => {
-    world.anthropic.queue(routerReply("schedule"), textReply("Two matches are on Fire today."));
-    const first = await post(ask(USER_B, "tok9a", "what's on today"));
+  it("9. a follow-up on a private answer carries the earlier turns to the router and the responder", async () => {
+    await linkUser(world, USER_A);
+    world.anthropic.queue(routerReply("my_stuff"), textReply("You have one shift on Friday."));
+    const first = await post(ask(USER_A, "tok9a", "what are my shifts"));
+    expect(first.body).toEqual({ type: 5, data: { flags: 0 } });
     await first.done;
-    const answer = sent(world, "editOriginal", "tok9a")[0] as Payload;
+    // the private answer is a followup carrying the button, and the public deferral is gone
+    expect(sent(world, "editOriginal", "tok9a")).toHaveLength(0);
+    expect(deletedOriginals(world)).toEqual(["tok9a"]);
+    const answer = sent(world, "followup", "tok9a")[0] as Payload;
+    expect(answer.flags).toBe(64);
     const followupId = buttonId(answer, "Ask a follow-up");
 
-    const modal = await post(press(USER_B, "tok9b", followupId));
+    const modal = await post(press(USER_A, "tok9b", followupId));
     expect(modal.body.type).toBe(9);
     const modalData = modal.body.data as { custom_id: string };
 
-    world.anthropic.queue(routerReply("schedule"), textReply("Tomorrow has one match."));
+    world.anthropic.queue(routerReply("my_stuff"), textReply("Nothing else this week."));
     const submitted = await post(
-      submitModal(USER_B, "tok9c", modalData.custom_id, "and tomorrow?"),
+      submitModal(USER_A, "tok9c", modalData.custom_id, "and next week?"),
     );
-    expect(submitted.body).toEqual({ type: 5, data: { flags: 0 } });
+    expect(submitted.body).toEqual({ type: 5, data: { flags: 64 } });
     await submitted.done;
 
     for (const n of [2, 3]) {
       const text = JSON.stringify(request(n).messages);
       expect(text).toContain("Earlier in this conversation");
-      expect(text).toContain("what's on today");
-      expect(text).toContain("Two matches are on Fire today.");
-      expect(text).toContain("and tomorrow?");
+      expect(text).toContain("what are my shifts");
+      expect(text).toContain("You have one shift on Friday.");
+      expect(text).toContain("and next week?");
     }
-    expect(sent(world, "editOriginal", "tok9c")[0]?.content).toBe("Tomorrow has one match.");
+    expect(sent(world, "editOriginal", "tok9c")[0]?.content).toBe("Nothing else this week.");
+  });
+
+  it("9b. a follow-up button left on an old public answer still opens the form and answers", async () => {
+    world.anthropic.queue(routerReply("schedule"), textReply("Two matches are on Fire today."));
+    const first = await post(ask(USER_B, "tok9d", "what's on today"));
+    await first.done;
+    const threadKey = world.kv.keys().find((k) => k.startsWith("wb:v1:thread:"));
+    expect(threadKey).toBeDefined();
+    const oldButton = `wb:followup:${(threadKey as string).split(":").pop()}`;
+
+    const modal = await post(press(USER_B, "tok9e", oldButton));
+    expect(modal.body.type).toBe(9);
+    const modalData = modal.body.data as { custom_id: string };
+
+    world.anthropic.queue(routerReply("schedule"), textReply("Tomorrow has one match."));
+    const submitted = await post(
+      submitModal(USER_B, "tok9f", modalData.custom_id, "and tomorrow?"),
+    );
+    expect(submitted.body).toEqual({ type: 5, data: { flags: 0 } });
+    await submitted.done;
+    expect(JSON.stringify(request(3).messages)).toContain("Two matches are on Fire today.");
+    expect(sent(world, "editOriginal", "tok9f")[0]?.content).toBe("Tomorrow has one match.");
   });
 
   it("10. a Wizzrobe 429 mid-answer becomes the busy message", async () => {
@@ -423,7 +457,7 @@ describe("slash commands end to end", () => {
     for (const p of [...edits, ...followups]) {
       expect((p.content ?? "").length).toBeLessThanOrEqual(2000);
     }
-    expect(buttons(edits[0] as Payload).map((b) => b.label)).toEqual(["Ask a follow-up"]);
+    expect(buttons(edits[0] as Payload)).toEqual([]);
   });
 
   it("15. dashes in model output never reach Discord", async () => {

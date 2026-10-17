@@ -93,8 +93,10 @@ responder.
   `vX.Y.Z` and the tag is pushed.
 - No CI and no GitHub Actions. The gate is `npm run check` (and the relay's build and tests when
   `relay/` changed), run locally before every merge, and the PR says so.
-- Preview deployments get no env vars at all, so branch code fails at startup instead of touching
-  production.
+- Only the release branch deploys. Vercel's Ignored Build Step on the project,
+  `[ "$VERCEL_ENV" = "production" ] && exit 1 || exit 0`, skips every push that isn't to the
+  production branch, so `main` and feature branches never build. There are no preview
+  deployments. Railway deploys the relay from the same release branch.
 
 ## Posting to Discord
 

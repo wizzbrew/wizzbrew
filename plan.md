@@ -49,7 +49,7 @@ All model ids live in one `MODELS` map, which is where to swap them.
 |---|---|---|
 | router | `claude-haiku-5-5`, effort `low` | Classification. JSON via structured outputs (`output_config.format`). |
 | responders | `claude-sonnet-5-5`, effort `medium` | Multi-step tool use, the same tier beer-league uses for agents. `claude-opus-5-5` is a one-line swap if answers are weak. |
-| chat / help | `claude-haiku-5-5` | Short answers from the help summary, no tools. |
+| chat / help | `claude-sonnet-5-5` | Short answers from the help summary, no tools. Chat moved from Haiku on 2026-10-17: it was not holding the voice. |
 
 Every call goes through one `createMessage(purpose, ...)` wrapper, as in beer-league. The wrapper:
 
@@ -118,6 +118,7 @@ Slash commands, registered by `scripts/register-commands.ts`:
 | `/standings tournament:` | Standings from Challonge, with the bracket and rules links. |
 | `/player name:` | A player's tournaments, next match, bracket position. |
 | `/link`, `/unlink`, `/me` | Account linking; `/me` shows your matches, crew slots, shifts. |
+| `/help` | A static, private overview: the commands, @mention, reply and DM, linking. No model call. |
 
 - Answers about one person (`/me`, linked actions) are **ephemeral** (flag 64). Schedule and
   standings answers are public in the channel.
@@ -150,9 +151,12 @@ as `/link`; "what's live" the same answer as `/live`.
 **Conversation.**
 - Mentions and replies: the reply chain is the conversation (as in beer-league). Each turn
   rebuilds context from the chain plus a fresh clock (L1).
-- Slash answers: an "Ask a follow-up" button opens a modal; the thread's last 6 turns live in
-  Redis with a 30-minute idle expiry (L15). Anyone may follow up on a public answer (their
-  follow-up forks a thread they own); a private thread stays with its owner.
+- Follow-ups: a public answer is followed up by replying to it (the relay); a private answer
+  cannot be replied to, so it carries an "Ask a follow-up" button that opens a modal. The
+  thread's last 6 turns live in Redis with a 30-minute idle expiry (L15). Anyone may follow up
+  on a public answer (their follow-up forks a thread they own); a private thread stays with its
+  owner. A private answer to a public slash command leaves no public message: the deferral is
+  deleted after the ephemeral answer is sent.
 - Responders and chat see the earlier turns, not only the router.
 - A proposed write shows Confirm, Cancel and "Change something" (cancels and asks what to fix).
 

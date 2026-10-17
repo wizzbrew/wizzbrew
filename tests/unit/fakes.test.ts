@@ -203,10 +203,12 @@ describe("FakeDiscordApi", () => {
     const api = new FakeDiscordApi();
     await api.editOriginal("tok1", { content: "a" });
     await api.followup("tok2", { content: "b" });
+    await api.deleteOriginal("tok3");
     await api.registerCommands([{ name: "ask" }], "guild");
     expect(api.calls).toEqual([
       { method: "editOriginal", token: "tok1", body: { content: "a" } },
       { method: "followup", token: "tok2", body: { content: "b" } },
+      { method: "deleteOriginal", token: "tok3", body: null },
       { method: "registerCommands", token: null, body: [{ name: "ask" }] },
     ]);
   });

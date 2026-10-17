@@ -14,3 +14,22 @@ describe("MODELS pricing", () => {
     },
   );
 });
+
+describe("cache write pricing", () => {
+  it.each(Object.entries(MODELS))(
+    "%s prices cache writes at the one hour rate, 2x input and 0.1x for reads",
+    (_role, model) => {
+      const price = PRICING[model];
+      expect(price?.cacheWritePerM).toBeCloseTo((price?.inPerM ?? 0) * 2, 12);
+      expect(price?.cacheReadPerM).toBeCloseTo((price?.inPerM ?? 0) * 0.1, 12);
+    },
+  );
+});
+
+describe("MODELS routing", () => {
+  it("keeps the router on Haiku and puts chat on the responder's model", () => {
+    expect(MODELS.router).toBe("claude-haiku-5-5");
+    expect(MODELS.chat).toBe("claude-sonnet-5-5");
+    expect(MODELS.chat).toBe(MODELS.responder);
+  });
+});

@@ -74,6 +74,28 @@ describe("discord api client", () => {
     expect(JSON.parse(c.init.body as string)).toEqual({ content: "hi" });
   });
 
+  it("deleteOriginal DELETEs the original message with no body and no auth header", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await discordApi().deleteOriginal(INTERACTION_TOKEN);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const c = call(0);
+    expect(c.url).toBe(`${BASE}/webhooks/${APP_ID}/${INTERACTION_TOKEN}/messages/@original`);
+    expect(c.init.method).toBe("DELETE");
+    expect(headersOf(c).Authorization).toBeUndefined();
+    expect(c.init.body).toBeUndefined();
+  });
+
+  it("deleteOriginal throws a DiscordError on a failure and keeps the token out of it", async () => {
+    fetchMock.mockResolvedValueOnce(json(404, { message: "Unknown Webhook", code: 10015 }));
+    const err = await messageOf(discordApi().deleteOriginal(INTERACTION_TOKEN));
+
+    expect(err).toBeInstanceOf(DiscordError);
+    expect(err.status).toBe(404);
+    expect(err.message).toContain("Unknown Webhook");
+    expect(err.message).not.toContain(INTERACTION_TOKEN);
+  });
+
   it("followup POSTs to the webhook with JSON and no auth header", async () => {
     fetchMock.mockResolvedValueOnce(json(200, {}));
     await discordApi().followup(INTERACTION_TOKEN, { content: "more", flags: 64 });
@@ -250,6 +272,7 @@ describe("discord api client", () => {
   it("setDiscordApiForTests swaps the client and null restores the real one", async () => {
     const fake = {
       editOriginal: vi.fn(() => Promise.resolve()),
+      deleteOriginal: vi.fn(() => Promise.resolve()),
       followup: vi.fn(() => Promise.resolve()),
       registerCommands: vi.fn(() => Promise.resolve()),
       postMessage: vi.fn(() => Promise.resolve()),

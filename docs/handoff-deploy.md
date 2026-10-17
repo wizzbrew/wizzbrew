@@ -59,9 +59,10 @@ These need other people. Ask early; none of them are code.
 - **Secrets live only in Vercel and Railway env vars** (and each developer's own
   `.env.local`, which git ignores). Don't add collaborators to the Vercel or Railway teams; team
   members can read env values.
-- **Preview deploys have no secrets.** Preview gets no env vars at all, so branch code fails at
-  startup instead of touching production. Every variable is scoped to Production only, and there
-  is one Upstash database, the project's, connected to Production only.
+- **Only the release branch builds.** The Ignored Build Step on the Vercel project skips every
+  push that isn't to the production branch, so `main` and feature branches never deploy. Every
+  variable is scoped to Production only, and there is one Upstash database, the project's,
+  connected to Production only.
 - Mark production values **Sensitive** in Vercel. Rotate any value that is ever pasted somewhere
   it shouldn't be.
 - No GitHub Actions workflows, by Vince's decision. If that ever changes, keep production secrets
@@ -77,8 +78,7 @@ Follow [deploy-checklist.md](deploy-checklist.md) steps 1 to 11. These notes go 
   and needs `http://127.0.0.1:8976/callback` registered. It prints the refresh token once; paste
   it straight into Vercel.
 - **Step 4 (Upstash):** one database, the project's, on Production only. No Preview database.
-- **Step 5 (env):** production values go on Production only; Preview gets nothing (above).
-  `CHALLONGE_API_KEY` stays empty.
+- **Step 5 (env):** production values go on Production only. `CHALLONGE_API_KEY` stays empty.
 - **Step 6 (release flow):** production builds from `release/v0.1`. Bump the patch version in
   `package.json` and `relay/package.json` on `main` (squash PR), open a PR from `main` into
   `release/v0.1`, wait for `check` to pass, merge with a merge commit, then tag the merged commit
